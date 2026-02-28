@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="light dark" />
+		<link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
+		<script>
+			// Apply persisted theme immediately to prevent flash
+			(function () {
+				const stored = localStorage.getItem('theme-mode');
+				let theme = 'light';
+				if (stored === 'dark') {
+					theme = 'dark';
+				} else if (stored === 'light') {
+					theme = 'light';
+				} else {
+					theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+				}
+				document.documentElement.setAttribute('data-theme', theme);
+			})();
+		</script>
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

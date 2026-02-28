@@ -1,0 +1,644 @@
+<script lang="ts">
+	import ThemeToggle from './ThemeToggle.svelte';
+	import type { ThemeMode } from '$lib/stores/theme.svelte';
+	import type { Tag } from '$lib/types';
+	import { getContext } from 'svelte';
+
+	interface Props {
+		searchQuery?: string;
+		tags?: Tag[];
+		selectedTagIds?: number[];
+		themeMode: ThemeMode;
+		onsearch?: (query: string) => void;
+		ontagtoggle?: (tagId: number) => void;
+		oncleartags?: () => void;
+		onadd?: () => void;
+		onaddcategory?: () => void;
+		onthemechange?: (mode: ThemeMode) => void;
+	}
+
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, onthemechange }: Props = $props();
+
+	let searchInputEl = $state<HTMLInputElement | null>(null);
+	let showTagMenu = $state(false);
+	let showHelp = $state(false);
+	let showClock = $state(false);
+	let now = $state(new Date());
+
+	$effect(() => {
+		if (!showClock) return;
+		const interval = setInterval(() => { now = new Date(); }, 1000);
+		return () => clearInterval(interval);
+	});
+
+	let clockText = $derived.by(() => {
+		const date = now.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+		const time = now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+		return `${date} ${time}`;
+	});
+
+	function handleSearchInput(e: Event) {
+		const target = e.target as HTMLInputElement;
+		searchQuery = target.value;
+		onsearch?.(searchQuery);
+	}
+
+	const app = getContext<{ setFocusSearch: (fn: () => void) => void }>('app');
+
+	function focusSearch() {
+		searchInputEl?.focus();
+	}
+
+	app.setFocusSearch(focusSearch);
+
+	function handleGlobalKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && showHelp) {
+			showHelp = false;
+		}
+	}
+
+	function handleSearchKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			searchQuery = '';
+			onsearch?.('');
+			searchInputEl?.blur();
+		}
+	}
+</script>
+
+<svelte:window onkeydown={handleGlobalKeydown} />
+
+<header class="toolbar glass-strong">
+	<div class="toolbar-left">
+		{#if showClock}
+			<button class="toolbar-clock" onclick={() => showClock = false} title="Show title">
+				{clockText}
+			</button>
+		{:else}
+			<button class="toolbar-title" onclick={() => showClock = true} title="Show clock">
+				Pane
+			</button>
+		{/if}
+	</div>
+
+	<div class="toolbar-center">
+		<div class="search-wrapper">
+			<!-- Search icon -->
+			<svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<circle cx="11" cy="11" r="8" />
+				<line x1="21" y1="21" x2="16.65" y2="16.65" />
+			</svg>
+			<input
+				bind:this={searchInputEl}
+				class="input search-input"
+				type="text"
+				placeholder="Search..."
+				value={searchQuery}
+				oninput={handleSearchInput}
+				onkeydown={handleSearchKeydown}
+			/>
+			{#if searchQuery}
+				<button class="search-clear" onclick={() => { searchQuery = ''; onsearch?.(''); }} aria-label="Clear search" title="Clear search">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<line x1="18" y1="6" x2="6" y2="18" />
+						<line x1="6" y1="6" x2="18" y2="18" />
+					</svg>
+				</button>
+			{/if}
+		</div>
+		{#if tags.length > 0}
+			<div class="tag-dropdown-wrapper">
+				<button
+					class="btn-tag-filter"
+					class:has-selection={selectedTagIds.length > 0}
+					title="Filter by tags"
+					aria-label="Filter by tags"
+					onclick={() => showTagMenu = !showTagMenu}
+				>
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+						<line x1="7" y1="7" x2="7.01" y2="7" />
+					</svg>
+					{#if selectedTagIds.length > 0}
+						<span class="tag-count">{selectedTagIds.length}</span>
+					{/if}
+				</button>
+				{#if showTagMenu}
+					<div class="tag-menu glass-strong">
+						<div class="tag-menu-header">
+							<span class="tag-menu-title">Filter by tags</span>
+							{#if selectedTagIds.length > 0}
+								<button class="tag-menu-clear" onclick={oncleartags}>Clear</button>
+							{/if}
+						</div>
+						<div class="tag-menu-list">
+							{#each tags as tag (tag.id)}
+								<button
+									class="tag-menu-item"
+									class:selected={selectedTagIds.includes(tag.id)}
+									onclick={() => ontagtoggle?.(tag.id)}
+								>
+									<span class="tag-menu-dot" style:background-color={tag.color}></span>
+									<span class="tag-menu-name">{tag.name}</span>
+									{#if selectedTagIds.includes(tag.id)}
+										<svg class="tag-menu-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+											<polyline points="20 6 9 17 4 12" />
+										</svg>
+									{/if}
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
+	</div>
+
+	<div class="toolbar-right">
+		<button class="btn-toolbar-icon" onclick={() => onadd?.()} aria-label="Add item" title="Add item">
+			<!-- file-plus -->
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+				<polyline points="14 2 14 8 20 8" />
+				<line x1="12" y1="18" x2="12" y2="12" />
+				<line x1="9" y1="15" x2="15" y2="15" />
+			</svg>
+		</button>
+		<button class="btn-toolbar-icon" onclick={() => onaddcategory?.()} aria-label="Add category" title="Add category">
+			<!-- folder-plus -->
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+				<line x1="12" y1="11" x2="12" y2="17" />
+				<line x1="9" y1="14" x2="15" y2="14" />
+			</svg>
+		</button>
+		<ThemeToggle mode={themeMode} onchange={onthemechange} />
+		<button class="btn-toolbar-icon" onclick={() => showHelp = true} aria-label="Help" title="Help">
+			<!-- help-circle -->
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<circle cx="12" cy="12" r="10" />
+				<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+				<line x1="12" y1="17" x2="12.01" y2="17" />
+			</svg>
+		</button>
+	</div>
+</header>
+
+{#if showTagMenu}
+	<div class="tag-menu-backdrop" onclick={() => showTagMenu = false} onkeydown={(e) => { if (e.key === 'Escape') showTagMenu = false; }} role="button" tabindex="-1"></div>
+{/if}
+
+{#if showHelp}
+	<div class="help-overlay" onclick={(e) => { if (e.target === e.currentTarget) showHelp = false; }} onkeydown={(e) => { if (e.key === 'Escape') showHelp = false; }} role="button" tabindex="-1">
+		<div class="help-panel glass-strong">
+			<div class="help-header">
+				<h2 class="help-title">Pane Help</h2>
+				<button class="help-close" onclick={() => showHelp = false} aria-label="Close" title="Close">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<line x1="18" y1="6" x2="6" y2="18" />
+						<line x1="6" y1="6" x2="18" y2="18" />
+					</svg>
+				</button>
+			</div>
+			<div class="help-body">
+				<section class="help-section">
+					<h3>Getting started</h3>
+					<p>Pane is a local Kanban dashboard for organizing links, notes, and documents into columns.</p>
+					<ul>
+						<li>Create <strong>categories</strong> (columns) to group your items</li>
+						<li>Add <strong>links</strong>, <strong>notes</strong>, or <strong>documents</strong> to any category</li>
+						<li>Create <strong>subcategories</strong> to nest organization deeper</li>
+					</ul>
+				</section>
+				<section class="help-section">
+					<h3>Drag &amp; drop</h3>
+					<ul>
+						<li>Drag items between columns to move them</li>
+						<li>Drag items into expanded subcategories</li>
+						<li>Drag columns to reorder them</li>
+						<li>Drop a <strong>URL</strong> or <strong>file</strong> onto a column to add it instantly</li>
+					</ul>
+				</section>
+				<section class="help-section">
+					<h3>Tags &amp; filtering</h3>
+					<ul>
+						<li>Assign tags to items when creating or editing them</li>
+						<li>Click a <strong>tag badge</strong> on a card to filter by that tag</li>
+						<li>Use the <strong>tag dropdown</strong> next to the search box to filter by multiple tags</li>
+						<li>Search and tag filters combine — both must match</li>
+					</ul>
+				</section>
+				<section class="help-section">
+					<h3>Keyboard shortcuts</h3>
+					<div class="shortcut-list">
+						<div class="shortcut-row">
+							<span class="shortcut-keys"><kbd>/</kbd> or <kbd>Cmd</kbd><kbd>K</kbd></span>
+							<span>Focus search</span>
+						</div>
+						<div class="shortcut-row">
+							<span class="shortcut-keys"><kbd>Cmd</kbd><kbd>N</kbd></span>
+							<span>New item</span>
+						</div>
+						<div class="shortcut-row">
+							<span class="shortcut-keys"><kbd>Cmd</kbd><kbd>Shift</kbd><kbd>N</kbd></span>
+							<span>New category</span>
+						</div>
+						<div class="shortcut-row">
+							<span class="shortcut-keys"><kbd>Esc</kbd></span>
+							<span>Close modal / clear search</span>
+						</div>
+					</div>
+				</section>
+				<section class="help-section">
+					<h3>Other features</h3>
+					<ul>
+						<li>Click the <strong>Pane</strong> title to show a live clock</li>
+						<li>Toggle between <strong>light</strong>, <strong>dark</strong>, and <strong>system</strong> themes</li>
+						<li>Click a card to open its link, preview media, or read notes</li>
+					</ul>
+				</section>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<style>
+	.toolbar {
+		position: sticky;
+		top: 0;
+		z-index: 100;
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 10px 20px;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.toolbar-left {
+		flex-shrink: 1;
+		min-width: 0;
+		max-width: 40%;
+		overflow: hidden;
+	}
+
+	.toolbar-title {
+		font-size: 18px;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		color: var(--text-primary);
+		cursor: pointer;
+		border-radius: var(--radius-sm);
+		padding: 2px 4px;
+		margin: -2px -4px;
+		transition: color var(--transition);
+	}
+
+	.toolbar-title:hover {
+		color: var(--accent);
+	}
+
+	.toolbar-clock {
+		font-size: 18px;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		color: var(--text-primary);
+		cursor: pointer;
+		border-radius: var(--radius-sm);
+		padding: 2px 4px;
+		margin: -2px -4px;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		display: block;
+		transition: color var(--transition);
+	}
+
+	.toolbar-clock:hover {
+		color: var(--accent);
+	}
+
+	.toolbar-center {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.search-wrapper {
+		position: relative;
+		flex: 1;
+	}
+
+	.search-icon {
+		position: absolute;
+		left: 10px;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--text-muted);
+		pointer-events: none;
+	}
+
+	.search-input {
+		padding-left: 34px;
+		padding-right: 32px;
+		background-color: var(--bg-glass);
+		border-color: var(--border-glass);
+	}
+
+	.search-input:focus {
+		background-color: var(--bg-secondary);
+		border-color: var(--accent);
+	}
+
+	.search-clear {
+		position: absolute;
+		right: 8px;
+		top: 50%;
+		transform: translateY(-50%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		border-radius: var(--radius-sm);
+		color: var(--text-muted);
+		transition: color var(--transition);
+	}
+
+	.search-clear:hover {
+		color: var(--text-primary);
+	}
+
+	.tag-dropdown-wrapper {
+		position: relative;
+		flex-shrink: 0;
+	}
+
+	.btn-tag-filter {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 6px 8px;
+		border-radius: var(--radius);
+		color: var(--text-muted);
+		background: var(--bg-glass);
+		border: 1px solid var(--border-glass);
+		cursor: pointer;
+		transition: background-color var(--transition), color var(--transition), border-color var(--transition);
+	}
+
+	.btn-tag-filter:hover {
+		color: var(--text-primary);
+		background: var(--accent-soft);
+		border-color: var(--border);
+	}
+
+	.btn-tag-filter.has-selection {
+		color: var(--accent);
+		border-color: var(--accent);
+	}
+
+	.tag-count {
+		font-size: 11px;
+		font-weight: 700;
+		background: var(--accent);
+		color: white;
+		min-width: 16px;
+		height: 16px;
+		line-height: 16px;
+		text-align: center;
+		border-radius: 9999px;
+		padding: 0 4px;
+	}
+
+	.tag-menu {
+		position: absolute;
+		top: calc(100% + 6px);
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 150;
+		min-width: 200px;
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-lg);
+		overflow: hidden;
+	}
+
+	.tag-menu-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 12px;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.tag-menu-title {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.tag-menu-clear {
+		font-size: 12px;
+		color: var(--accent);
+		cursor: pointer;
+	}
+
+	.tag-menu-clear:hover {
+		text-decoration: underline;
+	}
+
+	.tag-menu-list {
+		padding: 4px;
+		max-height: 240px;
+		overflow-y: auto;
+	}
+
+	.tag-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 7px 10px;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: background-color var(--transition);
+		text-align: left;
+	}
+
+	.tag-menu-item:hover {
+		background: var(--accent-soft);
+	}
+
+	.tag-menu-item.selected {
+		background: var(--accent-soft);
+	}
+
+	.tag-menu-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+
+	.tag-menu-name {
+		flex: 1;
+		font-size: 13px;
+		color: var(--text-primary);
+	}
+
+	.tag-menu-check {
+		flex-shrink: 0;
+		color: var(--accent);
+	}
+
+	.tag-menu-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 99;
+	}
+
+	.toolbar-right {
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.btn-toolbar-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--radius);
+		color: var(--text-muted);
+		transition: background-color var(--transition), color var(--transition);
+	}
+
+	.btn-toolbar-icon:hover {
+		background: var(--accent-soft);
+		color: var(--accent);
+	}
+
+	.help-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 9999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(4px);
+	}
+
+	.help-panel {
+		width: 90vw;
+		max-width: 560px;
+		max-height: 85vh;
+		overflow-y: auto;
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-lg);
+		display: flex;
+		flex-direction: column;
+	}
+
+	.help-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 16px 20px;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.help-title {
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.help-close {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		border-radius: var(--radius-sm);
+		color: var(--text-muted);
+		transition: background-color var(--transition), color var(--transition);
+	}
+
+	.help-close:hover {
+		background: var(--accent-soft);
+		color: var(--text-primary);
+	}
+
+	.help-body {
+		padding: 16px 20px 20px;
+	}
+
+	.help-section {
+		margin-bottom: 16px;
+	}
+
+	.help-section:last-child {
+		margin-bottom: 0;
+	}
+
+	.help-section h3 {
+		font-size: 13px;
+		font-weight: 700;
+		color: var(--text-primary);
+		margin-bottom: 6px;
+	}
+
+	.help-section p,
+	.help-section li {
+		font-size: 13px;
+		color: var(--text-secondary);
+		line-height: 1.6;
+	}
+
+	.help-section ul {
+		padding-left: 18px;
+		margin: 0;
+	}
+
+	.shortcut-list {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.shortcut-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 13px;
+		color: var(--text-secondary);
+	}
+
+	.shortcut-keys {
+		display: flex;
+		gap: 4px;
+	}
+
+	.shortcut-keys :global(kbd) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 24px;
+		height: 22px;
+		padding: 0 6px;
+		font-size: 11px;
+		font-family: inherit;
+		font-weight: 600;
+		color: var(--text-primary);
+		background: var(--bg-primary);
+		border: 1px solid var(--border);
+		border-radius: 4px;
+	}
+</style>
