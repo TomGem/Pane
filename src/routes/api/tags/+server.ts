@@ -9,8 +9,8 @@ export const GET: RequestHandler = async ({ url }) => {
 		const tags = db.prepare('SELECT * FROM tags ORDER BY name').all() as Tag[];
 		return json(tags);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to fetch tags';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to fetch tags:', err);
+		return json({ error: 'Failed to fetch tags' }, { status: 500 });
 	}
 };
 
@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		return json(tag, { status: 201 });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to create tag';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to create tag:', err);
+		return json({ error: 'Failed to create tag' }, { status: 500 });
 	}
 };

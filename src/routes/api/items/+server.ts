@@ -58,8 +58,12 @@ export const GET: RequestHandler = async ({ url }) => {
 		const params: (string | number)[] = [];
 
 		if (categoryId) {
+			const numCategoryId = Number(categoryId);
+			if (isNaN(numCategoryId)) {
+				return json({ error: 'Invalid category_id' }, { status: 400 });
+			}
 			query += ' AND category_id = ?';
-			params.push(Number(categoryId));
+			params.push(numCategoryId);
 		}
 
 		if (type) {
@@ -80,8 +84,8 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		return json(itemsWithTags);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to fetch items';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to fetch items:', err);
+		return json({ error: 'Failed to fetch items' }, { status: 500 });
 	}
 };
 
@@ -102,6 +106,16 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		}
 
 		const db = getSpaceDb(url);
+
+		// Validate tags before transaction
+		if (Array.isArray(tags) && tags.length > 0) {
+			const checkTag = db.prepare('SELECT id FROM tags WHERE id = ?');
+			for (const tagId of tags) {
+				if (!checkTag.get(tagId)) {
+					return json({ error: `Tag with id ${tagId} not found` }, { status: 400 });
+				}
+			}
+		}
 
 		const maxOrder = db.prepare(
 			'SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM items WHERE category_id = ?'
@@ -133,7 +147,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		return json(item, { status: 201 });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to create item';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to create item:', err);
+		return json({ error: 'Failed to create item' }, { status: 500 });
 	}
 };

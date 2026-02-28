@@ -17,10 +17,14 @@ export const GET: RequestHandler = async ({ url }) => {
 					 FROM categories c WHERE c.parent_id IS NULL ORDER BY c.sort_order`
 				).all();
 			} else {
+				const numParentId = Number(parentParam);
+				if (isNaN(numParentId)) {
+					return json({ error: 'Invalid parent_id' }, { status: 400 });
+				}
 				categories = db.prepare(
 					`SELECT c.*, (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id) AS children_count
 					 FROM categories c WHERE c.parent_id = ? ORDER BY c.sort_order`
-				).all(Number(parentParam));
+				).all(numParentId);
 			}
 		} else {
 			// No filter — return all (backward compat for refresh)
@@ -32,8 +36,8 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		return json(categories);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to fetch categories';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to fetch categories:', err);
+		return json({ error: 'Failed to fetch categories' }, { status: 500 });
 	}
 };
 
@@ -49,6 +53,12 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		const slug = slugify(name);
 
 		const parentIdValue = parent_id ?? null;
+		if (parentIdValue !== null) {
+			const parent = db.prepare('SELECT id FROM categories WHERE id = ?').get(parentIdValue);
+			if (!parent) {
+				return json({ error: 'Parent category not found' }, { status: 404 });
+			}
+		}
 		const maxOrder = parentIdValue === null
 			? db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM categories WHERE parent_id IS NULL').get() as { max_order: number }
 			: db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM categories WHERE parent_id = ?').get(parentIdValue) as { max_order: number };
@@ -65,7 +75,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		return json(category, { status: 201 });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to create category';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to create category:', err);
+		return json({ error: 'Failed to create category' }, { status: 500 });
 	}
 };

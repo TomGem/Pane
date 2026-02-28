@@ -16,7 +16,7 @@
 	let isDark = $derived(themeMode === 'dark' || (themeMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches));
 </script>
 
-<div class="settings-overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose(); }} role="button" tabindex="-1">
+<div class="settings-overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} aria-hidden="true">
 	<div class="settings-panel glass-strong">
 		<div class="settings-header">
 			<h2 class="settings-title">Settings</h2>

@@ -16,8 +16,8 @@ export const GET: RequestHandler = async () => {
 		const spaces = listSpaces();
 		return json(spaces);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to list spaces';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to list spaces:', err);
+		return json({ error: 'Failed to list spaces' }, { status: 500 });
 	}
 };
 
@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		return json({ slug: finalSlug, name: name.trim() }, { status: 201 });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to create space';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to create space:', err);
+		return json({ error: 'Failed to create space' }, { status: 500 });
 	}
 };

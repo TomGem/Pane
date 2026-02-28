@@ -169,7 +169,7 @@ export const POST: RequestHandler = async ({ url }) => {
 
 		return json({ success: true }, { status: 201 });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to seed database';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to seed database:', err);
+		return json({ error: 'Failed to seed database' }, { status: 500 });
 	}
 };

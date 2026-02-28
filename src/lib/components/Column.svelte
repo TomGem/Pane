@@ -60,6 +60,26 @@
 	let showMenu = $state(false);
 	let dragOver = $state(false);
 
+	function menuKeyboard(node: HTMLElement) {
+		const first = node.querySelector('[role="menuitem"]') as HTMLElement;
+		first?.focus();
+
+		function handleKeydown(e: KeyboardEvent) {
+			if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+				e.preventDefault();
+				const items = node.querySelectorAll<HTMLElement>('[role="menuitem"]');
+				const current = [...items].indexOf(document.activeElement as HTMLElement);
+				const next = e.key === 'ArrowDown'
+					? (current + 1) % items.length
+					: (current - 1 + items.length) % items.length;
+				items[next]?.focus();
+			}
+		}
+
+		node.addEventListener('keydown', handleKeydown);
+		return { destroy() { node.removeEventListener('keydown', handleKeydown); } };
+	}
+
 	function handleDndConsider(e: CustomEvent<{ items: Item[] }>) {
 		category.items = e.detail.items;
 	}
@@ -157,7 +177,7 @@
 					</svg>
 				</button>
 				{#if showMenu}
-					<div class="menu glass" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') showMenu = false; }} role="menu" tabindex="-1">
+					<div class="menu glass" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') showMenu = false; }} role="menu" tabindex="-1" use:menuKeyboard>
 						<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; oneditcategory?.(category); }}>Edit category</button>
 						<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; onaddsubcategory?.(category); }}>Add subcategory</button>
 						<button class="menu-item menu-item-danger" role="menuitem" onclick={() => { showMenu = false; ondeletecategory?.(category); }}>Delete category</button>
@@ -211,7 +231,7 @@
 </div>
 
 {#if showMenu}
-	<div class="menu-backdrop" onclick={() => showMenu = false} onkeydown={(e) => { if (e.key === 'Escape') showMenu = false; }} role="button" tabindex="-1"></div>
+	<div class="menu-backdrop" onclick={() => showMenu = false} aria-hidden="true"></div>
 {/if}
 
 <style>

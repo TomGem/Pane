@@ -28,6 +28,9 @@ function openDb(slug: string): Database.Database {
 export function getDb(slug: string): Database.Database {
 	let db = cache.get(slug);
 	if (!db) {
+		if (!fs.existsSync(path.join(DATA_DIR, `${slug}.db`))) {
+			throw new Error(`Space '${slug}' does not exist`);
+		}
 		db = openDb(slug);
 		cache.set(slug, db);
 	}

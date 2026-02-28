@@ -24,8 +24,8 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 
 		return json(tag);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to update tag';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to update tag:', err);
+		return json({ error: 'Failed to update tag' }, { status: 500 });
 	}
 };
 
@@ -42,7 +42,7 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 
 		return json({ success: true });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to delete tag';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to delete tag:', err);
+		return json({ error: 'Failed to delete tag' }, { status: 500 });
 	}
 };

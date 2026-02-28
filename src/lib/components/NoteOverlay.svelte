@@ -31,7 +31,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="overlay" onclick={handleBackdropClick} onkeydown={handleKeydown} role="button" tabindex="-1">
+<div class="overlay" onclick={handleBackdropClick} aria-hidden="true">
 	<div class="controls">
 		<button class="ctrl-btn" onclick={copyToClipboard} aria-label="Copy to clipboard" title={copied ? 'Copied!' : 'Copy to clipboard'}>
 			{#if copied}

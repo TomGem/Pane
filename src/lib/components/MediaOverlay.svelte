@@ -9,6 +9,16 @@
 	let { url, fileName, mimeType, onclose }: Props = $props();
 
 	let mediaType = $derived(mimeType.split('/')[0]);
+	let videoEl = $state<HTMLVideoElement | null>(null);
+	let audioEl = $state<HTMLAudioElement | null>(null);
+
+	$effect(() => {
+		videoEl?.play().catch(() => {});
+	});
+
+	$effect(() => {
+		audioEl?.play().catch(() => {});
+	});
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') onclose();
@@ -21,7 +31,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="overlay" onclick={handleBackdropClick} onkeydown={handleKeydown} role="button" tabindex="-1">
+<div class="overlay" onclick={handleBackdropClick} aria-hidden="true">
 	<div class="controls">
 		<a class="ctrl-btn" href={url} download={fileName} aria-label="Download" title="Download">
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -43,11 +53,11 @@
 			<img src={url} alt={fileName} />
 		{:else if mediaType === 'video'}
 			<!-- svelte-ignore a11y_media_has_caption -->
-			<video controls autoplay src={url}></video>
+			<video bind:this={videoEl} controls src={url}></video>
 		{:else if mediaType === 'audio'}
 			<div class="audio-wrapper">
 				<span class="audio-filename">{fileName}</span>
-				<audio controls autoplay src={url}></audio>
+				<audio bind:this={audioEl} controls src={url}></audio>
 			</div>
 		{/if}
 	</div>

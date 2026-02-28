@@ -26,8 +26,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 		return json(item);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to fetch item';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to fetch item:', err);
+		return json({ error: 'Failed to fetch item' }, { status: 500 });
 	}
 };
 
@@ -42,6 +42,16 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 		const existing = db.prepare('SELECT * FROM items WHERE id = ?').get(params.id) as Item | undefined;
 		if (!existing) {
 			return json({ error: 'Item not found' }, { status: 404 });
+		}
+
+		// Validate tags before transaction
+		if (Array.isArray(tags)) {
+			const checkTag = db.prepare('SELECT id FROM tags WHERE id = ?');
+			for (const tagId of tags) {
+				if (!checkTag.get(tagId)) {
+					return json({ error: `Tag with id ${tagId} not found` }, { status: 400 });
+				}
+			}
 		}
 
 		const updateItem = db.transaction(() => {
@@ -92,8 +102,8 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 
 		return json(item);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to update item';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to update item:', err);
+		return json({ error: 'Failed to update item' }, { status: 500 });
 	}
 };
 
@@ -115,7 +125,7 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 
 		return json({ success: true });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to delete item';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to delete item:', err);
+		return json({ error: 'Failed to delete item' }, { status: 500 });
 	}
 };

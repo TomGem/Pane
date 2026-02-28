@@ -26,7 +26,7 @@
 	}
 </script>
 
-<div class="spaces-overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose(); }} role="button" tabindex="-1">
+<div class="spaces-overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} aria-hidden="true">
 	<div class="spaces-panel glass-strong">
 		<div class="spaces-header">
 			<h2 class="spaces-title">Spaces</h2>

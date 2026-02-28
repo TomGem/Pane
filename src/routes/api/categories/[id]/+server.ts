@@ -16,14 +16,14 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 		return json(category);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to fetch category';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to fetch category:', err);
+		return json({ error: 'Failed to fetch category' }, { status: 500 });
 	}
 };
 
 export const PUT: RequestHandler = async ({ params, request, url }) => {
 	try {
-		const { name, color } = await request.json();
+		const { name, color, parent_id } = await request.json();
 
 		if (!name || !color) {
 			return json({ error: 'Name and color are required' }, { status: 400 });
@@ -31,22 +31,48 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 
 		const db = getSpaceDb(url);
 		const slug = slugify(name);
+		const categoryId = Number(params.id);
 
-		const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(params.id) as Category | undefined;
+		const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId) as Category | undefined;
 		if (!existing) {
 			return json({ error: 'Category not found' }, { status: 404 });
 		}
 
-		db.prepare(
-			'UPDATE categories SET name = ?, slug = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-		).run(name, slug, color, params.id);
+		const newParentId = parent_id ?? null;
 
-		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(params.id) as Category;
+		if (newParentId !== null) {
+			if (newParentId === categoryId) {
+				return json({ error: 'A category cannot be its own parent' }, { status: 400 });
+			}
+			const parent = db.prepare('SELECT id FROM categories WHERE id = ?').get(newParentId);
+			if (!parent) {
+				return json({ error: 'Parent category not found' }, { status: 404 });
+			}
+			// Walk up the ancestor chain from the proposed parent to detect cycles
+			let current: number | null = newParentId;
+			while (current !== null) {
+				const ancestor = db.prepare('SELECT parent_id FROM categories WHERE id = ?').get(current) as { parent_id: number | null } | undefined;
+				if (!ancestor) break;
+				current = ancestor.parent_id;
+				if (current === categoryId) {
+					return json({ error: 'Cannot set parent: would create a circular reference' }, { status: 400 });
+				}
+			}
+		}
+
+		db.prepare(
+			'UPDATE categories SET name = ?, slug = ?, color = ?, parent_id = COALESCE(?, parent_id), updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+		).run(name, slug, color, newParentId, categoryId);
+
+		const category = db.prepare(
+			`SELECT c.*, (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id) AS children_count
+			 FROM categories c WHERE c.id = ?`
+		).get(categoryId) as Category;
 
 		return json(category);
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to update category';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to update category:', err);
+		return json({ error: 'Failed to update category' }, { status: 500 });
 	}
 };
 
@@ -79,7 +105,7 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 
 		return json({ success: true });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to delete category';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to delete category:', err);
+		return json({ error: 'Failed to delete category' }, { status: 500 });
 	}
 };

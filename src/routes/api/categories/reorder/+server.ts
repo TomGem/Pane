@@ -23,7 +23,7 @@ export const PUT: RequestHandler = async ({ request, url }) => {
 
 		return json({ success: true });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to reorder categories';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to reorder categories:', err);
+		return json({ error: 'Failed to reorder categories' }, { status: 500 });
 	}
 };

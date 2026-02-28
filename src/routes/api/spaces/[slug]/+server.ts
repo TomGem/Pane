@@ -24,8 +24,8 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 
 		return json({ slug, name: name.trim() });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to rename space';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to rename space:', err);
+		return json({ error: 'Failed to rename space' }, { status: 500 });
 	}
 };
 
@@ -58,7 +58,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 
 		return json({ success: true });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : 'Failed to delete space';
-		return json({ error: message }, { status: 500 });
+		console.error('Failed to delete space:', err);
+		return json({ error: 'Failed to delete space' }, { status: 500 });
 	}
 };

@@ -50,10 +50,13 @@
 		return `${date} ${time}`;
 	});
 
+	let searchTimeout: ReturnType<typeof setTimeout>;
+
 	function handleSearchInput(e: Event) {
 		const target = e.target as HTMLInputElement;
 		searchQuery = target.value;
-		onsearch?.(searchQuery);
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(() => onsearch?.(searchQuery), 200);
 	}
 
 	const app = getContext<{ setFocusSearch: (fn: () => void) => void }>('app');
@@ -327,11 +330,11 @@
 </header>
 
 {#if showTagMenu}
-	<div class="tag-menu-backdrop" onclick={() => showTagMenu = false} onkeydown={(e) => { if (e.key === 'Escape') showTagMenu = false; }} role="button" tabindex="-1"></div>
+	<div class="tag-menu-backdrop" onclick={() => showTagMenu = false} aria-hidden="true"></div>
 {/if}
 
 {#if showSpaceMenu}
-	<div class="space-menu-backdrop" onclick={() => { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; confirmDeleteSlug = null; }} onkeydown={(e) => { if (e.key === 'Escape') { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; confirmDeleteSlug = null; } }} role="button" tabindex="-1"></div>
+	<div class="space-menu-backdrop" onclick={() => { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; confirmDeleteSlug = null; }} aria-hidden="true"></div>
 {/if}
 
 {#if showSettings}
@@ -345,7 +348,7 @@
 {/if}
 
 {#if showHelp}
-	<div class="help-overlay" onclick={(e) => { if (e.target === e.currentTarget) showHelp = false; }} onkeydown={(e) => { if (e.key === 'Escape') showHelp = false; }} role="button" tabindex="-1">
+	<div class="help-overlay" onclick={(e) => { if (e.target === e.currentTarget) showHelp = false; }} aria-hidden="true">
 		<div class="help-panel glass-strong">
 			<div class="help-header">
 				<h2 class="help-title">Pane Help</h2>
