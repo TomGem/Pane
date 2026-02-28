@@ -397,31 +397,29 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 5px;
-		padding: 4px 10px;
-		border-radius: 9999px;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border);
+		padding: 6px 8px;
+		border-radius: var(--radius);
+		color: var(--text-muted);
+		background: var(--bg-glass);
+		border: 1px solid var(--border-glass);
 		cursor: pointer;
-		transition: background-color var(--transition), border-color var(--transition);
+		transition: background-color var(--transition), color var(--transition), border-color var(--transition);
 		max-width: 180px;
 	}
 
 	.space-switcher-btn:hover {
+		color: var(--text-primary);
 		background: var(--accent-soft);
-		border-color: var(--accent);
+		border-color: var(--border);
 	}
 
 	.space-switcher-name {
 		font-size: 13px;
 		font-weight: 600;
-		color: var(--text-secondary);
+		color: inherit;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-
-	.space-switcher-btn:hover .space-switcher-name {
-		color: var(--accent);
 	}
 
 	.space-chevron {
