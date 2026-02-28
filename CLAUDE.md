@@ -12,7 +12,11 @@ pnpm check            # Type-check with svelte-check
 pnpm check:watch      # Continuous type-checking
 ```
 
-No test framework is configured. Use `pnpm check` to validate types before committing.
+```bash
+docker compose up -d  # Run via Docker (port 3000, mounts data/ and storage/)
+```
+
+No test framework is configured. Use `pnpm check` to validate types before committing. No `.env` file is needed — the app has no external API dependencies.
 
 ## Architecture
 
@@ -35,8 +39,9 @@ Root `/` is a spaces dashboard showing all spaces with category/item counts and 
 
 Each space has its own SQLite database (`data/{slug}.db`) and storage directory (`storage/{slug}/`). Spaces are discovered by scanning `data/*.db` files and reading the `display_name` from each DB's `meta` table.
 
-- **`$lib/server/db.ts`** — Connection cache (`Map<string, Database>`), `getDb(slug)`, `createDb(slug, name)`, `closeDb(slug)`, `listSpaces()`, `slugExists(slug)`, `validateSpaceSlug(slug)`
+- **`$lib/server/db.ts`** — Connection cache (`Map<string, Database>`), `getDb(slug)`, `createDb(slug, name)`, `closeDb(slug)`, `listSpaces()`, `slugExists(slug)`, `validateSpaceSlug(slug)`. Slug regex: `/^[a-z0-9-]{1,64}$/`.
 - **`$lib/server/space.ts`** — `getSpaceSlug(url)` and `getSpaceDb(url)` helpers that read `?space=` from the URL
+- **`$lib/server/storage.ts`** — File I/O with path traversal defense (`assertWithinStorage`). UUID-based filenames on disk, original filename in DB. Functions: `saveFile()`, `moveFile()`, `deleteFile()`, `renameCategoryDir()`, `deleteCategoryDir()`.
 - **Space API** — `GET/POST /api/spaces`, `PUT/DELETE /api/spaces/[slug]`
 
 ### Database
@@ -67,6 +72,11 @@ Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and theme. Page (`/s
 
 Documents stored at `storage/{space-slug}/{category-slug}/{uuid}.{ext}`. Original filename kept in DB. Moving items between categories physically moves files. Served via `/api/files/[...path]?space={slug}`. Both `data/` and `storage/` are gitignored.
 
+### Client utilities
+
+- **`$lib/utils/api.ts`** — Typed fetch wrapper (`api<T>(url, options)`) used by the board store for all mutations. Parses JSON error bodies automatically.
+- **`$lib/utils/slugify.ts`** — Wrapper around `slugify` library for URL-safe slugs.
+
 ### Client stores
 
 - **`$lib/stores/board.svelte.ts`** — Board state (`BoardStore`). Tracks categories, items, tags, breadcrumb, and current parent. All mutations call API routes with `?space={slug}`.
@@ -78,6 +88,8 @@ Root layout provides both `theme` and `palette` store contexts.
 ### Theming
 
 CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Accent colors via `[data-palette]` attribute with 8 palette options. Theme and palette stores persist to localStorage. Flash prevention via inline script in `app.html`. Glass effect uses `backdrop-filter: blur()`.
+
+Global CSS utility classes in `app.css`: `.glass`, `.glass-strong`, `.input`, `.btn`, `.btn-primary`, `.btn-ghost`, `.btn-danger`, `.btn-sm`, `.badge`. No CSS framework (Tailwind etc.) — all custom properties.
 
 ### Drag-and-drop
 
@@ -107,11 +119,26 @@ In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/a
 
 `POST /api/seed?space={slug}` populates an empty database with curated sample data (categories, tags, items). Guards against duplicate seeding by checking if any categories exist. Called from the empty board state UI.
 
+### Keyboard shortcuts
+
+- `/` or `Cmd+K` — Focus search
+- `Cmd+N` — New item
+- `Cmd+Shift+N` — New category
+- `Escape` — Close modals/overlays
+
+### Link meta-fetching
+
+When creating link items, the server fetches up to 100KB of HTML to extract `<title>` and meta description. 5-second timeout, max 5 redirects. Rejects private IPs and non-http(s) URLs.
+
+### Documentation
+
+User-facing docs in `docs/`: `getting-started.md`, `user-guide.md`, `architecture.md`, `deployment.md`.
+
 ## Conventions
 
 - **Svelte 5 runes only** — `$state`, `$derived`, `$effect`, `$props()`, `$bindable()`. No legacy `let` exports or `createEventDispatcher`.
 - **Callback props for events** — e.g. `onsubmit`, `onclose`, `onadd` (not `dispatch`).
-- **API routes return `json()`** from `@sveltejs/kit`. Errors return `{ error: string }` with appropriate status codes. All API routes require `?space={slug}` query parameter (read via `getSpaceDb(url)` from `$lib/server/space`).
+- **API routes return `json()`** from `@sveltejs/kit`. Errors return `{ error: string }` with status codes: 201 (created), 400 (bad request), 404 (not found), 409 (conflict), 429 (rate limited), 500 (server error). All API routes require `?space={slug}` query parameter (read via `getSpaceDb(url)` from `$lib/server/space`).
 - **DB operations are synchronous** — `.run()`, `.get()`, `.all()`. Use `db.transaction()` for multi-statement writes.
 - **Types** live in `$lib/types/index.ts`. `CategoryWithItems` is the joined type used by components. `Space` is `{ slug: string; name: string }`.
 - **Scoped CSS** — styles are component-scoped via `<style>` blocks. Global variables defined in `app.css`.
