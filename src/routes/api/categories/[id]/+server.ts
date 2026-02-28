@@ -1,14 +1,17 @@
-import { json } from '@sveltejs/kit';
+import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
-import { deleteCategoryDir } from '$lib/server/storage';
-import type { Category } from '$lib/types';
+import { deleteCategoryDir, renameCategoryDir } from '$lib/server/storage';
+import type { Category, Item } from '$lib/types';
 
 export const GET: RequestHandler = async ({ params, url }) => {
 	try {
+		const numId = Number(params.id);
+		if (isNaN(numId)) return json({ error: 'Invalid category id' }, { status: 400 });
+
 		const db = getSpaceDb(url);
-		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(params.id) as Category | undefined;
+		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(numId) as Category | undefined;
 
 		if (!category) {
 			return json({ error: 'Category not found' }, { status: 404 });
@@ -16,6 +19,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 		return json(category);
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to fetch category:', err);
 		return json({ error: 'Failed to fetch category' }, { status: 500 });
 	}
@@ -23,15 +27,18 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 export const PUT: RequestHandler = async ({ params, request, url }) => {
 	try {
+		const categoryId = Number(params.id);
+		if (isNaN(categoryId)) return json({ error: 'Invalid category id' }, { status: 400 });
+
 		const { name, color, parent_id } = await request.json();
 
 		if (!name || !color) {
 			return json({ error: 'Name and color are required' }, { status: 400 });
 		}
 
+		const spaceSlug = getSpaceSlug(url);
 		const db = getSpaceDb(url);
 		const slug = slugify(name);
-		const categoryId = Number(params.id);
 
 		const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId) as Category | undefined;
 		if (!existing) {
@@ -72,6 +79,19 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			).run(name, slug, color, categoryId);
 		}
 
+		// If slug changed, move files and update item paths
+		if (slug !== existing.slug) {
+			renameCategoryDir(spaceSlug, existing.slug, slug);
+			const items = db.prepare('SELECT id, file_path FROM items WHERE category_id = ? AND file_path IS NOT NULL').all(categoryId) as Pick<Item, 'id' | 'file_path'>[];
+			const updatePath = db.prepare('UPDATE items SET file_path = ? WHERE id = ?');
+			for (const item of items) {
+				if (item.file_path && item.file_path.startsWith(existing.slug + '/')) {
+					const newPath = slug + item.file_path.slice(existing.slug.length);
+					updatePath.run(newPath, item.id);
+				}
+			}
+		}
+
 		const category = db.prepare(
 			`SELECT c.*, (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id) AS children_count
 			 FROM categories c WHERE c.id = ?`
@@ -79,6 +99,10 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 
 		return json(category);
 	} catch (err) {
+		if (isHttpError(err)) throw err;
+		if (err instanceof Error && err.message.includes('UNIQUE constraint')) {
+			return json({ error: 'A category with that name already exists' }, { status: 409 });
+		}
 		console.error('Failed to update category:', err);
 		return json({ error: 'Failed to update category' }, { status: 500 });
 	}
@@ -86,10 +110,13 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 
 export const DELETE: RequestHandler = async ({ params, url }) => {
 	try {
+		const numId = Number(params.id);
+		if (isNaN(numId)) return json({ error: 'Invalid category id' }, { status: 400 });
+
 		const spaceSlug = getSpaceSlug(url);
 		const db = getSpaceDb(url);
 
-		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(params.id) as Category | undefined;
+		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(numId) as Category | undefined;
 		if (!category) {
 			return json({ error: 'Category not found' }, { status: 404 });
 		}
@@ -102,9 +129,9 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 				SELECT c.id, c.slug FROM categories c JOIN tree t ON c.parent_id = t.id
 			)
 			SELECT slug FROM tree
-		`).all(params.id) as { slug: string }[];
+		`).all(numId) as { slug: string }[];
 
-		db.prepare('DELETE FROM categories WHERE id = ?').run(params.id);
+		db.prepare('DELETE FROM categories WHERE id = ?').run(numId);
 
 		// Clean up storage dirs for this category and all descendants
 		for (const { slug } of descendants) {
@@ -113,6 +140,7 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 
 		return json({ success: true });
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to delete category:', err);
 		return json({ error: 'Failed to delete category' }, { status: 500 });
 	}

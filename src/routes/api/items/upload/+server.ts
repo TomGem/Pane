@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
 import { saveFile, deleteFile } from '$lib/server/storage';
@@ -70,6 +70,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			throw dbErr;
 		}
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to upload file:', err);
 		return json({ error: 'Failed to upload file' }, { status: 500 });
 	}

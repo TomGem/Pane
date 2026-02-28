@@ -18,7 +18,11 @@ export function ensureSpaceDir(spaceSlug: string): string {
 }
 
 export function deleteSpaceDir(spaceSlug: string) {
-	const dir = path.join(STORAGE_ROOT, spaceSlug);
+	const dir = path.resolve(STORAGE_ROOT, spaceSlug);
+	// Defense-in-depth: ensure the resolved path is within STORAGE_ROOT
+	if (!dir.startsWith(STORAGE_ROOT + path.sep) && dir !== STORAGE_ROOT) {
+		throw new Error('Path traversal detected');
+	}
 	if (fs.existsSync(dir)) {
 		fs.rmSync(dir, { recursive: true, force: true });
 	}
@@ -44,7 +48,10 @@ export function saveFile(spaceSlug: string, categorySlug: string, originalName: 
 export function moveFile(spaceSlug: string, oldPath: string, newCategorySlug: string): string {
 	const oldFull = path.resolve(STORAGE_ROOT, spaceSlug, oldPath);
 	assertWithinStorage(oldFull, spaceSlug);
-	if (!fs.existsSync(oldFull)) return oldPath;
+	if (!fs.existsSync(oldFull)) {
+		console.warn(`moveFile: source file not found at ${oldFull}, keeping old path`);
+		return oldPath;
+	}
 
 	const baseName = path.basename(oldPath);
 	const newDir = ensureCategoryDir(spaceSlug, newCategorySlug);
@@ -58,6 +65,18 @@ export function deleteFile(spaceSlug: string, filePath: string) {
 	assertWithinStorage(full, spaceSlug);
 	if (fs.existsSync(full)) {
 		fs.unlinkSync(full);
+	}
+}
+
+export function renameCategoryDir(spaceSlug: string, oldCategorySlug: string, newCategorySlug: string) {
+	if (oldCategorySlug === newCategorySlug) return;
+	const oldDir = path.resolve(STORAGE_ROOT, spaceSlug, oldCategorySlug);
+	const newDir = path.resolve(STORAGE_ROOT, spaceSlug, newCategorySlug);
+	assertWithinStorage(oldDir, spaceSlug);
+	assertWithinStorage(newDir, spaceSlug);
+	if (fs.existsSync(oldDir)) {
+		fs.mkdirSync(path.dirname(newDir), { recursive: true });
+		fs.renameSync(oldDir, newDir);
 	}
 }
 

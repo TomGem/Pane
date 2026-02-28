@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
@@ -36,6 +36,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		return json(categories);
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to fetch categories:', err);
 		return json({ error: 'Failed to fetch categories' }, { status: 500 });
 	}
@@ -75,6 +76,10 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		return json(category, { status: 201 });
 	} catch (err) {
+		if (isHttpError(err)) throw err;
+		if (err instanceof Error && err.message.includes('UNIQUE constraint')) {
+			return json({ error: 'A category with that name already exists' }, { status: 409 });
+		}
 		console.error('Failed to create category:', err);
 		return json({ error: 'Failed to create category' }, { status: 500 });
 	}

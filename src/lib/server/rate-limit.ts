@@ -1,6 +1,7 @@
 const requests = new Map<string, number[]>();
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 100;
+const MAX_TRACKED_IPS = 10_000;
 
 export function isRateLimited(ip: string): boolean {
 	const now = Date.now();
@@ -12,6 +13,14 @@ export function isRateLimited(ip: string): boolean {
 	}
 	recent.push(now);
 	requests.set(ip, recent);
+
+	// Evict oldest entries if map grows too large
+	if (requests.size > MAX_TRACKED_IPS) {
+		const iterator = requests.keys();
+		const oldest = iterator.next().value;
+		if (oldest) requests.delete(oldest);
+	}
+
 	return false;
 }
 

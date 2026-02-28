@@ -217,8 +217,13 @@
 
 		{#if filteredItems.length === 0}
 			<div class="empty-state">
-				<p>No items yet</p>
-				<p class="empty-hint">Drop files or URLs here, or click + to add</p>
+				{#if items.length === 0}
+					<p>No items yet</p>
+					<p class="empty-hint">Drop files or URLs here, or click + to add</p>
+				{:else}
+					<p>No matching items</p>
+					<p class="empty-hint">Try adjusting your search or filters</p>
+				{/if}
 			</div>
 		{/if}
 

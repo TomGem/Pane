@@ -34,11 +34,13 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'Invalid name — use letters, numbers, and dashes' }, { status: 400 });
 		}
 
-		// Ensure unique slug
+		// Ensure unique slug (truncate base slug to leave room for suffix)
 		let finalSlug = slug;
 		let suffix = 2;
 		while (slugExists(finalSlug)) {
-			finalSlug = `${slug}-${suffix}`;
+			const suffixStr = `-${suffix}`;
+			const maxBaseLen = 64 - suffixStr.length;
+			finalSlug = `${slug.slice(0, maxBaseLen)}${suffixStr}`;
 			suffix++;
 		}
 

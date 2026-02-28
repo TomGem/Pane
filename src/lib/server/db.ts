@@ -53,6 +53,17 @@ export function closeDb(slug: string) {
 	}
 }
 
+function closeAll() {
+	for (const [slug, db] of cache) {
+		try { db.close(); } catch { /* ignore */ }
+	}
+	cache.clear();
+}
+
+process.on('exit', closeAll);
+process.on('SIGTERM', () => { closeAll(); process.exit(0); });
+process.on('SIGINT', () => { closeAll(); process.exit(0); });
+
 export function listSpaces(): Space[] {
 	fs.mkdirSync(DATA_DIR, { recursive: true });
 	const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.db') && !f.endsWith('-journal') && !f.endsWith('-wal') && !f.endsWith('-shm'));

@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb } from '$lib/server/space';
 import type { BreadcrumbSegment } from '$lib/types';
@@ -29,6 +29,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 		return json(segments);
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to fetch breadcrumb:', err);
 		return json({ error: 'Failed to fetch breadcrumb' }, { status: 500 });
 	}

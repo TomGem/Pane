@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
@@ -169,6 +169,7 @@ export const POST: RequestHandler = async ({ url }) => {
 
 		return json({ success: true }, { status: 201 });
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to seed database:', err);
 		return json({ error: 'Failed to seed database' }, { status: 500 });
 	}

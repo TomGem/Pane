@@ -40,6 +40,10 @@
 	let confirmDeleteSlug = $state<string | null>(null);
 	let searchTimeout: ReturnType<typeof setTimeout>;
 
+	$effect(() => {
+		return () => clearTimeout(searchTimeout);
+	});
+
 	function handleSearchInput(e: Event) {
 		const target = e.target as HTMLInputElement;
 		searchQuery = target.value;
@@ -93,15 +97,15 @@
 	function handleGlobalKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && showSettings) {
 			showSettings = false;
-		}
-		if (e.key === 'Escape' && showHelp) {
+		} else if (e.key === 'Escape' && showHelp) {
 			showHelp = false;
-		}
-		if (e.key === 'Escape' && showSpaceMenu) {
+		} else if (e.key === 'Escape' && showSpaceMenu) {
 			showSpaceMenu = false;
 			creatingSpace = false;
 			newSpaceName = '';
 			confirmDeleteSlug = null;
+		} else if (e.key === 'Escape' && showTagMenu) {
+			showTagMenu = false;
 		}
 	}
 

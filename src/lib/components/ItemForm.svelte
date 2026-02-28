@@ -55,22 +55,22 @@
 <form class="item-form" onsubmit={handleSubmit}>
 	<div class="form-group">
 		<label class="form-label" for="item-type">Type</label>
-		<div class="type-selector">
-			<button type="button" class="type-btn" class:active={type === 'link'} onclick={() => type = 'link'}>
+		<div class="type-selector" role="radiogroup" aria-label="Item type">
+			<button type="button" class="type-btn" class:active={type === 'link'} role="radio" aria-checked={type === 'link'} onclick={() => type = 'link'}>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
 					<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
 				</svg>
 				Link
 			</button>
-			<button type="button" class="type-btn" class:active={type === 'note'} onclick={() => type = 'note'}>
+			<button type="button" class="type-btn" class:active={type === 'note'} role="radio" aria-checked={type === 'note'} onclick={() => type = 'note'}>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
 					<polyline points="14 2 14 8 20 8" />
 				</svg>
 				Note
 			</button>
-			<button type="button" class="type-btn" class:active={type === 'document'} onclick={() => type = 'document'}>
+			<button type="button" class="type-btn" class:active={type === 'document'} role="radio" aria-checked={type === 'document'} onclick={() => type = 'document'}>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
 					<polyline points="13 2 13 9 20 9" />

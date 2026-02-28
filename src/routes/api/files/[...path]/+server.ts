@@ -45,7 +45,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 	const headers: Record<string, string> = {
 		'Content-Type': mimeTypes[ext] || 'application/octet-stream',
-		'Content-Disposition': `${disposition}; filename="${path.basename(filePath)}"`,
+		'Content-Disposition': `${disposition}; filename="${path.basename(filePath).replace(/["\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(path.basename(filePath))}`,
 		'X-Content-Type-Options': 'nosniff'
 	};
 

@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb } from '$lib/server/space';
 import type { Item, Tag } from '$lib/types';
@@ -27,46 +27,67 @@ function isPrivateUrl(urlStr: string): boolean {
 const MAX_FETCH_SIZE = 100 * 1024; // 100 KB — enough for meta tags
 
 async function fetchPageMeta(url: string): Promise<{ title: string | null; description: string | null }> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 5000);
 	try {
-		if (isPrivateUrl(url)) return { title: null, description: null };
-		const res = await fetch(url, {
-			headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Pane/1.0)' },
-			signal: AbortSignal.timeout(5000),
-			redirect: 'follow'
-		});
-		if (!res.ok) return { title: null, description: null };
-		const contentType = res.headers.get('content-type') ?? '';
-		if (!contentType.includes('text/html')) return { title: null, description: null };
-		// Limit body size to prevent memory exhaustion
-		const contentLength = Number(res.headers.get('content-length'));
-		if (contentLength > MAX_FETCH_SIZE) return { title: null, description: null };
-		const reader = res.body?.getReader();
-		if (!reader) return { title: null, description: null };
-		const chunks: Uint8Array[] = [];
-		let totalSize = 0;
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-			totalSize += value.byteLength;
-			chunks.push(value);
-			if (totalSize >= MAX_FETCH_SIZE) break;
+		let currentUrl = url;
+		let redirects = 0;
+		const MAX_REDIRECTS = 5;
+
+		while (redirects < MAX_REDIRECTS) {
+			if (isPrivateUrl(currentUrl)) return { title: null, description: null };
+
+			const res = await fetch(currentUrl, {
+				headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Pane/1.0)' },
+				signal: controller.signal,
+				redirect: 'manual'
+			});
+
+			if (res.status >= 300 && res.status < 400) {
+				const location = res.headers.get('location');
+				if (!location) return { title: null, description: null };
+				currentUrl = new URL(location, currentUrl).href;
+				redirects++;
+				continue;
+			}
+
+			if (!res.ok) return { title: null, description: null };
+
+			const contentType = res.headers.get('content-type') ?? '';
+			if (!contentType.includes('text/html')) return { title: null, description: null };
+			const contentLength = Number(res.headers.get('content-length'));
+			if (contentLength > MAX_FETCH_SIZE) return { title: null, description: null };
+			const reader = res.body?.getReader();
+			if (!reader) return { title: null, description: null };
+			const chunks: Uint8Array[] = [];
+			let totalSize = 0;
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				totalSize += value.byteLength;
+				chunks.push(value);
+				if (totalSize >= MAX_FETCH_SIZE) break;
+			}
+			reader.cancel().catch(() => {});
+			const text = new TextDecoder().decode(Buffer.concat(chunks).subarray(0, MAX_FETCH_SIZE));
+			let title: string | null = null;
+			const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i);
+			if (titleMatch?.[1]) {
+				title = titleMatch[1].trim().replace(/\s+/g, ' ') || null;
+			}
+			let description: string | null = null;
+			const descMatch = text.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
+				?? text.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
+			if (descMatch?.[1]) {
+				description = descMatch[1].trim() || null;
+			}
+			return { title, description };
 		}
-		reader.cancel().catch(() => {});
-		const text = new TextDecoder().decode(Buffer.concat(chunks).subarray(0, MAX_FETCH_SIZE));
-		let title: string | null = null;
-		const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i);
-		if (titleMatch?.[1]) {
-			title = titleMatch[1].trim().replace(/\s+/g, ' ') || null;
-		}
-		let description: string | null = null;
-		const descMatch = text.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
-			?? text.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
-		if (descMatch?.[1]) {
-			description = descMatch[1].trim() || null;
-		}
-		return { title, description };
+		return { title: null, description: null };
 	} catch {
 		return { title: null, description: null };
+	} finally {
+		clearTimeout(timeout);
 	}
 }
 
@@ -112,8 +133,9 @@ export const GET: RequestHandler = async ({ url }) => {
 		}
 
 		if (search) {
-			query += ' AND (title LIKE ? OR description LIKE ? OR content LIKE ?)';
-			const searchPattern = `%${search}%`;
+			const escaped = search.replace(/[%_\\]/g, '\\$&');
+			query += " AND (title LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\')";
+			const searchPattern = `%${escaped}%`;
 			params.push(searchPattern, searchPattern, searchPattern);
 		}
 
@@ -124,6 +146,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
 		return json(itemsWithTags);
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to fetch items:', err);
 		return json({ error: 'Failed to fetch items' }, { status: 500 });
 	}
@@ -187,6 +210,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		return json(item, { status: 201 });
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to create item:', err);
 		return json({ error: 'Failed to create item' }, { status: 500 });
 	}

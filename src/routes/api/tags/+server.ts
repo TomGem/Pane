@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb } from '$lib/server/space';
 import type { Tag } from '$lib/types';
@@ -9,6 +9,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		const tags = db.prepare('SELECT * FROM tags ORDER BY name').all() as Tag[];
 		return json(tags);
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to fetch tags:', err);
 		return json({ error: 'Failed to fetch tags' }, { status: 500 });
 	}
@@ -32,6 +33,10 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		return json(tag, { status: 201 });
 	} catch (err) {
+		if (isHttpError(err)) throw err;
+		if (err instanceof Error && err.message.includes('UNIQUE constraint')) {
+			return json({ error: 'A tag with that name already exists' }, { status: 409 });
+		}
 		console.error('Failed to create tag:', err);
 		return json({ error: 'Failed to create tag' }, { status: 500 });
 	}

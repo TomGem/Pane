@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
 import { moveFile, deleteFile } from '$lib/server/storage';
@@ -15,8 +15,11 @@ function getTagsForItem(db: ReturnType<typeof getSpaceDb>, itemId: number): Tag[
 
 export const GET: RequestHandler = async ({ params, url }) => {
 	try {
+		const numId = Number(params.id);
+		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
+
 		const db = getSpaceDb(url);
-		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(params.id) as Item | undefined;
+		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 
 		if (!item) {
 			return json({ error: 'Item not found' }, { status: 404 });
@@ -26,6 +29,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 		return json(item);
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to fetch item:', err);
 		return json({ error: 'Failed to fetch item' }, { status: 500 });
 	}
@@ -33,13 +37,16 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 export const PUT: RequestHandler = async ({ params, request, url }) => {
 	try {
+		const numId = Number(params.id);
+		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
+
 		const body = await request.json();
 		const { title, content, description, category_id, is_pinned, tags } = body;
 
 		const spaceSlug = getSpaceSlug(url);
 		const db = getSpaceDb(url);
 
-		const existing = db.prepare('SELECT * FROM items WHERE id = ?').get(params.id) as Item | undefined;
+		const existing = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 		if (!existing) {
 			return json({ error: 'Item not found' }, { status: 404 });
 		}
@@ -82,26 +89,27 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 				category_id ?? null,
 				is_pinned ?? null,
 				newFilePath,
-				params.id
+				numId
 			);
 
 			// Update tags if provided
 			if (Array.isArray(tags)) {
-				db.prepare('DELETE FROM item_tags WHERE item_id = ?').run(params.id);
+				db.prepare('DELETE FROM item_tags WHERE item_id = ?').run(numId);
 				const insertTag = db.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)');
 				for (const tagId of tags) {
-					insertTag.run(params.id, tagId);
+					insertTag.run(numId, tagId);
 				}
 			}
 		});
 
 		updateItem();
 
-		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(params.id) as Item;
+		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item;
 		item.tags = getTagsForItem(db, item.id);
 
 		return json(item);
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to update item:', err);
 		return json({ error: 'Failed to update item' }, { status: 500 });
 	}
@@ -109,10 +117,13 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 
 export const DELETE: RequestHandler = async ({ params, url }) => {
 	try {
+		const numId = Number(params.id);
+		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
+
 		const spaceSlug = getSpaceSlug(url);
 		const db = getSpaceDb(url);
 
-		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(params.id) as Item | undefined;
+		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 		if (!item) {
 			return json({ error: 'Item not found' }, { status: 404 });
 		}
@@ -121,10 +132,11 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 			deleteFile(spaceSlug, item.file_path);
 		}
 
-		db.prepare('DELETE FROM items WHERE id = ?').run(params.id);
+		db.prepare('DELETE FROM items WHERE id = ?').run(numId);
 
 		return json({ success: true });
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to delete item:', err);
 		return json({ error: 'Failed to delete item' }, { status: 500 });
 	}

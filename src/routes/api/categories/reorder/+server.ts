@@ -1,4 +1,4 @@
-import { json } from '@sveltejs/kit';
+import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb } from '$lib/server/space';
 
@@ -23,6 +23,7 @@ export const PUT: RequestHandler = async ({ request, url }) => {
 
 		return json({ success: true });
 	} catch (err) {
+		if (isHttpError(err)) throw err;
 		console.error('Failed to reorder categories:', err);
 		return json({ error: 'Failed to reorder categories' }, { status: 500 });
 	}
