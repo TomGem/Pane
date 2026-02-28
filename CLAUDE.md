@@ -29,7 +29,7 @@ hooks.server.ts (migration + default space)
   → SQLite (per-space DB)
 ```
 
-Root `/` redirects to the first available space (creating a default `pane` space if none exist). If a space slug doesn't exist, the layout redirects back to `/`. The space layout validates the space slug and provides space metadata to the toolbar. The page server load hydrates the board. All mutations go through the `BoardStore` (`$lib/stores/board.svelte.ts`), which appends `?space={slug}` to all API calls. The store uses Svelte 5 runes (`$state`, `$derived`, `$effect`).
+Root `/` is a spaces dashboard showing all spaces with category/item counts and create/delete actions (creates a default `desk` space if none exist). If a space slug doesn't exist, the layout redirects back to `/`. The space layout validates the space slug and provides space metadata to the toolbar. The page server load hydrates the board. All mutations go through the `BoardStore` (`$lib/stores/board.svelte.ts`), which appends `?space={slug}` to all API calls. The store uses Svelte 5 runes (`$state`, `$derived`, `$effect`).
 
 ### Spaces (Multi-Database)
 
@@ -48,7 +48,7 @@ Five tables: `categories` (with optional `parent_id` for hierarchy), `items` (si
 ### Route structure
 
 ```
-/                           → redirect to first available space (creates default if none)
+/                           → spaces dashboard (grid of all spaces, create/delete)
 /s/[space]/                 → space layout (toolbar + context) + page (board)
 /s/[space]/+error.svelte    → error page (unknown slugs redirect to /)
 ```
@@ -92,9 +92,16 @@ Notes and descriptions render markdown via `marked` with HTML sanitized through 
 Full-screen overlay components follow a shared pattern: glass backdrop (`glass-strong`), Escape key to close, click-outside-to-close, callback props (`onclose`). Key overlays:
 
 - **SettingsOverlay** — Theme mode toggle and accent palette selection.
-- **SpacesOverlay** — Grid of all spaces with create/delete/switch actions. Opened from toolbar title.
 - **NoteOverlay / MediaOverlay** — Content viewers for notes and documents.
-- **HelpOverlay** — App documentation (inline in Toolbar).
+- **HelpPanel** — App documentation (inline in Toolbar).
+
+### Rate limiting
+
+In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/api/*` routes via `hooks.server.ts`. 100 requests per 60-second window; returns `429` with `Retry-After` header.
+
+### Shared components
+
+**`Icon.svelte`** — Centralized SVG icon component. All icons use this component rather than inline SVGs.
 
 ### Seed endpoint
 
