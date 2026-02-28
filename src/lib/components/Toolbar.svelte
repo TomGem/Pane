@@ -100,10 +100,16 @@
 
 <header class="toolbar glass-strong">
 	<div class="toolbar-left">
+		<span class="toolbar-title">Pane</span>
 		<div class="space-selector-wrapper">
-			<button class="toolbar-title space-selector-btn" onclick={() => showSpaceMenu = !showSpaceMenu}>
-				{spaceName}
-				<svg class="space-chevron" class:open={showSpaceMenu} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<button
+				class="space-switcher-btn"
+				onclick={() => showSpaceMenu = !showSpaceMenu}
+				title="Switch space"
+				aria-label="Switch space"
+			>
+				<span class="space-switcher-name">{spaceName}</span>
+				<svg class="space-chevron" class:open={showSpaceMenu} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
 					<polyline points="6 9 12 15 18 9" />
 				</svg>
 			</button>
@@ -368,7 +374,9 @@
 	.toolbar-left {
 		flex-shrink: 1;
 		min-width: 0;
-		max-width: 40%;
+		display: flex;
+		align-items: center;
+		gap: 10px;
 		overflow: visible;
 	}
 
@@ -377,28 +385,47 @@
 		font-weight: 700;
 		letter-spacing: -0.02em;
 		color: var(--text-primary);
+		flex-shrink: 0;
 	}
 
 	.space-selector-wrapper {
 		position: relative;
+		min-width: 0;
 	}
 
-	.space-selector-btn {
+	.space-switcher-btn {
 		display: inline-flex;
 		align-items: center;
-		gap: 4px;
+		gap: 5px;
+		padding: 4px 10px;
+		border-radius: 9999px;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
 		cursor: pointer;
-		padding: 4px 8px;
-		margin: -4px -8px;
-		border-radius: var(--radius);
-		transition: background-color var(--transition);
+		transition: background-color var(--transition), border-color var(--transition);
+		max-width: 180px;
 	}
 
-	.space-selector-btn:hover {
+	.space-switcher-btn:hover {
 		background: var(--accent-soft);
+		border-color: var(--accent);
+	}
+
+	.space-switcher-name {
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--text-secondary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.space-switcher-btn:hover .space-switcher-name {
+		color: var(--accent);
 	}
 
 	.space-chevron {
+		flex-shrink: 0;
 		color: var(--text-muted);
 		transition: transform 0.2s ease;
 	}
