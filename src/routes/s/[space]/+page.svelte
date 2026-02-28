@@ -341,7 +341,7 @@
 
 <style>
 	.page {
-		min-height: calc(100vh - 60px);
+		flex: 1;
 	}
 
 	.empty-board {

@@ -88,6 +88,8 @@
 <style>
 	.app-content {
 		flex: 1;
+		display: flex;
+		flex-direction: column;
 		padding: 20px;
 		overflow-x: auto;
 	}
