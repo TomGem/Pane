@@ -30,6 +30,7 @@
 	let creatingSpace = $state(false);
 	let newSpaceName = $state('');
 	let newSpaceInputEl = $state<HTMLInputElement | null>(null);
+	let confirmDeleteSlug = $state<string | null>(null);
 	let now = $state(new Date());
 
 	$effect(() => {
@@ -58,6 +59,23 @@
 
 	app.setFocusSearch(focusSearch);
 
+	async function handleDeleteSpace(slug: string) {
+		try {
+			const res = await fetch(`/api/spaces/${slug}`, { method: 'DELETE' });
+			if (!res.ok) return;
+			confirmDeleteSlug = null;
+			showSpaceMenu = false;
+			// Navigate to another space if we deleted the current one
+			if (slug === spaceSlug) {
+				const remaining = spaces.filter((s) => s.slug !== slug);
+				goto(`/s/${remaining[0]?.slug ?? 'pane'}`);
+			} else {
+				// Reload to refresh the spaces list
+				location.reload();
+			}
+		} catch { /* ignore */ }
+	}
+
 	async function handleCreateSpace() {
 		const name = newSpaceName.trim();
 		if (!name) return;
@@ -84,6 +102,7 @@
 			showSpaceMenu = false;
 			creatingSpace = false;
 			newSpaceName = '';
+			confirmDeleteSlug = null;
 		}
 	}
 
@@ -120,19 +139,43 @@
 					</div>
 					<div class="space-menu-list">
 						{#each spaces as s (s.slug)}
-							<a
-								class="space-menu-item"
-								class:current={s.slug === spaceSlug}
-								href="/s/{s.slug}"
-								onclick={() => showSpaceMenu = false}
-							>
-								<span class="space-menu-name">{s.name}</span>
-								{#if s.slug === spaceSlug}
-									<svg class="space-menu-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-										<polyline points="20 6 9 17 4 12" />
-									</svg>
-								{/if}
-							</a>
+							{#if confirmDeleteSlug === s.slug}
+								<div class="space-menu-confirm">
+									<span class="space-menu-confirm-text">Delete <strong>{s.name}</strong>?</span>
+									<div class="space-menu-confirm-actions">
+										<button class="space-menu-confirm-btn cancel" onclick={() => confirmDeleteSlug = null}>Cancel</button>
+										<button class="space-menu-confirm-btn delete" onclick={() => handleDeleteSpace(s.slug)}>Delete</button>
+									</div>
+								</div>
+							{:else}
+								<div class="space-menu-row" class:current={s.slug === spaceSlug}>
+									<a
+										class="space-menu-item"
+										href="/s/{s.slug}"
+										onclick={() => showSpaceMenu = false}
+									>
+										<span class="space-menu-name">{s.name}</span>
+										{#if s.slug === spaceSlug}
+											<svg class="space-menu-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+												<polyline points="20 6 9 17 4 12" />
+											</svg>
+										{/if}
+									</a>
+									{#if spaces.length > 1}
+										<button
+											class="space-menu-delete"
+											onclick={() => confirmDeleteSlug = s.slug}
+											title="Delete space"
+											aria-label="Delete {s.name}"
+										>
+											<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+												<polyline points="3 6 5 6 21 6" />
+												<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+											</svg>
+										</button>
+									{/if}
+								</div>
+							{/if}
 						{/each}
 					</div>
 					<div class="space-menu-footer">
@@ -273,7 +316,7 @@
 {/if}
 
 {#if showSpaceMenu}
-	<div class="space-menu-backdrop" onclick={() => { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; }} onkeydown={(e) => { if (e.key === 'Escape') { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; } }} role="button" tabindex="-1"></div>
+	<div class="space-menu-backdrop" onclick={() => { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; confirmDeleteSlug = null; }} onkeydown={(e) => { if (e.key === 'Escape') { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; confirmDeleteSlug = null; } }} role="button" tabindex="-1"></div>
 {/if}
 
 {#if showHelp}
@@ -466,26 +509,32 @@
 		overflow-y: auto;
 	}
 
+	.space-menu-row {
+		display: flex;
+		align-items: center;
+		border-radius: var(--radius-sm);
+		transition: background-color var(--transition);
+	}
+
+	.space-menu-row:hover {
+		background: var(--accent-soft);
+	}
+
+	.space-menu-row.current {
+		background: var(--accent-soft);
+	}
+
 	.space-menu-item {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		width: 100%;
+		flex: 1;
+		min-width: 0;
 		padding: 7px 10px;
-		border-radius: var(--radius-sm);
 		cursor: pointer;
-		transition: background-color var(--transition);
 		text-decoration: none;
 		color: var(--text-primary);
 		font-size: 13px;
-	}
-
-	.space-menu-item:hover {
-		background: var(--accent-soft);
-	}
-
-	.space-menu-item.current {
-		background: var(--accent-soft);
 	}
 
 	.space-menu-name {
@@ -498,6 +547,71 @@
 	.space-menu-check {
 		flex-shrink: 0;
 		color: var(--accent);
+	}
+
+	.space-menu-delete {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 28px;
+		height: 28px;
+		border-radius: var(--radius-sm);
+		color: var(--text-muted);
+		opacity: 0;
+		transition: opacity var(--transition), background-color var(--transition), color var(--transition);
+	}
+
+	.space-menu-row:hover .space-menu-delete {
+		opacity: 1;
+	}
+
+	.space-menu-delete:hover {
+		background: rgba(239, 68, 68, 0.1);
+		color: var(--danger);
+	}
+
+	.space-menu-confirm {
+		padding: 8px 10px;
+		font-size: 13px;
+		color: var(--text-primary);
+	}
+
+	.space-menu-confirm-text {
+		display: block;
+		margin-bottom: 8px;
+	}
+
+	.space-menu-confirm-actions {
+		display: flex;
+		gap: 6px;
+		justify-content: flex-end;
+	}
+
+	.space-menu-confirm-btn {
+		font-size: 12px;
+		padding: 4px 12px;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: background-color var(--transition);
+	}
+
+	.space-menu-confirm-btn.cancel {
+		color: var(--text-secondary);
+		background: var(--bg-secondary);
+	}
+
+	.space-menu-confirm-btn.cancel:hover {
+		background: var(--border);
+	}
+
+	.space-menu-confirm-btn.delete {
+		color: white;
+		background: var(--danger);
+	}
+
+	.space-menu-confirm-btn.delete:hover {
+		opacity: 0.9;
 	}
 
 	.space-menu-footer {
