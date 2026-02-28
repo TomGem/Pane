@@ -407,6 +407,8 @@
 		border-radius: var(--radius);
 		box-shadow: var(--shadow-lg);
 		overflow: hidden;
+		background: var(--bg-primary);
+		border: 1px solid var(--border);
 	}
 
 	.space-menu-header {
