@@ -4,6 +4,8 @@ A local-only Kanban dashboard for organizing links, notes, and documents into dr
 
 All data stays on your machine — no accounts, no cloud, no tracking.
 
+![Pane overview](screenshots/pane-overview.png)
+
 ## Features
 
 - **Kanban board** — Organize content into columns (categories) with drag-and-drop reordering
@@ -15,6 +17,15 @@ All data stays on your machine — no accounts, no cloud, no tracking.
 - **Theming** — Light, dark, and system-following themes with a glass-blur UI
 - **Keyboard shortcuts** — `/` or `Cmd+K` to search, `Cmd+N` for new item, `Cmd+Shift+N` for new category
 - **Sample data** — One-click loading of curated AI coding resources to explore the app instantly
+
+## Getting Started
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Then open [http://localhost:5173](http://localhost:5173).
 
 ## Requirements
 
