@@ -31,6 +31,16 @@ pnpm dev
 
 Open [http://localhost:5173](http://localhost:5173). On first launch you'll see an empty board — click **Load Sample Data** to get started, or create your own categories.
 
+### Docker
+
+No Node.js required — just Docker:
+
+```bash
+docker compose up -d
+```
+
+Open [http://localhost:3000](http://localhost:3000). Data persists in `./data/` and `./storage/`.
+
 ## Documentation
 
 | Guide | Description |

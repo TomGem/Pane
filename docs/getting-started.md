@@ -56,6 +56,18 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 On first launch a default space called **Pane** is created automatically. You'll see an empty board — click **Load Sample Data** to populate it with curated content, or start creating your own categories.
 
+## Docker (alternative)
+
+If you have Docker installed, you can skip the Node.js and build tool requirements entirely:
+
+```bash
+git clone https://github.com/TomGem/Pane.git
+cd Pane
+docker compose up -d
+```
+
+Open [http://localhost:3000](http://localhost:3000). See the [Deployment guide](deployment.md#docker) for more Docker options.
+
 ## Scripts
 
 | Command | Description |

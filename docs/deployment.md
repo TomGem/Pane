@@ -68,20 +68,62 @@ server {
 
 ## Docker
 
-No Dockerfile is included, but a minimal setup would be:
+A `Dockerfile` and `docker-compose.yml` are included. Docker is the easiest way to run Pane without installing Node.js or native build tools.
 
-```dockerfile
-FROM node:20-slim
-WORKDIR /app
-COPY build/ ./build/
-COPY package.json ./
-ENV PORT=3000
-EXPOSE 3000
-CMD ["node", "build"]
-```
-
-Mount `data/` and `storage/` as volumes to persist data:
+### Using Docker Compose (recommended)
 
 ```bash
-docker run -p 3000:3000 -v ./data:/app/data -v ./storage:/app/storage pane
+docker compose up -d
+```
+
+Pane will be available at [http://localhost:3000](http://localhost:3000). Data is persisted to `./data/` and `./storage/` on the host via bind mounts.
+
+To rebuild after code changes:
+
+```bash
+docker compose up -d --build
+```
+
+To stop:
+
+```bash
+docker compose down
+```
+
+### Using Docker directly
+
+Build the image:
+
+```bash
+docker build -t pane .
+```
+
+Run the container:
+
+```bash
+docker run -d -p 3000:3000 -v ./data:/app/data -v ./storage:/app/storage pane
+```
+
+### Docker environment variables
+
+Override environment variables in `docker-compose.yml` or via `docker run -e`:
+
+```bash
+docker run -d -p 8080:8080 \
+  -e PORT=8080 \
+  -e ORIGIN=https://pane.example.com \
+  -v ./data:/app/data \
+  -v ./storage:/app/storage \
+  pane
+```
+
+### Reverse proxy with Docker
+
+When running behind a reverse proxy, uncomment and set the `ORIGIN` variable in `docker-compose.yml`:
+
+```yaml
+environment:
+  - HOST=0.0.0.0
+  - PORT=3000
+  - ORIGIN=https://pane.example.com
 ```
