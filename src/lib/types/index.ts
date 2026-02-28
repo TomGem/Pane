@@ -54,3 +54,8 @@ export interface ReorderMove {
 	category_id: number;
 	sort_order: number;
 }
+
+export interface Space {
+	slug: string;
+	name: string;
+}

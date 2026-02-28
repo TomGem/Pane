@@ -16,21 +16,44 @@ No test framework is configured. Use `pnpm check` to validate types before commi
 
 ## Architecture
 
-**Pane** is a local-only Kanban dashboard built with SvelteKit 2 + SQLite. It organizes links, notes, and documents into draggable columns. All data stays on the local machine.
+**Pane** is a local-only Kanban dashboard built with SvelteKit 2 + SQLite. It organizes links, notes, and documents into draggable columns. All data stays on the local machine. Supports multiple isolated **Spaces**, each with its own database and file storage.
 
 ### Data flow
 
 ```
-hooks.server.ts (schema init) → +page.server.ts (SSR load) → Board store (client state) → API routes (mutations) → SQLite
+hooks.server.ts (migration + default space)
+  → /s/[space]/+layout.server.ts (validate space, load spaces list)
+  → /s/[space]/+page.server.ts (SSR load categories+items+tags)
+  → Board store (client state, space-aware API calls)
+  → API routes (mutations with ?space= param)
+  → SQLite (per-space DB)
 ```
 
-The page server load hydrates the board with categories+items+tags. All mutations go through the `BoardStore` (`$lib/stores/board.svelte.ts`), which calls API endpoints and refreshes state. The store uses Svelte 5 runes (`$state`, `$derived`, `$effect`).
+Root `/` redirects to `/s/pane`. The space layout validates the space slug and provides space metadata to the toolbar. The page server load hydrates the board. All mutations go through the `BoardStore` (`$lib/stores/board.svelte.ts`), which appends `?space={slug}` to all API calls. The store uses Svelte 5 runes (`$state`, `$derived`, `$effect`).
+
+### Spaces (Multi-Database)
+
+Each space has its own SQLite database (`data/{slug}.db`) and storage directory (`storage/{slug}/`). Spaces are discovered by scanning `data/*.db` files and reading the `display_name` from each DB's `meta` table.
+
+- **`$lib/server/db.ts`** — Connection cache (`Map<string, Database>`), `getDb(slug)`, `createDb(slug, name)`, `closeDb(slug)`, `listSpaces()`, `slugExists(slug)`, `validateSpaceSlug(slug)`
+- **`$lib/server/space.ts`** — `getSpaceSlug(url)` and `getSpaceDb(url)` helpers that read `?space=` from the URL
+- **Space API** — `GET/POST /api/spaces`, `PUT/DELETE /api/spaces/[slug]`
 
 ### Database
 
-SQLite via `better-sqlite3` (synchronous API). Singleton in `$lib/server/db.ts`, schema in `$lib/server/schema.ts`, initialized in `hooks.server.ts`. WAL mode, foreign keys ON. DB file: `data/pane.db` (gitignored, auto-created on first run).
+SQLite via `better-sqlite3` (synchronous API). Connection cache in `$lib/server/db.ts`, schema in `$lib/server/schema.ts`, initialized in `hooks.server.ts`. WAL mode, foreign keys ON. DB files: `data/{slug}.db` (gitignored, auto-created).
 
-Four tables: `categories` (with optional `parent_id` for hierarchy), `items` (single table with `type` discriminator: link/note/document), `tags`, `item_tags` (junction). Items share a sort space per category to simplify cross-column drag-and-drop.
+Five tables: `categories` (with optional `parent_id` for hierarchy), `items` (single table with `type` discriminator: link/note/document), `tags`, `item_tags` (junction), `meta` (key-value for space metadata like `display_name`). Items share a sort space per category to simplify cross-column drag-and-drop.
+
+### Route structure
+
+```
+/                           → redirect to /s/pane
+/s/[space]/                 → space layout (toolbar + context) + page (board)
+/s/[space]/+error.svelte    → "Space not found" error page
+```
+
+Root layout (`+layout.svelte`) owns theme only. Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and app context bridge.
 
 ### Hierarchical navigation
 
@@ -38,11 +61,11 @@ Categories can be nested via `parent_id`. The board store tracks `currentParentI
 
 ### Layout ↔ Page communication
 
-Layout (`+layout.svelte`) owns the Toolbar and theme. Page (`+page.svelte`) registers callbacks via `setContext('app')` / `getContext('app')` so the Toolbar's Add/Search/Tag actions trigger the page's modals and filtering. The context object exposes reactive getters and setter functions — not plain values.
+Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and theme. Page (`/s/[space]/+page.svelte`) registers callbacks via `setContext('app')` / `getContext('app')` so the Toolbar's Add/Search/Tag actions trigger the page's modals and filtering. The context object exposes reactive getters and setter functions — not plain values.
 
 ### File storage
 
-Documents stored at `storage/{category-slug}/{uuid}.{ext}`. Original filename kept in DB. Moving items between categories physically moves files. Served via `/api/files/[...path]`. Both `data/` and `storage/` are gitignored.
+Documents stored at `storage/{space-slug}/{category-slug}/{uuid}.{ext}`. Original filename kept in DB. Moving items between categories physically moves files. Served via `/api/files/[...path]?space={slug}`. Both `data/` and `storage/` are gitignored.
 
 ### Theming
 
@@ -58,13 +81,13 @@ Notes and descriptions render markdown via `marked` with HTML sanitized through 
 
 ### Seed endpoint
 
-`POST /api/seed` populates an empty database with curated sample data (categories, tags, items). Guards against duplicate seeding by checking if any categories exist. Called from the empty board state UI.
+`POST /api/seed?space={slug}` populates an empty database with curated sample data (categories, tags, items). Guards against duplicate seeding by checking if any categories exist. Called from the empty board state UI.
 
 ## Conventions
 
 - **Svelte 5 runes only** — `$state`, `$derived`, `$effect`, `$props()`, `$bindable()`. No legacy `let` exports or `createEventDispatcher`.
 - **Callback props for events** — e.g. `onsubmit`, `onclose`, `onadd` (not `dispatch`).
-- **API routes return `json()`** from `@sveltejs/kit`. Errors return `{ error: string }` with appropriate status codes.
+- **API routes return `json()`** from `@sveltejs/kit`. Errors return `{ error: string }` with appropriate status codes. All API routes require `?space={slug}` query parameter (read via `getSpaceDb(url)` from `$lib/server/space`).
 - **DB operations are synchronous** — `.run()`, `.get()`, `.all()`. Use `db.transaction()` for multi-statement writes.
-- **Types** live in `$lib/types/index.ts`. `CategoryWithItems` is the joined type used by components.
+- **Types** live in `$lib/types/index.ts`. `CategoryWithItems` is the joined type used by components. `Space` is `{ slug: string; name: string }`.
 - **Scoped CSS** — styles are component-scoped via `<style>` blocks. Global variables defined in `app.css`.

@@ -1,13 +1,13 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
 import { deleteCategoryDir } from '$lib/server/storage';
 import type { Category } from '$lib/types';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, url }) => {
 	try {
-		const db = getDb();
+		const db = getSpaceDb(url);
 		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(params.id) as Category | undefined;
 
 		if (!category) {
@@ -21,7 +21,7 @@ export const GET: RequestHandler = async ({ params }) => {
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async ({ params, request, url }) => {
 	try {
 		const { name, color } = await request.json();
 
@@ -29,7 +29,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 			return json({ error: 'Name and color are required' }, { status: 400 });
 		}
 
-		const db = getDb();
+		const db = getSpaceDb(url);
 		const slug = slugify(name);
 
 		const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(params.id) as Category | undefined;
@@ -50,9 +50,10 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, url }) => {
 	try {
-		const db = getDb();
+		const spaceSlug = getSpaceSlug(url);
+		const db = getSpaceDb(url);
 
 		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(params.id) as Category | undefined;
 		if (!category) {
@@ -73,7 +74,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 
 		// Clean up storage dirs for this category and all descendants
 		for (const { slug } of descendants) {
-			deleteCategoryDir(slug);
+			deleteCategoryDir(spaceSlug, slug);
 		}
 
 		return json({ success: true });

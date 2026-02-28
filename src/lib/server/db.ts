@@ -1,15 +1,69 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
+import { initSchema, getMeta } from './schema';
+import type { Space } from '$lib/types';
 
-const DB_PATH = path.resolve('data', 'pane.db');
+const DATA_DIR = path.resolve('data');
+const cache = new Map<string, Database.Database>();
 
-let db: Database.Database;
+const SLUG_RE = /^[a-z0-9-]{1,64}$/;
 
-export function getDb(): Database.Database {
+export function validateSpaceSlug(slug: string): boolean {
+	return SLUG_RE.test(slug);
+}
+
+export function slugExists(slug: string): boolean {
+	return fs.existsSync(path.join(DATA_DIR, `${slug}.db`));
+}
+
+function openDb(slug: string): Database.Database {
+	const dbPath = path.join(DATA_DIR, `${slug}.db`);
+	const db = new Database(dbPath);
+	db.pragma('journal_mode = WAL');
+	db.pragma('foreign_keys = ON');
+	return db;
+}
+
+export function getDb(slug: string): Database.Database {
+	let db = cache.get(slug);
 	if (!db) {
-		db = new Database(DB_PATH);
-		db.pragma('journal_mode = WAL');
-		db.pragma('foreign_keys = ON');
+		db = openDb(slug);
+		cache.set(slug, db);
 	}
 	return db;
+}
+
+export function createDb(slug: string, displayName: string): Database.Database {
+	const db = openDb(slug);
+	initSchema(db, displayName);
+	cache.set(slug, db);
+	return db;
+}
+
+export function closeDb(slug: string) {
+	const db = cache.get(slug);
+	if (db) {
+		db.close();
+		cache.delete(slug);
+	}
+}
+
+export function listSpaces(): Space[] {
+	fs.mkdirSync(DATA_DIR, { recursive: true });
+	const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.db') && !f.endsWith('-journal') && !f.endsWith('-wal') && !f.endsWith('-shm'));
+	const spaces: Space[] = [];
+
+	for (const file of files) {
+		const slug = file.replace(/\.db$/, '');
+		try {
+			const db = getDb(slug);
+			const name = getMeta(db, 'display_name') ?? slug;
+			spaces.push({ slug, name });
+		} catch {
+			// Skip corrupted/unreadable DBs
+		}
+	}
+
+	return spaces.sort((a, b) => a.name.localeCompare(b.name));
 }

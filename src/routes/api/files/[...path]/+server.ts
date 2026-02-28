@@ -1,15 +1,17 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { getSpaceSlug } from '$lib/server/space';
 import fs from 'fs';
 import path from 'path';
 
 const STORAGE_ROOT = path.resolve('storage');
 
-export const GET: RequestHandler = async ({ params }) => {
-	const filePath = path.join(STORAGE_ROOT, params.path);
+export const GET: RequestHandler = async ({ params, url }) => {
+	const spaceSlug = getSpaceSlug(url);
+	const filePath = path.join(STORAGE_ROOT, spaceSlug, params.path);
 
 	// Prevent directory traversal
-	if (!filePath.startsWith(STORAGE_ROOT)) {
+	if (!filePath.startsWith(path.join(STORAGE_ROOT, spaceSlug))) {
 		throw error(403, 'Forbidden');
 	}
 

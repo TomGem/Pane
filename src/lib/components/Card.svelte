@@ -6,11 +6,12 @@
 
 	interface Props {
 		item: Item;
+		spaceSlug?: string;
 		onedit?: (item: Item) => void;
 		ondelete?: (item: Item) => void;
 	}
 
-	let { item, onedit, ondelete }: Props = $props();
+	let { item, spaceSlug = 'pane', onedit, ondelete }: Props = $props();
 
 	const app = getContext<{ toggleTag: (tagId: number) => void }>('app');
 
@@ -32,7 +33,7 @@
 
 	function getItemUrl(): string | null {
 		if (item.type === 'link' && item.content) return item.content;
-		if (item.type === 'document' && item.file_path) return `/api/files/${item.file_path}`;
+		if (item.type === 'document' && item.file_path) return `/api/files/${item.file_path}?space=${spaceSlug}`;
 		return null;
 	}
 
@@ -156,7 +157,7 @@
 
 {#if showMediaOverlay}
 	<MediaOverlay
-		url={`/api/files/${item.file_path}`}
+		url={`/api/files/${item.file_path}?space=${spaceSlug}`}
 		fileName={item.file_name ?? ''}
 		mimeType={item.mime_type ?? ''}
 		onclose={() => showMediaOverlay = false}

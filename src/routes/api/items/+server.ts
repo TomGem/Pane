@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb } from '$lib/server/space';
 import type { Item, Tag } from '$lib/types';
 
 async function fetchPageMeta(url: string): Promise<{ title: string | null; description: string | null }> {
@@ -30,7 +30,7 @@ async function fetchPageMeta(url: string): Promise<{ title: string | null; descr
 	}
 }
 
-function getTagsForItem(db: ReturnType<typeof getDb>, itemId: number): Tag[] {
+function getTagsForItem(db: ReturnType<typeof getSpaceDb>, itemId: number): Tag[] {
 	return db.prepare(
 		`SELECT t.id, t.name, t.color
 		 FROM tags t
@@ -39,7 +39,7 @@ function getTagsForItem(db: ReturnType<typeof getDb>, itemId: number): Tag[] {
 	).all(itemId) as Tag[];
 }
 
-function attachTags(db: ReturnType<typeof getDb>, items: Item[]): Item[] {
+function attachTags(db: ReturnType<typeof getSpaceDb>, items: Item[]): Item[] {
 	return items.map((item) => ({
 		...item,
 		tags: getTagsForItem(db, item.id)
@@ -48,7 +48,7 @@ function attachTags(db: ReturnType<typeof getDb>, items: Item[]): Item[] {
 
 export const GET: RequestHandler = async ({ url }) => {
 	try {
-		const db = getDb();
+		const db = getSpaceDb(url);
 
 		const categoryId = url.searchParams.get('category_id');
 		const type = url.searchParams.get('type');
@@ -85,7 +85,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	}
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, url }) => {
 	try {
 		const { category_id, type, title: rawTitle, content, description, tags, fetch_title } = await request.json();
 
@@ -101,7 +101,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			if (meta.description && !desc) desc = meta.description;
 		}
 
-		const db = getDb();
+		const db = getSpaceDb(url);
 
 		const maxOrder = db.prepare(
 			'SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM items WHERE category_id = ?'

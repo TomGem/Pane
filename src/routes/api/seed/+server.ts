@@ -1,11 +1,11 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
 
-export const POST: RequestHandler = async () => {
+export const POST: RequestHandler = async ({ url }) => {
 	try {
-		const db = getDb();
+		const db = getSpaceDb(url);
 
 		// Guard against duplicate seeding
 		const existing = db.prepare('SELECT COUNT(*) AS count FROM categories').get() as { count: number };

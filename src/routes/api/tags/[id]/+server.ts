@@ -1,9 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb } from '$lib/server/space';
 import type { Tag } from '$lib/types';
 
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async ({ params, request, url }) => {
 	try {
 		const { name, color } = await request.json();
 
@@ -11,7 +11,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 			return json({ error: 'Name and color are required' }, { status: 400 });
 		}
 
-		const db = getDb();
+		const db = getSpaceDb(url);
 
 		const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(params.id) as Tag | undefined;
 		if (!existing) {
@@ -29,9 +29,9 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, url }) => {
 	try {
-		const db = getDb();
+		const db = getSpaceDb(url);
 
 		const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(params.id) as Tag | undefined;
 		if (!existing) {

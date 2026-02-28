@@ -6,6 +6,7 @@
 
 	interface Props {
 		board: BoardStore;
+		spaceSlug?: string;
 		searchQuery?: string;
 		selectedTagIds?: number[];
 		onitemedit?: (item: Item) => void;
@@ -17,7 +18,7 @@
 		ondrilldown?: (categoryId: number) => void;
 	}
 
-	let { board, searchQuery = '', selectedTagIds = [], onitemedit, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, ondrilldown }: Props = $props();
+	let { board, spaceSlug = 'pane', searchQuery = '', selectedTagIds = [], onitemedit, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, ondrilldown }: Props = $props();
 
 	function handleColumnConsider(e: CustomEvent<{ items: CategoryWithItems[] }>) {
 		board.columns = e.detail.items;
@@ -98,6 +99,7 @@
 		<div class:search-hidden={!visible}>
 			<Column
 				category={column}
+				{spaceSlug}
 				{searchQuery}
 				{selectedTagIds}
 				onitemsupdate={handleItemsUpdate}

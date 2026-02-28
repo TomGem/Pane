@@ -1,10 +1,10 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
 import { moveFile } from '$lib/server/storage';
 import type { Item, Category, ReorderMove } from '$lib/types';
 
-export const PUT: RequestHandler = async ({ request }) => {
+export const PUT: RequestHandler = async ({ request, url }) => {
 	try {
 		const { moves } = await request.json() as { moves: ReorderMove[] };
 
@@ -12,7 +12,8 @@ export const PUT: RequestHandler = async ({ request }) => {
 			return json({ error: 'moves must be a non-empty array' }, { status: 400 });
 		}
 
-		const db = getDb();
+		const spaceSlug = getSpaceSlug(url);
+		const db = getSpaceDb(url);
 
 		const reorder = db.transaction((movesToApply: ReorderMove[]) => {
 			const getItem = db.prepare('SELECT * FROM items WHERE id = ?');
@@ -31,7 +32,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 				if (move.category_id !== item.category_id && item.file_path) {
 					const newCategory = getCategory.get(move.category_id) as Category | undefined;
 					if (newCategory) {
-						newFilePath = moveFile(item.file_path, newCategory.slug);
+						newFilePath = moveFile(spaceSlug, item.file_path, newCategory.slug);
 					}
 				}
 

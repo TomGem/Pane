@@ -4,14 +4,27 @@ import { randomUUID } from 'crypto';
 
 const STORAGE_ROOT = path.resolve('storage');
 
-export function ensureCategoryDir(slug: string): string {
-	const dir = path.join(STORAGE_ROOT, slug);
+export function ensureSpaceDir(spaceSlug: string): string {
+	const dir = path.join(STORAGE_ROOT, spaceSlug);
 	fs.mkdirSync(dir, { recursive: true });
 	return dir;
 }
 
-export function saveFile(categorySlug: string, originalName: string, data: Buffer): { filePath: string; fileName: string } {
-	const dir = ensureCategoryDir(categorySlug);
+export function deleteSpaceDir(spaceSlug: string) {
+	const dir = path.join(STORAGE_ROOT, spaceSlug);
+	if (fs.existsSync(dir)) {
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
+}
+
+export function ensureCategoryDir(spaceSlug: string, categorySlug: string): string {
+	const dir = path.join(STORAGE_ROOT, spaceSlug, categorySlug);
+	fs.mkdirSync(dir, { recursive: true });
+	return dir;
+}
+
+export function saveFile(spaceSlug: string, categorySlug: string, originalName: string, data: Buffer): { filePath: string; fileName: string } {
+	const dir = ensureCategoryDir(spaceSlug, categorySlug);
 	const ext = path.extname(originalName);
 	const uuid = randomUUID();
 	const fileName = `${uuid}${ext}`;
@@ -20,27 +33,31 @@ export function saveFile(categorySlug: string, originalName: string, data: Buffe
 	return { filePath, fileName: originalName };
 }
 
-export function moveFile(oldPath: string, newCategorySlug: string): string {
-	const oldFull = path.join(STORAGE_ROOT, oldPath);
+export function moveFile(spaceSlug: string, oldPath: string, newCategorySlug: string): string {
+	const oldFull = path.join(STORAGE_ROOT, spaceSlug, oldPath);
 	if (!fs.existsSync(oldFull)) return oldPath;
 
 	const baseName = path.basename(oldPath);
-	const newDir = ensureCategoryDir(newCategorySlug);
+	const newDir = ensureCategoryDir(spaceSlug, newCategorySlug);
 	const newPath = path.join(newCategorySlug, baseName);
 	fs.renameSync(oldFull, path.join(newDir, baseName));
 	return newPath;
 }
 
-export function deleteFile(filePath: string) {
-	const full = path.join(STORAGE_ROOT, filePath);
+export function deleteFile(spaceSlug: string, filePath: string) {
+	const full = path.join(STORAGE_ROOT, spaceSlug, filePath);
 	if (fs.existsSync(full)) {
 		fs.unlinkSync(full);
 	}
 }
 
-export function deleteCategoryDir(slug: string) {
-	const dir = path.join(STORAGE_ROOT, slug);
+export function deleteCategoryDir(spaceSlug: string, categorySlug: string) {
+	const dir = path.join(STORAGE_ROOT, spaceSlug, categorySlug);
 	if (fs.existsSync(dir)) {
 		fs.rmSync(dir, { recursive: true, force: true });
 	}
+}
+
+export function getStorageRoot(): string {
+	return STORAGE_ROOT;
 }

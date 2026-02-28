@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb } from '$lib/server/space';
 
-export const PUT: RequestHandler = async ({ request }) => {
+export const PUT: RequestHandler = async ({ request, url }) => {
 	try {
 		const { orderedIds } = await request.json();
 
@@ -10,7 +10,7 @@ export const PUT: RequestHandler = async ({ request }) => {
 			return json({ error: 'orderedIds must be a non-empty array' }, { status: 400 });
 		}
 
-		const db = getDb();
+		const db = getSpaceDb(url);
 
 		const reorder = db.transaction((ids: number[]) => {
 			const stmt = db.prepare('UPDATE categories SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');

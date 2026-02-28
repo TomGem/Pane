@@ -1,11 +1,11 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb } from '$lib/server/space';
 import type { Tag } from '$lib/types';
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ url }) => {
 	try {
-		const db = getDb();
+		const db = getSpaceDb(url);
 		const tags = db.prepare('SELECT * FROM tags ORDER BY name').all() as Tag[];
 		return json(tags);
 	} catch (err) {
@@ -14,7 +14,7 @@ export const GET: RequestHandler = async () => {
 	}
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, url }) => {
 	try {
 		const { name, color } = await request.json();
 
@@ -22,7 +22,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'Name and color are required' }, { status: 400 });
 		}
 
-		const db = getDb();
+		const db = getSpaceDb(url);
 
 		const result = db.prepare(
 			'INSERT INTO tags (name, color) VALUES (?, ?)'

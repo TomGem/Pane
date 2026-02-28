@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
 import type { Category } from '$lib/types';
 
 export const GET: RequestHandler = async ({ url }) => {
 	try {
-		const db = getDb();
+		const db = getSpaceDb(url);
 		const parentParam = url.searchParams.get('parent_id');
 
 		let categories;
@@ -37,7 +37,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	}
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, url }) => {
 	try {
 		const { name, color, parent_id } = await request.json();
 
@@ -45,7 +45,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'Name and color are required' }, { status: 400 });
 		}
 
-		const db = getDb();
+		const db = getSpaceDb(url);
 		const slug = slugify(name);
 
 		const parentIdValue = parent_id ?? null;

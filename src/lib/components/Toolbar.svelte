@@ -1,14 +1,18 @@
 <script lang="ts">
 	import ThemeToggle from './ThemeToggle.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
-	import type { Tag } from '$lib/types';
+	import type { Tag, Space } from '$lib/types';
 	import { getContext } from 'svelte';
+	import { goto } from '$app/navigation';
 
 	interface Props {
 		searchQuery?: string;
 		tags?: Tag[];
 		selectedTagIds?: number[];
 		themeMode: ThemeMode;
+		spaceName?: string;
+		spaces?: Space[];
+		spaceSlug?: string;
 		onsearch?: (query: string) => void;
 		ontagtoggle?: (tagId: number) => void;
 		oncleartags?: () => void;
@@ -17,11 +21,15 @@
 		onthemechange?: (mode: ThemeMode) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, onthemechange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, spaceName = 'Pane', spaces = [], spaceSlug = 'pane', onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, onthemechange }: Props = $props();
 
 	let searchInputEl = $state<HTMLInputElement | null>(null);
 	let showTagMenu = $state(false);
 	let showHelp = $state(false);
+	let showSpaceMenu = $state(false);
+	let creatingSpace = $state(false);
+	let newSpaceName = $state('');
+	let newSpaceInputEl = $state<HTMLInputElement | null>(null);
 	let now = $state(new Date());
 
 	$effect(() => {
@@ -50,9 +58,32 @@
 
 	app.setFocusSearch(focusSearch);
 
+	async function handleCreateSpace() {
+		const name = newSpaceName.trim();
+		if (!name) return;
+		try {
+			const res = await fetch('/api/spaces', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+			const data = await res.json();
+			if (!res.ok) return;
+			creatingSpace = false;
+			newSpaceName = '';
+			showSpaceMenu = false;
+			goto(`/s/${data.slug}`);
+		} catch { /* ignore */ }
+	}
+
 	function handleGlobalKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && showHelp) {
 			showHelp = false;
+		}
+		if (e.key === 'Escape' && showSpaceMenu) {
+			showSpaceMenu = false;
+			creatingSpace = false;
+			newSpaceName = '';
 		}
 	}
 
@@ -69,7 +100,63 @@
 
 <header class="toolbar glass-strong">
 	<div class="toolbar-left">
-		<span class="toolbar-title">Pane</span>
+		<div class="space-selector-wrapper">
+			<button class="toolbar-title space-selector-btn" onclick={() => showSpaceMenu = !showSpaceMenu}>
+				{spaceName}
+				<svg class="space-chevron" class:open={showSpaceMenu} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<polyline points="6 9 12 15 18 9" />
+				</svg>
+			</button>
+			{#if showSpaceMenu}
+				<div class="space-menu glass-strong">
+					<div class="space-menu-header">
+						<span class="space-menu-title">Spaces</span>
+					</div>
+					<div class="space-menu-list">
+						{#each spaces as s (s.slug)}
+							<a
+								class="space-menu-item"
+								class:current={s.slug === spaceSlug}
+								href="/s/{s.slug}"
+								onclick={() => showSpaceMenu = false}
+							>
+								<span class="space-menu-name">{s.name}</span>
+								{#if s.slug === spaceSlug}
+									<svg class="space-menu-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+										<polyline points="20 6 9 17 4 12" />
+									</svg>
+								{/if}
+							</a>
+						{/each}
+					</div>
+					<div class="space-menu-footer">
+						{#if creatingSpace}
+							<form class="space-create-form" onsubmit={(e) => { e.preventDefault(); handleCreateSpace(); }}>
+								<input
+									bind:this={newSpaceInputEl}
+									class="input space-create-input"
+									type="text"
+									placeholder="Space name..."
+									bind:value={newSpaceName}
+									onkeydown={(e) => { if (e.key === 'Escape') { creatingSpace = false; newSpaceName = ''; } }}
+								/>
+								<button class="btn btn-primary space-create-submit" type="submit" disabled={!newSpaceName.trim()}>
+									Create
+								</button>
+							</form>
+						{:else}
+							<button class="space-menu-new" onclick={() => { creatingSpace = true; setTimeout(() => newSpaceInputEl?.focus(), 0); }}>
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<line x1="12" y1="5" x2="12" y2="19" />
+									<line x1="5" y1="12" x2="19" y2="12" />
+								</svg>
+								New Space
+							</button>
+						{/if}
+					</div>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	<div class="toolbar-center">
@@ -179,6 +266,10 @@
 	<div class="tag-menu-backdrop" onclick={() => showTagMenu = false} onkeydown={(e) => { if (e.key === 'Escape') showTagMenu = false; }} role="button" tabindex="-1"></div>
 {/if}
 
+{#if showSpaceMenu}
+	<div class="space-menu-backdrop" onclick={() => { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; }} onkeydown={(e) => { if (e.key === 'Escape') { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; } }} role="button" tabindex="-1"></div>
+{/if}
+
 {#if showHelp}
 	<div class="help-overlay" onclick={(e) => { if (e.target === e.currentTarget) showHelp = false; }} onkeydown={(e) => { if (e.key === 'Escape') showHelp = false; }} role="button" tabindex="-1">
 		<div class="help-panel glass-strong">
@@ -269,7 +360,7 @@
 		flex-shrink: 1;
 		min-width: 0;
 		max-width: 40%;
-		overflow: hidden;
+		overflow: visible;
 	}
 
 	.toolbar-title {
@@ -277,6 +368,146 @@
 		font-weight: 700;
 		letter-spacing: -0.02em;
 		color: var(--text-primary);
+	}
+
+	.space-selector-wrapper {
+		position: relative;
+	}
+
+	.space-selector-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		cursor: pointer;
+		padding: 4px 8px;
+		margin: -4px -8px;
+		border-radius: var(--radius);
+		transition: background-color var(--transition);
+	}
+
+	.space-selector-btn:hover {
+		background: var(--accent-soft);
+	}
+
+	.space-chevron {
+		color: var(--text-muted);
+		transition: transform 0.2s ease;
+	}
+
+	.space-chevron.open {
+		transform: rotate(180deg);
+	}
+
+	.space-menu {
+		position: absolute;
+		top: calc(100% + 10px);
+		left: 0;
+		z-index: 150;
+		min-width: 220px;
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-lg);
+		overflow: hidden;
+	}
+
+	.space-menu-header {
+		display: flex;
+		align-items: center;
+		padding: 8px 12px;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.space-menu-title {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--text-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+	}
+
+	.space-menu-list {
+		padding: 4px;
+		max-height: 240px;
+		overflow-y: auto;
+	}
+
+	.space-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 7px 10px;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: background-color var(--transition);
+		text-decoration: none;
+		color: var(--text-primary);
+		font-size: 13px;
+	}
+
+	.space-menu-item:hover {
+		background: var(--accent-soft);
+	}
+
+	.space-menu-item.current {
+		background: var(--accent-soft);
+	}
+
+	.space-menu-name {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.space-menu-check {
+		flex-shrink: 0;
+		color: var(--accent);
+	}
+
+	.space-menu-footer {
+		padding: 4px;
+		border-top: 1px solid var(--border);
+	}
+
+	.space-menu-new {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 7px 10px;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: background-color var(--transition);
+		font-size: 13px;
+		color: var(--accent);
+	}
+
+	.space-menu-new:hover {
+		background: var(--accent-soft);
+	}
+
+	.space-create-form {
+		display: flex;
+		gap: 6px;
+		padding: 4px;
+	}
+
+	.space-create-input {
+		flex: 1;
+		font-size: 13px;
+		padding: 6px 8px;
+	}
+
+	.space-create-submit {
+		flex-shrink: 0;
+		font-size: 12px;
+		padding: 6px 12px;
+	}
+
+	.space-menu-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 99;
 	}
 
 	.toolbar-center {

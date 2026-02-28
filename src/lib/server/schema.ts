@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-export function initSchema(db: Database.Database) {
+export function initSchema(db: Database.Database, displayName?: string) {
 	db.exec(`
 		CREATE TABLE IF NOT EXISTS categories (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,6 +41,11 @@ export function initSchema(db: Database.Database) {
 			PRIMARY KEY (item_id, tag_id)
 		);
 
+		CREATE TABLE IF NOT EXISTS meta (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL
+		);
+
 		CREATE INDEX IF NOT EXISTS idx_items_category ON items(category_id);
 		CREATE INDEX IF NOT EXISTS idx_items_sort ON items(category_id, sort_order);
 		CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order);
@@ -55,4 +60,21 @@ export function initSchema(db: Database.Database) {
 			CREATE INDEX idx_categories_parent_sort ON categories(parent_id, sort_order);
 		`);
 	}
+
+	// Insert display_name into meta if missing
+	if (displayName) {
+		const existing = getMeta(db, 'display_name');
+		if (!existing) {
+			setMeta(db, 'display_name', displayName);
+		}
+	}
+}
+
+export function setMeta(db: Database.Database, key: string, value: string) {
+	db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(key, value);
+}
+
+export function getMeta(db: Database.Database, key: string): string | null {
+	const row = db.prepare('SELECT value FROM meta WHERE key = ?').get(key) as { value: string } | undefined;
+	return row?.value ?? null;
 }

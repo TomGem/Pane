@@ -17,6 +17,8 @@ function loadMode(): ThemeMode {
 	return 'system';
 }
 
+export type ThemeStore = ReturnType<typeof createThemeStore>;
+
 export function createThemeStore() {
 	let mode = $state<ThemeMode>(loadMode());
 

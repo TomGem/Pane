@@ -1,7 +1,15 @@
 import type { CategoryWithItems, Category, Item, Tag, ReorderMove, BreadcrumbSegment } from '$lib/types';
 import { api } from '$lib/utils/api';
 
-export function createBoardStore(initial: CategoryWithItems[], initialAllItems?: Item[]) {
+function spaceParam(spaceSlug: string): string {
+	return `space=${encodeURIComponent(spaceSlug)}`;
+}
+
+function withSpace(url: string, spaceSlug: string): string {
+	return url.includes('?') ? `${url}&${spaceParam(spaceSlug)}` : `${url}?${spaceParam(spaceSlug)}`;
+}
+
+export function createBoardStore(initial: CategoryWithItems[], initialAllItems?: Item[], spaceSlug: string = 'pane') {
 	let columns = $state<CategoryWithItems[]>(initial);
 	let allItems = $state<Item[]>(initialAllItems ?? initial.flatMap((c) => c.items));
 	let allTags = $state<Tag[]>([]);
@@ -9,17 +17,17 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	let breadcrumb = $state<BreadcrumbSegment[]>([]);
 
 	async function loadTags() {
-		allTags = await api<Tag[]>('/api/tags');
+		allTags = await api<Tag[]>(withSpace('/api/tags', spaceSlug));
 	}
 
 	async function refresh() {
 		const parentParam = currentParentId === null ? 'null' : String(currentParentId);
 		const [cats, fetchedItems] = await Promise.all([
-			api<(Category & { children_count: number })[]>(`/api/categories?parent_id=${parentParam}`),
-			api<Item[]>('/api/items')
+			api<(Category & { children_count: number })[]>(withSpace(`/api/categories?parent_id=${parentParam}`, spaceSlug)),
+			api<Item[]>(withSpace('/api/items', spaceSlug))
 		]);
 		allItems = fetchedItems;
-		const allCats = await api<Category[]>('/api/categories');
+		const allCats = await api<Category[]>(withSpace('/api/categories', spaceSlug));
 
 		// When drilled into a category, include it as the first column so its direct items are visible
 		let displayCats = cats;
@@ -42,7 +50,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 
 	// Categories
 	async function addCategory(name: string, color: string) {
-		await api<Category>('/api/categories', {
+		await api<Category>(withSpace('/api/categories', spaceSlug), {
 			method: 'POST',
 			body: JSON.stringify({ name, color, parent_id: currentParentId })
 		});
@@ -50,7 +58,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function addSubcategory(name: string, color: string, parentId: number) {
-		await api<Category>('/api/categories', {
+		await api<Category>(withSpace('/api/categories', spaceSlug), {
 			method: 'POST',
 			body: JSON.stringify({ name, color, parent_id: parentId })
 		});
@@ -58,7 +66,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function updateCategory(id: number, name: string, color: string) {
-		await api<Category>(`/api/categories/${id}`, {
+		await api<Category>(withSpace(`/api/categories/${id}`, spaceSlug), {
 			method: 'PUT',
 			body: JSON.stringify({ name, color })
 		});
@@ -66,12 +74,12 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function deleteCategory(id: number) {
-		await api(`/api/categories/${id}`, { method: 'DELETE' });
+		await api(withSpace(`/api/categories/${id}`, spaceSlug), { method: 'DELETE' });
 		await refresh();
 	}
 
 	async function reorderCategories(orderedIds: number[]) {
-		await api('/api/categories/reorder', {
+		await api(withSpace('/api/categories/reorder', spaceSlug), {
 			method: 'PUT',
 			body: JSON.stringify({ orderedIds })
 		});
@@ -97,12 +105,12 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function fetchBreadcrumb(categoryId: number) {
-		breadcrumb = await api<BreadcrumbSegment[]>(`/api/categories/${categoryId}/breadcrumb`);
+		breadcrumb = await api<BreadcrumbSegment[]>(withSpace(`/api/categories/${categoryId}/breadcrumb`, spaceSlug));
 	}
 
 	// Items
 	async function addItem(data: { category_id: number; type: string; title: string; content?: string; description?: string; tags?: number[]; fetch_title?: boolean }) {
-		await api<Item>('/api/items', {
+		await api<Item>(withSpace('/api/items', spaceSlug), {
 			method: 'POST',
 			body: JSON.stringify(data)
 		});
@@ -110,7 +118,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function updateItem(id: number, data: Partial<Omit<Item, 'tags'>> & { tags?: number[] }) {
-		await api<Item>(`/api/items/${id}`, {
+		await api<Item>(withSpace(`/api/items/${id}`, spaceSlug), {
 			method: 'PUT',
 			body: JSON.stringify(data)
 		});
@@ -118,12 +126,12 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function deleteItem(id: number) {
-		await api(`/api/items/${id}`, { method: 'DELETE' });
+		await api(withSpace(`/api/items/${id}`, spaceSlug), { method: 'DELETE' });
 		await refresh();
 	}
 
 	async function reorderItems(moves: ReorderMove[]) {
-		await api('/api/items/reorder', {
+		await api(withSpace('/api/items/reorder', spaceSlug), {
 			method: 'PUT',
 			body: JSON.stringify({ moves })
 		});
@@ -137,7 +145,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		if (title) form.append('title', title);
 		if (description) form.append('description', description);
 
-		await fetch('/api/items/upload', { method: 'POST', body: form });
+		await fetch(withSpace('/api/items/upload', spaceSlug), { method: 'POST', body: form });
 		await refresh();
 	}
 
@@ -153,7 +161,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 
 	// Tags
 	async function addTag(name: string, color: string) {
-		const tag = await api<Tag>('/api/tags', {
+		const tag = await api<Tag>(withSpace('/api/tags', spaceSlug), {
 			method: 'POST',
 			body: JSON.stringify({ name, color })
 		});
@@ -168,6 +176,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		get allTags() { return allTags; },
 		get currentParentId() { return currentParentId; },
 		get breadcrumb() { return breadcrumb; },
+		get spaceSlug() { return spaceSlug; },
 		refresh,
 		loadTags,
 		addCategory,

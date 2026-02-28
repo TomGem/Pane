@@ -6,12 +6,13 @@
 
 	interface Props {
 		category: Category;
+		spaceSlug?: string;
 		ondrilldown: (id: number) => void;
 		onitemedit?: (item: Item) => void;
 		onitemdelete?: (item: Item) => void;
 	}
 
-	let { category, ondrilldown, onitemedit, onitemdelete }: Props = $props();
+	let { category, spaceSlug = 'pane', ondrilldown, onitemedit, onitemdelete }: Props = $props();
 
 	let expanded = $state(false);
 	let items = $state<Item[]>([]);
@@ -20,7 +21,7 @@
 	async function toggle() {
 		expanded = !expanded;
 		if (expanded && !loaded) {
-			items = await api<Item[]>(`/api/items?category_id=${category.id}`);
+			items = await api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`);
 			loaded = true;
 		}
 	}
@@ -37,11 +38,11 @@
 			sort_order: i
 		}));
 		if (moves.length > 0) {
-			await api('/api/items/reorder', {
+			await api(`/api/items/reorder?space=${spaceSlug}`, {
 				method: 'PUT',
 				body: JSON.stringify({ moves })
 			});
-			items = await api<Item[]>(`/api/items?category_id=${category.id}`);
+			items = await api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`);
 		}
 	}
 </script>
@@ -73,7 +74,7 @@
 			onfinalize={handleDndFinalize}
 		>
 			{#each items as item (item.id)}
-				<Card {item} onedit={onitemedit} ondelete={onitemdelete} />
+				<Card {item} {spaceSlug} onedit={onitemedit} ondelete={onitemdelete} />
 			{/each}
 		</div>
 	{/if}

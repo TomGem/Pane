@@ -1,11 +1,11 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb } from '$lib/server/space';
 import type { BreadcrumbSegment } from '$lib/types';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, url }) => {
 	try {
-		const db = getDb();
+		const db = getSpaceDb(url);
 
 		const ancestors = db.prepare(`
 			WITH RECURSIVE chain AS (

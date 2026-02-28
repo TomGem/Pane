@@ -6,6 +6,7 @@
 
 	interface Props {
 		category: CategoryWithItems;
+		spaceSlug?: string;
 		searchQuery?: string;
 		selectedTagIds?: number[];
 		onitemsupdate?: (categoryId: number, items: Item[]) => void;
@@ -22,6 +23,7 @@
 
 	let {
 		category,
+		spaceSlug = 'pane',
 		searchQuery = '',
 		selectedTagIds = [],
 		onitemsupdate,
@@ -169,7 +171,7 @@
 		{#if category.children && category.children.length > 0}
 			<div class="subcategory-list">
 				{#each category.children as child (child.id)}
-					<SubcategoryCard category={child} ondrilldown={ondrilldown ?? (() => {})} {onitemedit} {onitemdelete} />
+					<SubcategoryCard category={child} {spaceSlug} ondrilldown={ondrilldown ?? (() => {})} {onitemedit} {onitemdelete} />
 				{/each}
 			</div>
 		{/if}
@@ -185,6 +187,7 @@
 				<div class:search-hidden={!visible}>
 					<Card
 						{item}
+						{spaceSlug}
 						onedit={onitemedit}
 						ondelete={onitemdelete}
 					/>

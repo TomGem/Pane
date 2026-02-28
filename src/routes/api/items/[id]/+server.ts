@@ -1,10 +1,10 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
 import { moveFile, deleteFile } from '$lib/server/storage';
 import type { Item, Tag, Category } from '$lib/types';
 
-function getTagsForItem(db: ReturnType<typeof getDb>, itemId: number): Tag[] {
+function getTagsForItem(db: ReturnType<typeof getSpaceDb>, itemId: number): Tag[] {
 	return db.prepare(
 		`SELECT t.id, t.name, t.color
 		 FROM tags t
@@ -13,9 +13,9 @@ function getTagsForItem(db: ReturnType<typeof getDb>, itemId: number): Tag[] {
 	).all(itemId) as Tag[];
 }
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, url }) => {
 	try {
-		const db = getDb();
+		const db = getSpaceDb(url);
 		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(params.id) as Item | undefined;
 
 		if (!item) {
@@ -31,12 +31,13 @@ export const GET: RequestHandler = async ({ params }) => {
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async ({ params, request, url }) => {
 	try {
 		const body = await request.json();
 		const { title, content, description, category_id, is_pinned, tags } = body;
 
-		const db = getDb();
+		const spaceSlug = getSpaceSlug(url);
+		const db = getSpaceDb(url);
 
 		const existing = db.prepare('SELECT * FROM items WHERE id = ?').get(params.id) as Item | undefined;
 		if (!existing) {
@@ -50,7 +51,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 			if (category_id !== undefined && category_id !== existing.category_id && existing.file_path) {
 				const newCategory = db.prepare('SELECT * FROM categories WHERE id = ?').get(category_id) as Category;
 				if (newCategory) {
-					newFilePath = moveFile(existing.file_path, newCategory.slug);
+					newFilePath = moveFile(spaceSlug, existing.file_path, newCategory.slug);
 				}
 			}
 
@@ -96,9 +97,10 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, url }) => {
 	try {
-		const db = getDb();
+		const spaceSlug = getSpaceSlug(url);
+		const db = getSpaceDb(url);
 
 		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(params.id) as Item | undefined;
 		if (!item) {
@@ -106,7 +108,7 @@ export const DELETE: RequestHandler = async ({ params }) => {
 		}
 
 		if (item.file_path) {
-			deleteFile(item.file_path);
+			deleteFile(spaceSlug, item.file_path);
 		}
 
 		db.prepare('DELETE FROM items WHERE id = ?').run(params.id);

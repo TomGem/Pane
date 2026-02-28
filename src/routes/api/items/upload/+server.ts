@@ -1,12 +1,12 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/server/db';
+import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
 import { saveFile } from '$lib/server/storage';
 import type { Item, Category } from '$lib/types';
 
 const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 GB
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, url }) => {
 	try {
 		const formData = await request.formData();
 
@@ -27,7 +27,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'category_id is required' }, { status: 400 });
 		}
 
-		const db = getDb();
+		const spaceSlug = getSpaceSlug(url);
+		const db = getSpaceDb(url);
 
 		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(Number(categoryId)) as Category | undefined;
 		if (!category) {
@@ -36,7 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const arrayBuffer = await file.arrayBuffer();
 		const buffer = Buffer.from(arrayBuffer);
-		const { filePath, fileName } = saveFile(category.slug, file.name, buffer);
+		const { filePath, fileName } = saveFile(spaceSlug, category.slug, file.name, buffer);
 
 		const maxOrder = db.prepare(
 			'SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM items WHERE category_id = ?'
