@@ -286,11 +286,19 @@
 				<div class="help-clock">{clockText}</div>
 				<section class="help-section">
 					<h3>Getting started</h3>
-					<p>Pane is a local Kanban dashboard for organizing links, notes, and documents into columns.</p>
+					<p>Pane is a local Kanban dashboard for organizing links, notes, and documents into columns. Use <strong>Spaces</strong> to keep separate boards for different projects or topics.</p>
 					<ul>
 						<li>Create <strong>categories</strong> (columns) to group your items</li>
 						<li>Add <strong>links</strong>, <strong>notes</strong>, or <strong>documents</strong> to any category</li>
 						<li>Create <strong>subcategories</strong> to nest organization deeper</li>
+					</ul>
+				</section>
+				<section class="help-section">
+					<h3>Spaces</h3>
+					<ul>
+						<li>Click the <strong>space name</strong> in the toolbar to switch between spaces</li>
+						<li>Each space has its own categories, items, tags, and files</li>
+						<li>Create a new space from the dropdown to start a fresh board</li>
 					</ul>
 				</section>
 				<section class="help-section">
@@ -337,6 +345,7 @@
 					<ul>
 						<li>Toggle between <strong>light</strong>, <strong>dark</strong>, and <strong>system</strong> themes</li>
 						<li>Click a card to open its link, preview media, or read notes</li>
+						<li>All data stays on your local machine — nothing is sent to the cloud</li>
 					</ul>
 				</section>
 			</div>
