@@ -12,7 +12,7 @@
 		onitemdelete?: (item: Item) => void;
 	}
 
-	let { category, spaceSlug = 'pane', ondrilldown, onitemedit, onitemdelete }: Props = $props();
+	let { category, spaceSlug = 'desk', ondrilldown, onitemedit, onitemdelete }: Props = $props();
 
 	let expanded = $state(false);
 	let items = $state<Item[]>([]);

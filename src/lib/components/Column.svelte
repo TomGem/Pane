@@ -23,7 +23,7 @@
 
 	let {
 		category,
-		spaceSlug = 'pane',
+		spaceSlug = 'desk',
 		searchQuery = '',
 		selectedTagIds = [],
 		onitemsupdate,

@@ -11,7 +11,7 @@
 		ondelete?: (item: Item) => void;
 	}
 
-	let { item, spaceSlug = 'pane', onedit, ondelete }: Props = $props();
+	let { item, spaceSlug = 'desk', onedit, ondelete }: Props = $props();
 
 	const app = getContext<{ toggleTag: (tagId: number) => void }>('app');
 

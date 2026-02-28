@@ -9,7 +9,7 @@ function withSpace(url: string, spaceSlug: string): string {
 	return url.includes('?') ? `${url}&${spaceParam(spaceSlug)}` : `${url}?${spaceParam(spaceSlug)}`;
 }
 
-export function createBoardStore(initial: CategoryWithItems[], initialAllItems?: Item[], spaceSlug: string = 'pane') {
+export function createBoardStore(initial: CategoryWithItems[], initialAllItems?: Item[], spaceSlug: string = 'desk') {
 	let columns = $state<CategoryWithItems[]>(initial);
 	let allItems = $state<Item[]>(initialAllItems ?? initial.flatMap((c) => c.items));
 	let allTags = $state<Tag[]>([]);

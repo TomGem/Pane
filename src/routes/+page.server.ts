@@ -5,7 +5,7 @@ export const load: PageServerLoad = async () => {
 	let spaces = listSpaces();
 
 	if (spaces.length === 0) {
-		createDb('pane', 'Pane');
+		createDb('desk', 'Desk');
 		spaces = listSpaces();
 	}
 

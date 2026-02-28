@@ -25,7 +25,7 @@
 		onpalettechange?: (id: PaletteId) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Pane', spaces = [], spaceSlug = 'pane', onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, onthemechange, onpalettechange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, onthemechange, onpalettechange }: Props = $props();
 
 	let searchInputEl = $state<HTMLInputElement | null>(null);
 	let showTagMenu = $state(false);
@@ -73,7 +73,7 @@
 			// Navigate to another space if we deleted the current one
 			if (slug === spaceSlug) {
 				const remaining = spaces.filter((s) => s.slug !== slug);
-				goto(`/s/${remaining[0]?.slug ?? 'pane'}`);
+				goto(`/s/${remaining[0]?.slug ?? 'desk'}`);
 			} else {
 				// Reload to refresh the spaces list
 				location.reload();

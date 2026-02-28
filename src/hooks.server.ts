@@ -30,5 +30,5 @@ if (slugExists('pane')) {
 	}
 } else {
 	// Fresh install: create default space
-	createDb('pane', 'Pane');
+	createDb('desk', 'Desk');
 }
