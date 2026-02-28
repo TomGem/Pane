@@ -6,7 +6,7 @@
 	<div class="error-content glass">
 		<h1>{$page.status}</h1>
 		<p>{$page.error?.message ?? 'Space not found'}</p>
-		<a href="/s/pane" class="btn btn-primary">Go to default space</a>
+		<a href="/" class="btn btn-primary">Go to default space</a>
 	</div>
 </div>
 
