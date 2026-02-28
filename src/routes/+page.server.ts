@@ -1,5 +1,4 @@
-import { redirect } from '@sveltejs/kit';
-import { listSpaces, createDb } from '$lib/server/db';
+import { listSpaces, createDb, getDb } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async () => {
@@ -10,5 +9,16 @@ export const load: PageServerLoad = async () => {
 		spaces = listSpaces();
 	}
 
-	throw redirect(307, `/s/${spaces[0].slug}`);
+	const spacesWithStats = spaces.map((s) => {
+		const db = getDb(s.slug);
+		const catRow = db.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
+		const itemRow = db.prepare('SELECT COUNT(*) as count FROM items').get() as { count: number };
+		return {
+			...s,
+			categoryCount: catRow.count,
+			itemCount: itemRow.count
+		};
+	});
+
+	return { spaces: spacesWithStats };
 };
