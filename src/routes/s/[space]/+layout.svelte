@@ -4,10 +4,12 @@
 	import type { Snippet } from 'svelte';
 	import type { Tag, Space } from '$lib/types';
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
+	import type { PaletteStore } from '$lib/stores/palette.svelte';
 
 	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[] }; children: Snippet } = $props();
 
 	const theme = getContext<ThemeStore>('theme');
+	const palette = getContext<PaletteStore>('palette');
 	let searchQuery = $state('');
 	let tags = $state<Tag[]>([]);
 	let selectedTagIds = $state<number[]>([]);
@@ -74,6 +76,8 @@
 	onadd={handleAdd}
 	onaddcategory={handleAddCategory}
 	onthemechange={(mode: string) => theme.setMode(mode as 'light' | 'dark' | 'system')}
+	paletteId={palette.palette}
+	onpalettechange={(id) => palette.setPalette(id)}
 />
 <main class="app-content">
 	{#key data.spaceSlug}

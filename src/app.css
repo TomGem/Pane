@@ -101,6 +101,91 @@ html {
 	--scrollbar-thumb: #3b3e4f;
 }
 
+/* --- Palette Overrides -------------------------------------- */
+/* Blue */
+[data-palette='blue'] {
+	--accent: #3b82f6;
+	--accent-hover: #2563eb;
+	--accent-soft: rgba(59, 130, 246, 0.10);
+}
+[data-theme='dark'][data-palette='blue'] {
+	--accent: #60a5fa;
+	--accent-hover: #3b82f6;
+	--accent-soft: rgba(96, 165, 250, 0.12);
+}
+
+/* Teal */
+[data-palette='teal'] {
+	--accent: #14b8a6;
+	--accent-hover: #0d9488;
+	--accent-soft: rgba(20, 184, 166, 0.10);
+}
+[data-theme='dark'][data-palette='teal'] {
+	--accent: #2dd4bf;
+	--accent-hover: #14b8a6;
+	--accent-soft: rgba(45, 212, 191, 0.12);
+}
+
+/* Green */
+[data-palette='green'] {
+	--accent: #22c55e;
+	--accent-hover: #16a34a;
+	--accent-soft: rgba(34, 197, 94, 0.10);
+}
+[data-theme='dark'][data-palette='green'] {
+	--accent: #4ade80;
+	--accent-hover: #22c55e;
+	--accent-soft: rgba(74, 222, 128, 0.12);
+}
+
+/* Orange */
+[data-palette='orange'] {
+	--accent: #f97316;
+	--accent-hover: #ea580c;
+	--accent-soft: rgba(249, 115, 22, 0.10);
+}
+[data-theme='dark'][data-palette='orange'] {
+	--accent: #fb923c;
+	--accent-hover: #f97316;
+	--accent-soft: rgba(251, 146, 60, 0.12);
+}
+
+/* Red */
+[data-palette='red'] {
+	--accent: #ef4444;
+	--accent-hover: #dc2626;
+	--accent-soft: rgba(239, 68, 68, 0.10);
+}
+[data-theme='dark'][data-palette='red'] {
+	--accent: #f87171;
+	--accent-hover: #ef4444;
+	--accent-soft: rgba(248, 113, 113, 0.12);
+}
+
+/* Pink */
+[data-palette='pink'] {
+	--accent: #ec4899;
+	--accent-hover: #db2777;
+	--accent-soft: rgba(236, 72, 153, 0.10);
+}
+[data-theme='dark'][data-palette='pink'] {
+	--accent: #f472b6;
+	--accent-hover: #ec4899;
+	--accent-soft: rgba(244, 114, 182, 0.12);
+}
+
+/* Grey */
+[data-palette='grey'] {
+	--accent: #6b7280;
+	--accent-hover: #4b5563;
+	--accent-soft: rgba(107, 114, 128, 0.10);
+}
+[data-theme='dark'][data-palette='grey'] {
+	--accent: #9ca3af;
+	--accent-hover: #6b7280;
+	--accent-soft: rgba(156, 163, 175, 0.12);
+}
+
 /* --- Base Styles -------------------------------------------- */
 html {
 	height: 100%;

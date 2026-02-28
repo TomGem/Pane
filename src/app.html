@@ -6,10 +6,11 @@
 		<meta name="color-scheme" content="light dark" />
 		<link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
 		<script>
-			// Apply persisted theme immediately to prevent flash
+			// Apply persisted theme and palette immediately to prevent flash
 			(function () {
-				const stored = localStorage.getItem('theme-mode');
-				let theme = 'light';
+				var d = document.documentElement;
+				var stored = localStorage.getItem('theme-mode');
+				var theme = 'light';
 				if (stored === 'dark') {
 					theme = 'dark';
 				} else if (stored === 'light') {
@@ -17,7 +18,9 @@
 				} else {
 					theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 				}
-				document.documentElement.setAttribute('data-theme', theme);
+				d.setAttribute('data-theme', theme);
+				var palette = localStorage.getItem('palette');
+				if (palette) d.setAttribute('data-palette', palette);
 			})();
 		</script>
 		%sveltekit.head%
