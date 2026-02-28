@@ -29,7 +29,7 @@ hooks.server.ts (migration + default space)
   → SQLite (per-space DB)
 ```
 
-Root `/` redirects to `/s/pane`. The space layout validates the space slug and provides space metadata to the toolbar. The page server load hydrates the board. All mutations go through the `BoardStore` (`$lib/stores/board.svelte.ts`), which appends `?space={slug}` to all API calls. The store uses Svelte 5 runes (`$state`, `$derived`, `$effect`).
+Root `/` redirects to the first available space (creating a default `pane` space if none exist). If a space slug doesn't exist, the layout redirects back to `/`. The space layout validates the space slug and provides space metadata to the toolbar. The page server load hydrates the board. All mutations go through the `BoardStore` (`$lib/stores/board.svelte.ts`), which appends `?space={slug}` to all API calls. The store uses Svelte 5 runes (`$state`, `$derived`, `$effect`).
 
 ### Spaces (Multi-Database)
 
@@ -48,9 +48,9 @@ Five tables: `categories` (with optional `parent_id` for hierarchy), `items` (si
 ### Route structure
 
 ```
-/                           → redirect to /s/pane
+/                           → redirect to first available space (creates default if none)
 /s/[space]/                 → space layout (toolbar + context) + page (board)
-/s/[space]/+error.svelte    → "Space not found" error page
+/s/[space]/+error.svelte    → error page (unknown slugs redirect to /)
 ```
 
 Root layout (`+layout.svelte`) owns theme and palette stores. Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and app context bridge.
