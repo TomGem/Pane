@@ -1,5 +1,7 @@
+import type { Handle } from '@sveltejs/kit';
 import { getDb, createDb, slugExists } from '$lib/server/db';
 import { initSchema } from '$lib/server/schema';
+import { isRateLimited } from '$lib/server/rate-limit';
 import fs from 'fs';
 import path from 'path';
 
@@ -32,3 +34,16 @@ if (slugExists('pane')) {
 	// Fresh install: create default space
 	createDb('desk', 'Desk');
 }
+
+export const handle: Handle = async ({ event, resolve }) => {
+	if (event.url.pathname.startsWith('/api/')) {
+		const ip = event.getClientAddress();
+		if (isRateLimited(ip)) {
+			return new Response(JSON.stringify({ error: 'Too many requests' }), {
+				status: 429,
+				headers: { 'Content-Type': 'application/json', 'Retry-After': '60' }
+			});
+		}
+	}
+	return resolve(event);
+};

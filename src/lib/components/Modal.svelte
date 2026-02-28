@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import Icon from './Icon.svelte';
 
 	interface Props {
 		title: string;
@@ -67,10 +68,7 @@
 		<div class="modal-header">
 			<h2 id="modal-title" class="modal-title">{title}</h2>
 			<button class="modal-close" onclick={onclose} aria-label="Close" title="Close">
-				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<line x1="18" y1="6" x2="6" y2="18" />
-					<line x1="6" y1="6" x2="18" y2="18" />
-				</svg>
+				<Icon name="close" size={18} />
 			</button>
 		</div>
 		<div class="modal-body">

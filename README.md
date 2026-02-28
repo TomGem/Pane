@@ -36,6 +36,8 @@ Open [http://localhost:5173](http://localhost:5173). On first launch you'll see 
 No Node.js required — just Docker:
 
 ```bash
+git clone https://github.com/TomGem/Pane.git
+cd Pane
 docker compose up -d
 ```
 

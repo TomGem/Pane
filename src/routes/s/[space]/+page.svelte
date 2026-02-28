@@ -118,6 +118,7 @@
 			await board.deleteItem(deletingItem.id);
 			toast('Item deleted');
 		} catch (e) {
+			console.error('Failed to delete item:', e);
 			toast('Failed to delete item', 'error');
 		}
 		deletingItem = null;
@@ -139,6 +140,7 @@
 			showItemModal = false;
 			editingItem = null;
 		} catch (e) {
+			console.error('Failed to save item:', e);
 			toast('Failed to save item', 'error');
 		}
 	}
@@ -172,6 +174,7 @@
 			await board.deleteCategory(deletingCategory.id);
 			toast('Category deleted');
 		} catch (e) {
+			console.error('Failed to delete category:', e);
 			toast('Failed to delete category', 'error');
 		}
 		deletingCategory = null;
@@ -195,6 +198,7 @@
 			subcategoryParentId = null;
 		subcategoryParentColor = null;
 		} catch (e) {
+			console.error('Failed to save category:', e);
 			toast('Failed to save category', 'error');
 		}
 	}

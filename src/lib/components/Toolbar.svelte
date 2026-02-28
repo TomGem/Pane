@@ -1,6 +1,8 @@
 <script lang="ts">
 	import ThemeToggle from './ThemeToggle.svelte';
 	import SettingsOverlay from './SettingsOverlay.svelte';
+	import HelpPanel from './HelpPanel.svelte';
+	import Icon from './Icon.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
 	import type { PaletteId } from '$lib/stores/palette.svelte';
 	import type { Tag, Space } from '$lib/types';
@@ -36,20 +38,6 @@
 	let newSpaceName = $state('');
 	let newSpaceInputEl = $state<HTMLInputElement | null>(null);
 	let confirmDeleteSlug = $state<string | null>(null);
-	let now = $state(new Date());
-
-	$effect(() => {
-		if (!showHelp) return;
-		const interval = setInterval(() => { now = new Date(); }, 1000);
-		return () => clearInterval(interval);
-	});
-
-	let clockText = $derived.by(() => {
-		const date = now.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-		const time = now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-		return `${date} ${time}`;
-	});
-
 	let searchTimeout: ReturnType<typeof setTimeout>;
 
 	function handleSearchInput(e: Event) {
@@ -221,11 +209,7 @@
 
 	<div class="toolbar-center">
 		<div class="search-wrapper">
-			<!-- Search icon -->
-			<svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<circle cx="11" cy="11" r="8" />
-				<line x1="21" y1="21" x2="16.65" y2="16.65" />
-			</svg>
+			<Icon name="search" class="search-icon" />
 			<input
 				bind:this={searchInputEl}
 				class="input search-input"
@@ -237,10 +221,7 @@
 			/>
 			{#if searchQuery}
 				<button class="search-clear" onclick={() => { searchQuery = ''; onsearch?.(''); }} aria-label="Clear search" title="Clear search">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<line x1="18" y1="6" x2="6" y2="18" />
-						<line x1="6" y1="6" x2="18" y2="18" />
-					</svg>
+					<Icon name="close" size={14} />
 				</button>
 			{/if}
 		</div>
@@ -294,37 +275,17 @@
 
 	<div class="toolbar-right">
 		<button class="btn-toolbar-icon" onclick={() => onadd?.()} aria-label="Add item" title="Add item">
-			<!-- file-plus -->
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-				<polyline points="14 2 14 8 20 8" />
-				<line x1="12" y1="18" x2="12" y2="12" />
-				<line x1="9" y1="15" x2="15" y2="15" />
-			</svg>
+		<Icon name="file-plus" size={18} />
 		</button>
 		<button class="btn-toolbar-icon" onclick={() => onaddcategory?.()} aria-label="Add category" title="Add category">
-			<!-- folder-plus -->
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-				<line x1="12" y1="11" x2="12" y2="17" />
-				<line x1="9" y1="14" x2="15" y2="14" />
-			</svg>
+		<Icon name="folder-plus" size={18} />
 		</button>
 		<ThemeToggle mode={themeMode} onchange={onthemechange} />
 		<button class="btn-toolbar-icon" onclick={() => showSettings = true} aria-label="Settings" title="Settings">
-			<!-- settings/gear icon -->
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<circle cx="12" cy="12" r="3" />
-				<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-			</svg>
+			<Icon name="settings" size={18} />
 		</button>
 		<button class="btn-toolbar-icon" onclick={() => showHelp = true} aria-label="Help" title="Help">
-			<!-- help-circle -->
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<circle cx="12" cy="12" r="10" />
-				<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-				<line x1="12" y1="17" x2="12.01" y2="17" />
-			</svg>
+			<Icon name="help-circle" size={18} />
 		</button>
 	</div>
 </header>
@@ -348,99 +309,7 @@
 {/if}
 
 {#if showHelp}
-	<div class="help-overlay" onclick={(e) => { if (e.target === e.currentTarget) showHelp = false; }} aria-hidden="true">
-		<div class="help-panel glass-strong">
-			<div class="help-header">
-				<h2 class="help-title">Pane Help</h2>
-				<button class="help-close" onclick={() => showHelp = false} aria-label="Close" title="Close">
-					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<line x1="18" y1="6" x2="6" y2="18" />
-						<line x1="6" y1="6" x2="18" y2="18" />
-					</svg>
-				</button>
-			</div>
-			<div class="help-body">
-				<div class="help-clock">{clockText}</div>
-				<section class="help-section">
-					<h3>Getting started</h3>
-					<p>Pane is a local Kanban dashboard for organizing links, notes, and documents into columns. Use <strong>Spaces</strong> to keep separate boards for different projects or topics.</p>
-					<ul>
-						<li>Create <strong>categories</strong> (columns) to group your items</li>
-						<li>Add <strong>links</strong>, <strong>notes</strong>, or <strong>documents</strong> to any category</li>
-						<li>Create <strong>subcategories</strong> to nest organization deeper</li>
-						<li>Start with <strong>sample data</strong> on an empty board to see how it works</li>
-					</ul>
-				</section>
-				<section class="help-section">
-					<h3>Spaces</h3>
-					<ul>
-						<li>Click <strong>Pane</strong> in the toolbar to go to the Spaces dashboard</li>
-						<li>Each space has its own categories, items, tags, and files</li>
-						<li>Create, rename, or delete spaces from the Spaces dashboard</li>
-					</ul>
-				</section>
-				<section class="help-section">
-					<h3>Drag &amp; drop</h3>
-					<ul>
-						<li>Drag items between columns to move them</li>
-						<li>Drag items into expanded subcategories</li>
-						<li>Drag columns to reorder them</li>
-						<li>Drop a <strong>URL</strong> or <strong>file</strong> onto a column to add it instantly</li>
-					</ul>
-				</section>
-				<section class="help-section">
-					<h3>Tags &amp; filtering</h3>
-					<ul>
-						<li>Assign tags to items when creating or editing them</li>
-						<li>Click a <strong>tag badge</strong> on a card to filter by that tag</li>
-						<li>Use the <strong>tag dropdown</strong> next to the search box to filter by multiple tags</li>
-						<li>Search and tag filters combine — both must match</li>
-					</ul>
-				</section>
-				<section class="help-section">
-					<h3>Notes &amp; markdown</h3>
-					<ul>
-						<li>Notes support <strong>markdown</strong> formatting — headings, bold, lists, code blocks, and more</li>
-						<li>Click a note card to open it in a full-screen reader</li>
-					</ul>
-				</section>
-				<section class="help-section">
-					<h3>Keyboard shortcuts</h3>
-					<div class="shortcut-list">
-						<div class="shortcut-row">
-							<span class="shortcut-keys"><kbd>/</kbd> or <kbd>Cmd</kbd><kbd>K</kbd></span>
-							<span>Focus search</span>
-						</div>
-						<div class="shortcut-row">
-							<span class="shortcut-keys"><kbd>Cmd</kbd><kbd>N</kbd></span>
-							<span>New item</span>
-						</div>
-						<div class="shortcut-row">
-							<span class="shortcut-keys"><kbd>Cmd</kbd><kbd>Shift</kbd><kbd>N</kbd></span>
-							<span>New category</span>
-						</div>
-						<div class="shortcut-row">
-							<span class="shortcut-keys"><kbd>Esc</kbd></span>
-							<span>Close modal / clear search</span>
-						</div>
-					</div>
-				</section>
-				<section class="help-section">
-					<h3>Appearance</h3>
-					<ul>
-						<li>Toggle between <strong>light</strong>, <strong>dark</strong>, and <strong>system</strong> themes</li>
-						<li>Choose from <strong>8 accent colour palettes</strong> in Settings</li>
-					</ul>
-				</section>
-				<section class="help-section">
-					<h3>Privacy</h3>
-					<ul>
-						<li>All data stays on your local machine — nothing is sent to the cloud</li>
-					</ul>
-				</section>
-			</div>
-		</div>
-	</div>
+	<HelpPanel onclose={() => showHelp = false} />
 {/if}
 
 <style>
@@ -726,7 +595,7 @@
 		flex: 1;
 	}
 
-	.search-icon {
+	.search-wrapper :global(.search-icon) {
 		position: absolute;
 		left: 10px;
 		top: 50%;
@@ -919,132 +788,4 @@
 		color: var(--accent);
 	}
 
-	.help-overlay {
-		position: fixed;
-		inset: 0;
-		z-index: 9999;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: rgba(0, 0, 0, 0.5);
-		backdrop-filter: blur(4px);
-	}
-
-	.help-panel {
-		width: 90vw;
-		max-width: 560px;
-		max-height: 85vh;
-		overflow-y: auto;
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-lg);
-		display: flex;
-		flex-direction: column;
-	}
-
-	.help-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 16px 20px;
-		border-bottom: 1px solid var(--border);
-	}
-
-	.help-title {
-		font-size: 16px;
-		font-weight: 700;
-		color: var(--text-primary);
-	}
-
-	.help-close {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 28px;
-		height: 28px;
-		border-radius: var(--radius-sm);
-		color: var(--text-muted);
-		transition: background-color var(--transition), color var(--transition);
-	}
-
-	.help-close:hover {
-		background: var(--accent-soft);
-		color: var(--text-primary);
-	}
-
-	.help-clock {
-		font-size: 14px;
-		font-weight: 600;
-		font-variant-numeric: tabular-nums;
-		color: var(--text-secondary);
-		text-align: center;
-		padding-bottom: 14px;
-		margin-bottom: 14px;
-		border-bottom: 1px solid var(--border);
-	}
-
-	.help-body {
-		padding: 16px 20px 20px;
-	}
-
-	.help-section {
-		margin-bottom: 16px;
-	}
-
-	.help-section:last-child {
-		margin-bottom: 0;
-	}
-
-	.help-section h3 {
-		font-size: 13px;
-		font-weight: 700;
-		color: var(--text-primary);
-		margin-bottom: 6px;
-	}
-
-	.help-section p,
-	.help-section li {
-		font-size: 13px;
-		color: var(--text-secondary);
-		line-height: 1.6;
-	}
-
-	.help-section ul {
-		padding-left: 18px;
-		margin: 0;
-	}
-
-	.shortcut-list {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-
-	.shortcut-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		font-size: 13px;
-		color: var(--text-secondary);
-	}
-
-	.shortcut-keys {
-		display: flex;
-		gap: 4px;
-	}
-
-	.shortcut-keys :global(kbd) {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 24px;
-		height: 22px;
-		padding: 0 6px;
-		font-size: 11px;
-		font-family: inherit;
-		font-weight: 600;
-		color: var(--text-primary);
-		background: var(--bg-primary);
-		border: 1px solid var(--border);
-		border-radius: 4px;
-	}
 </style>
