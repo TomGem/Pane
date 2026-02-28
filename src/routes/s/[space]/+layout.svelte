@@ -39,6 +39,14 @@
 		addCategoryCallback?.();
 	}
 
+	// Reset layout state when switching spaces
+	$effect(() => {
+		data.spaceSlug;
+		searchQuery = '';
+		tags = [];
+		selectedTagIds = [];
+	});
+
 	setContext('app', {
 		get searchQuery() { return searchQuery; },
 		setSearchQuery(query: string) { searchQuery = query; },
@@ -68,7 +76,9 @@
 	onthemechange={(mode: string) => theme.setMode(mode as 'light' | 'dark' | 'system')}
 />
 <main class="app-content">
-	{@render children()}
+	{#key data.spaceSlug}
+		{@render children()}
+	{/key}
 </main>
 
 <style>
