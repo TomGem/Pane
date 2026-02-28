@@ -22,11 +22,10 @@
 	let searchInputEl = $state<HTMLInputElement | null>(null);
 	let showTagMenu = $state(false);
 	let showHelp = $state(false);
-	let showClock = $state(false);
 	let now = $state(new Date());
 
 	$effect(() => {
-		if (!showClock) return;
+		if (!showHelp) return;
 		const interval = setInterval(() => { now = new Date(); }, 1000);
 		return () => clearInterval(interval);
 	});
@@ -70,15 +69,7 @@
 
 <header class="toolbar glass-strong">
 	<div class="toolbar-left">
-		{#if showClock}
-			<button class="toolbar-clock" onclick={() => showClock = false} title="Show title">
-				{clockText}
-			</button>
-		{:else}
-			<button class="toolbar-title" onclick={() => showClock = true} title="Show clock">
-				Pane
-			</button>
-		{/if}
+		<span class="toolbar-title">Pane</span>
 	</div>
 
 	<div class="toolbar-center">
@@ -201,6 +192,7 @@
 				</button>
 			</div>
 			<div class="help-body">
+				<div class="help-clock">{clockText}</div>
 				<section class="help-section">
 					<h3>Getting started</h3>
 					<p>Pane is a local Kanban dashboard for organizing links, notes, and documents into columns.</p>
@@ -252,7 +244,6 @@
 				<section class="help-section">
 					<h3>Other features</h3>
 					<ul>
-						<li>Click the <strong>Pane</strong> title to show a live clock</li>
 						<li>Toggle between <strong>light</strong>, <strong>dark</strong>, and <strong>system</strong> themes</li>
 						<li>Click a card to open its link, preview media, or read notes</li>
 					</ul>
@@ -286,36 +277,6 @@
 		font-weight: 700;
 		letter-spacing: -0.02em;
 		color: var(--text-primary);
-		cursor: pointer;
-		border-radius: var(--radius-sm);
-		padding: 2px 4px;
-		margin: -2px -4px;
-		transition: color var(--transition);
-	}
-
-	.toolbar-title:hover {
-		color: var(--accent);
-	}
-
-	.toolbar-clock {
-		font-size: 18px;
-		font-weight: 700;
-		letter-spacing: -0.02em;
-		color: var(--text-primary);
-		cursor: pointer;
-		border-radius: var(--radius-sm);
-		padding: 2px 4px;
-		margin: -2px -4px;
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		display: block;
-		transition: color var(--transition);
-	}
-
-	.toolbar-clock:hover {
-		color: var(--accent);
 	}
 
 	.toolbar-center {
@@ -574,6 +535,17 @@
 	.help-close:hover {
 		background: var(--accent-soft);
 		color: var(--text-primary);
+	}
+
+	.help-clock {
+		font-size: 14px;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+		color: var(--text-secondary);
+		text-align: center;
+		padding-bottom: 14px;
+		margin-bottom: 14px;
+		border-bottom: 1px solid var(--border);
 	}
 
 	.help-body {
