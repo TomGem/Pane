@@ -1,0 +1,13 @@
+services:
+  pane:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./storage:/app/storage
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+      # - ORIGIN=http://localhost:3000
+    restart: unless-stopped
