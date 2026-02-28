@@ -409,14 +409,15 @@
 						<li>Create <strong>categories</strong> (columns) to group your items</li>
 						<li>Add <strong>links</strong>, <strong>notes</strong>, or <strong>documents</strong> to any category</li>
 						<li>Create <strong>subcategories</strong> to nest organization deeper</li>
+						<li>Start with <strong>sample data</strong> on an empty board to see how it works</li>
 					</ul>
 				</section>
 				<section class="help-section">
 					<h3>Spaces</h3>
 					<ul>
-						<li>Click the <strong>space name</strong> in the toolbar to switch between spaces</li>
+						<li>Click <strong>Pane</strong> in the toolbar to open the Spaces overview</li>
 						<li>Each space has its own categories, items, tags, and files</li>
-						<li>Create a new space from the dropdown to start a fresh board</li>
+						<li>Create, rename, or delete spaces from the Spaces overview</li>
 					</ul>
 				</section>
 				<section class="help-section">
@@ -435,6 +436,13 @@
 						<li>Click a <strong>tag badge</strong> on a card to filter by that tag</li>
 						<li>Use the <strong>tag dropdown</strong> next to the search box to filter by multiple tags</li>
 						<li>Search and tag filters combine — both must match</li>
+					</ul>
+				</section>
+				<section class="help-section">
+					<h3>Notes &amp; markdown</h3>
+					<ul>
+						<li>Notes support <strong>markdown</strong> formatting — headings, bold, lists, code blocks, and more</li>
+						<li>Click a note card to open it in a full-screen reader</li>
 					</ul>
 				</section>
 				<section class="help-section">
@@ -459,10 +467,15 @@
 					</div>
 				</section>
 				<section class="help-section">
-					<h3>Other features</h3>
+					<h3>Appearance</h3>
 					<ul>
 						<li>Toggle between <strong>light</strong>, <strong>dark</strong>, and <strong>system</strong> themes</li>
-						<li>Click a card to open its link, preview media, or read notes</li>
+						<li>Choose from <strong>8 accent colour palettes</strong> in Settings</li>
+					</ul>
+				</section>
+				<section class="help-section">
+					<h3>Privacy</h3>
+					<ul>
 						<li>All data stays on your local machine — nothing is sent to the cloud</li>
 					</ul>
 				</section>
