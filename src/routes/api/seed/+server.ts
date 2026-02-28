@@ -72,8 +72,8 @@ export const POST: RequestHandler = async ({ url }) => {
 
 			// ===== GETTING STARTED =====
 			addItem(cat1, 'note', 'What is AI-Assisted Coding?',
-				null,
 				'AI-assisted coding uses large language models to help you write, debug, and understand code.\n\n## Key Benefits\n- **Speed**: Generate boilerplate and repetitive code instantly\n- **Learning**: Ask questions about unfamiliar code or concepts\n- **Debugging**: Describe a bug and get fix suggestions\n- **Refactoring**: Improve code quality with AI review\n\n## How It Works\nYou describe what you want in natural language, and the AI generates or modifies code. The best results come from being **specific** and **iterative** — start simple, then refine.',
+				'Overview of AI-assisted coding and its key benefits.',
 				1, ['Beginner', 'Essential']);
 
 			addItem(cat1, 'link', 'Anthropic Documentation — Getting Started',
@@ -93,8 +93,8 @@ export const POST: RequestHandler = async ({ url }) => {
 
 			// ===== CLAUDE CODE =====
 			addItem(cat2, 'note', 'Claude Code Cheat Sheet',
-				null,
 				'## Essential Commands\n- `claude` — Start interactive REPL\n- `claude "prompt"` — One-shot command\n- `cat file | claude "explain this"` — Pipe input\n- `claude -c` — Continue last conversation\n\n## Slash Commands\n- `/help` — Show all commands\n- `/clear` — Reset conversation\n- `/compact` — Summarize context to save tokens\n- `/init` — Generate a CLAUDE.md for your project\n\n## Keyboard Shortcuts\n- `Ctrl+C` — Cancel current generation\n- `Esc` — Interrupt multi-turn tool use\n\n## Tips\n- Use `CLAUDE.md` files to give project context\n- Start with small tasks and build up\n- Review all changes before accepting',
+				'Quick reference for Claude Code commands, shortcuts, and tips.',
 				1, ['Essential', 'Reference']);
 
 			addItem(cat2, 'link', 'Best Practices for Claude Code',
@@ -119,8 +119,8 @@ export const POST: RequestHandler = async ({ url }) => {
 
 			// ===== PROMPTING FOR CODE =====
 			addItem(cat3, 'note', 'The Anatomy of a Good Coding Prompt',
-				null,
 				'Writing effective prompts is the most important skill for AI-assisted coding.\n\n## Structure\n1. **Context** — What project, language, framework\n2. **Task** — What you want done, specifically\n3. **Constraints** — Style, patterns, libraries to use or avoid\n4. **Examples** — Show input/output if relevant\n\n## Good vs Bad\n\n**Bad:** `fix the bug`\n\n**Good:** `The login form on /auth/login throws a 422 when the email contains a + character. The validation regex in src/lib/validate.ts is too strict. Fix it to allow RFC 5322 compliant emails.`\n\n## Key Principles\n- Be **specific** about files, functions, and behavior\n- Provide **error messages** verbatim\n- State the **desired outcome**, not just the problem\n- Break large tasks into **small steps**',
+				'How to structure effective prompts with context, task, constraints, and examples.',
 				1, ['Essential', 'Tips']);
 
 			addItem(cat3, 'link', 'Prompt Engineering Guide — Anthropic',
@@ -129,8 +129,8 @@ export const POST: RequestHandler = async ({ url }) => {
 				2, ['Tutorial', 'Reference']);
 
 			addItem(cat3, 'note', 'Common Prompting Mistakes',
-				null,
 				'## Mistakes to Avoid\n\n### 1. Being Too Vague\n`make it better` → Better: `Refactor this function to use early returns instead of nested if-else`\n\n### 2. Asking for Too Much at Once\nBreak `build me a todo app` into: create the data model → build the API → add the UI → write tests\n\n### 3. Not Providing Context\nAlways mention the framework, language version, and relevant conventions.\n\n### 4. Ignoring the Output\nAlways **read and understand** generated code before using it. AI can produce plausible-looking but incorrect code.\n\n### 5. Not Iterating\nYour first prompt rarely gives the perfect result. Refine and follow up.',
+				'Five common prompting mistakes and how to avoid them.',
 				3, ['Beginner', 'Tips']);
 
 			addItem(cat3, 'link', 'Prompt Engineering Interactive Tutorial',
@@ -140,8 +140,8 @@ export const POST: RequestHandler = async ({ url }) => {
 
 			// ===== TOOLS & ECOSYSTEM =====
 			addItem(cat4, 'note', 'AI Coding Tools Comparison',
-				null,
 				'## Terminal-Based (Agentic)\n- **Claude Code** — Anthropic\'s CLI agent. Reads/writes files, runs commands, uses tools autonomously.\n- **GitHub Copilot CLI** — GitHub\'s terminal assistant, integrated with `gh`.\n- **Aider** — Open-source AI pair programming in the terminal. Supports multiple LLMs.\n\n## Editor-Integrated\n- **GitHub Copilot** — Inline suggestions in VS Code, JetBrains, Neovim.\n- **Cursor** — VS Code fork with built-in AI chat, autocomplete, and codebase awareness.\n- **Cline** — Open-source VS Code extension for agentic coding with Claude.\n- **Windsurf** — AI-first IDE with deep context awareness.\n\n## When to Use What\n- **Quick edits & autocomplete** → Copilot / Cursor\n- **Complex multi-file tasks** → Claude Code / Aider\n- **Learning & exploration** → Claude Code (interactive mode)',
+				'Comparison of terminal-based and editor-integrated AI coding tools.',
 				1, ['Reference', 'Beginner']);
 
 			addItem(cat4, 'link', 'Cursor — The AI Code Editor',
