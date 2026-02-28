@@ -128,6 +128,7 @@
 					<li>All data stays on your local machine — nothing is sent to the cloud</li>
 				</ul>
 			</section>
+			<div class="help-version">Pane v1.0</div>
 		</div>
 	</div>
 </div>
@@ -244,6 +245,15 @@
 	.shortcut-keys {
 		display: flex;
 		gap: 4px;
+	}
+
+	.help-version {
+		margin-top: 16px;
+		padding-top: 14px;
+		border-top: 1px solid var(--border);
+		font-size: 12px;
+		color: var(--text-muted);
+		text-align: center;
 	}
 
 	.shortcut-keys :global(kbd) {
