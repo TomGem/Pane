@@ -14,6 +14,7 @@ export function validateSpaceSlug(slug: string): boolean {
 }
 
 export function slugExists(slug: string): boolean {
+	if (!SLUG_RE.test(slug)) return false;
 	return fs.existsSync(path.join(DATA_DIR, `${slug}.db`));
 }
 
@@ -28,7 +29,7 @@ function openDb(slug: string): Database.Database {
 export function getDb(slug: string): Database.Database {
 	let db = cache.get(slug);
 	if (!db) {
-		if (!fs.existsSync(path.join(DATA_DIR, `${slug}.db`))) {
+		if (!SLUG_RE.test(slug) || !fs.existsSync(path.join(DATA_DIR, `${slug}.db`))) {
 			throw new Error(`Space '${slug}' does not exist`);
 		}
 		db = openDb(slug);

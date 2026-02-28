@@ -21,8 +21,13 @@
 	async function toggle() {
 		expanded = !expanded;
 		if (expanded && !loaded) {
-			items = await api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`);
-			loaded = true;
+			try {
+				items = await api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`);
+				loaded = true;
+			} catch (e) {
+				console.error('Failed to load subcategory items:', e);
+				expanded = false;
+			}
 		}
 	}
 
@@ -38,11 +43,15 @@
 			sort_order: i
 		}));
 		if (moves.length > 0) {
-			await api(`/api/items/reorder?space=${spaceSlug}`, {
-				method: 'PUT',
-				body: JSON.stringify({ moves })
-			});
-			items = await api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`);
+			try {
+				await api(`/api/items/reorder?space=${spaceSlug}`, {
+					method: 'PUT',
+					body: JSON.stringify({ moves })
+				});
+				items = await api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`);
+			} catch (e) {
+				console.error('Failed to reorder subcategory items:', e);
+			}
 		}
 	}
 </script>

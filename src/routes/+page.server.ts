@@ -1,5 +1,6 @@
 import { listSpaces, createDb, getDb } from '$lib/server/db';
 import type { PageServerLoad } from './$types';
+import type { SpaceWithStats } from '$lib/types';
 
 export const load: PageServerLoad = async () => {
 	let spaces = listSpaces();
@@ -9,7 +10,7 @@ export const load: PageServerLoad = async () => {
 		spaces = listSpaces();
 	}
 
-	const spacesWithStats = spaces.map((s) => {
+	const spacesWithStats: SpaceWithStats[] = spaces.map((s) => {
 		const db = getDb(s.slug);
 		const catRow = db.prepare('SELECT COUNT(*) as count FROM categories').get() as { count: number };
 		const itemRow = db.prepare('SELECT COUNT(*) as count FROM items').get() as { count: number };

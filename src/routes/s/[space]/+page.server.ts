@@ -12,7 +12,14 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	const categoryIds = categories.map((c) => c.id);
 
-	const allItems = db.prepare('SELECT * FROM items ORDER BY sort_order').all() as Item[];
+	// Only load items belonging to root-level categories (not all items in DB)
+	let allItems: Item[] = [];
+	if (categoryIds.length > 0) {
+		const placeholders = categoryIds.map(() => '?').join(',');
+		allItems = db.prepare(
+			`SELECT * FROM items WHERE category_id IN (${placeholders}) ORDER BY sort_order`
+		).all(...categoryIds) as Item[];
+	}
 
 	let childCategories: Category[] = [];
 	if (categoryIds.length > 0) {
@@ -24,16 +31,22 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	const tags = db.prepare('SELECT * FROM tags ORDER BY name').all() as Tag[];
 
-	// Attach tags to items
+	// Attach tags to items using Map for O(n+m) instead of O(n*m)
 	if (allItems.length > 0) {
 		const itemTags = db.prepare('SELECT item_id, tag_id FROM item_tags').all() as { item_id: number; tag_id: number }[];
 		const tagMap = new Map(tags.map((t) => [t.id, t]));
+		const itemTagMap = new Map<number, Tag[]>();
+
+		for (const it of itemTags) {
+			const tag = tagMap.get(it.tag_id);
+			if (!tag) continue;
+			const arr = itemTagMap.get(it.item_id);
+			if (arr) arr.push(tag);
+			else itemTagMap.set(it.item_id, [tag]);
+		}
 
 		for (const item of allItems) {
-			item.tags = itemTags
-				.filter((it) => it.item_id === item.id)
-				.map((it) => tagMap.get(it.tag_id))
-				.filter(Boolean) as Tag[];
+			item.tags = itemTagMap.get(item.id) ?? [];
 		}
 	}
 

@@ -59,3 +59,8 @@ export interface Space {
 	slug: string;
 	name: string;
 }
+
+export interface SpaceWithStats extends Space {
+	categoryCount: number;
+	itemCount: number;
+}

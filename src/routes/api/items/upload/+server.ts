@@ -4,7 +4,7 @@ import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
 import { saveFile, deleteFile } from '$lib/server/storage';
 import type { Item, Category } from '$lib/types';
 
-const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1 GB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
 export const POST: RequestHandler = async ({ request, url }) => {
 	try {
@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		}
 
 		if (file.size > MAX_FILE_SIZE) {
-			return json({ error: 'File size exceeds the 1 GB limit' }, { status: 413 });
+			return json({ error: 'File size exceeds the 100 MB limit' }, { status: 413 });
 		}
 
 		if (!categoryId || isNaN(Number(categoryId))) {

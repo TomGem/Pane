@@ -324,7 +324,7 @@
 			{:else if deletingCategory}
 				<p>Delete category <strong>{deletingCategory.name}</strong>?</p>
 				{#if deletingCategory.children_count > 0}
-					<p class="confirm-hint confirm-hint-warn">This category contains {deletingCategory.children_count} subcategorie{deletingCategory.children_count === 1 ? '' : 's'} that will also be deleted.</p>
+					<p class="confirm-hint confirm-hint-warn">This category contains {deletingCategory.children_count} {deletingCategory.children_count === 1 ? 'subcategory' : 'subcategories'} that will also be deleted.</p>
 				{/if}
 				<p class="confirm-hint">All items in this category will be permanently deleted.</p>
 			{/if}
@@ -337,7 +337,7 @@
 {/if}
 
 <!-- Toasts -->
-<div class="toast-container">
+<div class="toast-container" role="status" aria-live="polite">
 	{#each toasts as t (t.id)}
 		<Toast message={t.message} type={t.type} onclose={() => toasts = toasts.filter(x => x.id !== t.id)} />
 	{/each}

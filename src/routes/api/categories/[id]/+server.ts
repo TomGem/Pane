@@ -38,9 +38,11 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			return json({ error: 'Category not found' }, { status: 404 });
 		}
 
+		// parent_id: undefined means "not provided" (keep existing), null means "move to root"
+		const parentIdProvided = parent_id !== undefined;
 		const newParentId = parent_id ?? null;
 
-		if (newParentId !== null) {
+		if (parentIdProvided && newParentId !== null) {
 			if (newParentId === categoryId) {
 				return json({ error: 'A category cannot be its own parent' }, { status: 400 });
 			}
@@ -60,9 +62,15 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			}
 		}
 
-		db.prepare(
-			'UPDATE categories SET name = ?, slug = ?, color = ?, parent_id = COALESCE(?, parent_id), updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-		).run(name, slug, color, newParentId, categoryId);
+		if (parentIdProvided) {
+			db.prepare(
+				'UPDATE categories SET name = ?, slug = ?, color = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+			).run(name, slug, color, newParentId, categoryId);
+		} else {
+			db.prepare(
+				'UPDATE categories SET name = ?, slug = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+			).run(name, slug, color, categoryId);
+		}
 
 		const category = db.prepare(
 			`SELECT c.*, (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id) AS children_count

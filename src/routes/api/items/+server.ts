@@ -3,16 +3,56 @@ import type { RequestHandler } from './$types';
 import { getSpaceDb } from '$lib/server/space';
 import type { Item, Tag } from '$lib/types';
 
+function isPrivateUrl(urlStr: string): boolean {
+	try {
+		const parsed = new URL(urlStr);
+		if (!['http:', 'https:'].includes(parsed.protocol)) return true;
+		const hostname = parsed.hostname;
+		if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]') return true;
+		// Reject private IP ranges
+		const parts = hostname.split('.').map(Number);
+		if (parts.length === 4 && parts.every((p) => !isNaN(p))) {
+			if (parts[0] === 10) return true;
+			if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+			if (parts[0] === 192 && parts[1] === 168) return true;
+			if (parts[0] === 169 && parts[1] === 254) return true;
+			if (parts[0] === 0) return true;
+		}
+		return false;
+	} catch {
+		return true;
+	}
+}
+
+const MAX_FETCH_SIZE = 100 * 1024; // 100 KB — enough for meta tags
+
 async function fetchPageMeta(url: string): Promise<{ title: string | null; description: string | null }> {
 	try {
+		if (isPrivateUrl(url)) return { title: null, description: null };
 		const res = await fetch(url, {
 			headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Pane/1.0)' },
-			signal: AbortSignal.timeout(5000)
+			signal: AbortSignal.timeout(5000),
+			redirect: 'follow'
 		});
 		if (!res.ok) return { title: null, description: null };
 		const contentType = res.headers.get('content-type') ?? '';
 		if (!contentType.includes('text/html')) return { title: null, description: null };
-		const text = await res.text();
+		// Limit body size to prevent memory exhaustion
+		const contentLength = Number(res.headers.get('content-length'));
+		if (contentLength > MAX_FETCH_SIZE) return { title: null, description: null };
+		const reader = res.body?.getReader();
+		if (!reader) return { title: null, description: null };
+		const chunks: Uint8Array[] = [];
+		let totalSize = 0;
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			totalSize += value.byteLength;
+			chunks.push(value);
+			if (totalSize >= MAX_FETCH_SIZE) break;
+		}
+		reader.cancel().catch(() => {});
+		const text = new TextDecoder().decode(Buffer.concat(chunks).subarray(0, MAX_FETCH_SIZE));
 		let title: string | null = null;
 		const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i);
 		if (titleMatch?.[1]) {

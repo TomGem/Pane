@@ -30,7 +30,7 @@ if (slugExists('pane')) {
 			}
 		}
 	}
-} else {
+} else if (!slugExists('desk')) {
 	// Fresh install: create default space
 	createDb('desk', 'Desk');
 }

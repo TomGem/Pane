@@ -18,14 +18,8 @@
 	let showMediaOverlay = $state(false);
 	let showNoteOverlay = $state(false);
 
-	const typeIcons: Record<string, string> = {
-		link: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71',
-		note: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z',
-		document: 'M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z'
-	};
-
 	function formatFileSize(bytes: number | null): string {
-		if (!bytes) return '';
+		if (bytes == null) return '';
 		if (bytes < 1024) return bytes + ' B';
 		if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
 		return (bytes / (1024 * 1024)).toFixed(1) + ' MB';

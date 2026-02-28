@@ -11,7 +11,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 	const filePath = path.join(STORAGE_ROOT, spaceSlug, params.path);
 
 	// Prevent directory traversal
-	if (!filePath.startsWith(path.join(STORAGE_ROOT, spaceSlug))) {
+	if (!filePath.startsWith(path.join(STORAGE_ROOT, spaceSlug) + path.sep)) {
 		throw error(403, 'Forbidden');
 	}
 
@@ -27,11 +27,11 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		'.jpg': 'image/jpeg',
 		'.jpeg': 'image/jpeg',
 		'.gif': 'image/gif',
-		'.svg': 'image/svg+xml',
+		'.svg': 'image/svg+xml; charset=utf-8',
 		'.webp': 'image/webp',
 		'.txt': 'text/plain',
 		'.md': 'text/markdown',
-		'.html': 'text/html',
+		'.html': 'text/plain',
 		'.json': 'application/json',
 		'.csv': 'text/csv',
 		'.zip': 'application/zip',
@@ -39,10 +39,19 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		'.mp3': 'audio/mpeg'
 	};
 
-	return new Response(data, {
-		headers: {
-			'Content-Type': mimeTypes[ext] || 'application/octet-stream',
-			'Content-Disposition': `inline; filename="${path.basename(filePath)}"`
-		}
-	});
+	// Serve potentially dangerous types as attachment to prevent XSS
+	const dangerousExts = new Set(['.svg', '.html', '.htm']);
+	const disposition = dangerousExts.has(ext) ? 'attachment' : 'inline';
+
+	const headers: Record<string, string> = {
+		'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+		'Content-Disposition': `${disposition}; filename="${path.basename(filePath)}"`,
+		'X-Content-Type-Options': 'nosniff'
+	};
+
+	if (dangerousExts.has(ext)) {
+		headers['Content-Security-Policy'] = "default-src 'none'";
+	}
+
+	return new Response(data, { headers });
 };

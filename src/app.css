@@ -314,6 +314,15 @@ button {
 	background-color: var(--accent);
 	border-color: var(--accent);
 	color: #ffffff;
+	text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Ensure contrast for lighter accent palettes */
+[data-palette='green'] .btn-primary,
+[data-palette='teal'] .btn-primary,
+[data-palette='orange'] .btn-primary {
+	color: #1a1a1a;
+	text-shadow: none;
 }
 
 .btn-primary:hover {
@@ -390,7 +399,7 @@ button {
 }
 
 /* Firefox */
-* {
+html {
 	scrollbar-width: thin;
 	scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
@@ -405,4 +414,14 @@ html.theme-transitioning *::after {
 		border-color 0.3s ease,
 		color 0.3s ease,
 		box-shadow 0.3s ease !important;
+}
+
+/* --- Reduced Motion ---------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+	html.theme-transitioning,
+	html.theme-transitioning *,
+	html.theme-transitioning *::before,
+	html.theme-transitioning *::after {
+		transition-duration: 0.01ms !important;
+	}
 }

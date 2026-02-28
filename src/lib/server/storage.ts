@@ -4,6 +4,13 @@ import { randomUUID } from 'crypto';
 
 const STORAGE_ROOT = path.resolve('storage');
 
+function assertWithinStorage(resolvedPath: string, spaceSlug: string): void {
+	const spaceRoot = path.join(STORAGE_ROOT, spaceSlug) + path.sep;
+	if (!resolvedPath.startsWith(spaceRoot) && resolvedPath !== spaceRoot.slice(0, -1)) {
+		throw new Error('Path traversal detected');
+	}
+}
+
 export function ensureSpaceDir(spaceSlug: string): string {
 	const dir = path.join(STORAGE_ROOT, spaceSlug);
 	fs.mkdirSync(dir, { recursive: true });
@@ -18,7 +25,8 @@ export function deleteSpaceDir(spaceSlug: string) {
 }
 
 export function ensureCategoryDir(spaceSlug: string, categorySlug: string): string {
-	const dir = path.join(STORAGE_ROOT, spaceSlug, categorySlug);
+	const dir = path.resolve(STORAGE_ROOT, spaceSlug, categorySlug);
+	assertWithinStorage(dir, spaceSlug);
 	fs.mkdirSync(dir, { recursive: true });
 	return dir;
 }
@@ -34,7 +42,8 @@ export function saveFile(spaceSlug: string, categorySlug: string, originalName: 
 }
 
 export function moveFile(spaceSlug: string, oldPath: string, newCategorySlug: string): string {
-	const oldFull = path.join(STORAGE_ROOT, spaceSlug, oldPath);
+	const oldFull = path.resolve(STORAGE_ROOT, spaceSlug, oldPath);
+	assertWithinStorage(oldFull, spaceSlug);
 	if (!fs.existsSync(oldFull)) return oldPath;
 
 	const baseName = path.basename(oldPath);
@@ -45,14 +54,16 @@ export function moveFile(spaceSlug: string, oldPath: string, newCategorySlug: st
 }
 
 export function deleteFile(spaceSlug: string, filePath: string) {
-	const full = path.join(STORAGE_ROOT, spaceSlug, filePath);
+	const full = path.resolve(STORAGE_ROOT, spaceSlug, filePath);
+	assertWithinStorage(full, spaceSlug);
 	if (fs.existsSync(full)) {
 		fs.unlinkSync(full);
 	}
 }
 
 export function deleteCategoryDir(spaceSlug: string, categorySlug: string) {
-	const dir = path.join(STORAGE_ROOT, spaceSlug, categorySlug);
+	const dir = path.resolve(STORAGE_ROOT, spaceSlug, categorySlug);
+	assertWithinStorage(dir, spaceSlug);
 	if (fs.existsSync(dir)) {
 		fs.rmSync(dir, { recursive: true, force: true });
 	}

@@ -19,9 +19,29 @@
 		const time = now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 		return `${date} ${time}`;
 	});
+
+	function trapFocus(node: HTMLElement) {
+		const previouslyFocused = document.activeElement as HTMLElement;
+		function getFocusable() {
+			return node.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+		}
+		requestAnimationFrame(() => { getFocusable()[0]?.focus(); });
+		function handleTab(e: KeyboardEvent) {
+			if (e.key !== 'Tab') return;
+			const focusable = getFocusable();
+			if (focusable.length === 0) return;
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			if (e.shiftKey) { if (document.activeElement === first) { e.preventDefault(); last.focus(); } }
+			else { if (document.activeElement === last) { e.preventDefault(); first.focus(); } }
+		}
+		node.addEventListener('keydown', handleTab);
+		return { destroy() { node.removeEventListener('keydown', handleTab); previouslyFocused?.focus(); } };
+	}
 </script>
 
-<div class="help-overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} aria-hidden="true">
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div class="help-overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose(); }} role="dialog" aria-modal="true" aria-label="Pane Help" tabindex="-1" use:trapFocus>
 	<div class="help-panel glass-strong">
 		<div class="help-header">
 			<h2 class="help-title">Pane Help</h2>

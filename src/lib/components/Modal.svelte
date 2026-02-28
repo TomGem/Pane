@@ -63,7 +63,8 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="modal-backdrop" onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }} aria-hidden="true">
+<!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
+<div class="modal-backdrop" onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }}>
 	<div class="modal glass-strong" role="dialog" aria-labelledby="modal-title" aria-modal="true" use:trapFocus>
 		<div class="modal-header">
 			<h2 id="modal-title" class="modal-title">{title}</h2>

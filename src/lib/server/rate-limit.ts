@@ -6,9 +6,13 @@ export function isRateLimited(ip: string): boolean {
 	const now = Date.now();
 	const timestamps = requests.get(ip) ?? [];
 	const recent = timestamps.filter((t) => now - t < WINDOW_MS);
+	if (recent.length >= MAX_REQUESTS) {
+		requests.set(ip, recent);
+		return true;
+	}
 	recent.push(now);
 	requests.set(ip, recent);
-	return recent.length > MAX_REQUESTS;
+	return false;
 }
 
 // Periodic cleanup to prevent memory leaks
