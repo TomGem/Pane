@@ -53,7 +53,7 @@ Five tables: `categories` (with optional `parent_id` for hierarchy), `items` (si
 /s/[space]/+error.svelte    → "Space not found" error page
 ```
 
-Root layout (`+layout.svelte`) owns theme only. Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and app context bridge.
+Root layout (`+layout.svelte`) owns theme and palette stores. Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and app context bridge.
 
 ### Hierarchical navigation
 
@@ -67,9 +67,17 @@ Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and theme. Page (`/s
 
 Documents stored at `storage/{space-slug}/{category-slug}/{uuid}.{ext}`. Original filename kept in DB. Moving items between categories physically moves files. Served via `/api/files/[...path]?space={slug}`. Both `data/` and `storage/` are gitignored.
 
+### Client stores
+
+- **`$lib/stores/board.svelte.ts`** — Board state (`BoardStore`). Tracks categories, items, tags, breadcrumb, and current parent. All mutations call API routes with `?space={slug}`.
+- **`$lib/stores/theme.svelte.ts`** — `ThemeMode` (`'light'|'dark'|'system'`), persists to localStorage, respects `prefers-color-scheme`.
+- **`$lib/stores/palette.svelte.ts`** — Accent color palette (8 choices: indigo, blue, teal, green, orange, red, pink, grey). Sets `data-palette` attribute and persists to localStorage. Maps to CSS `--accent`, `--accent-hover`, `--accent-soft` variables.
+
+Root layout provides both `theme` and `palette` store contexts.
+
 ### Theming
 
-CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Theme store in `$lib/stores/theme.svelte.ts` persists to localStorage, respects `prefers-color-scheme`. Flash prevention via inline script in `app.html`. Glass effect uses `backdrop-filter: blur()`.
+CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Accent colors via `[data-palette]` attribute with 8 palette options. Theme and palette stores persist to localStorage. Flash prevention via inline script in `app.html`. Glass effect uses `backdrop-filter: blur()`.
 
 ### Drag-and-drop
 
@@ -78,6 +86,15 @@ CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Theme store 
 ### Markdown rendering
 
 Notes and descriptions render markdown via `marked` with HTML sanitized through `DOMPurify` to prevent XSS.
+
+### Overlays
+
+Full-screen overlay components follow a shared pattern: glass backdrop (`glass-strong`), Escape key to close, click-outside-to-close, callback props (`onclose`). Key overlays:
+
+- **SettingsOverlay** — Theme mode toggle and accent palette selection.
+- **SpacesOverlay** — Grid of all spaces with create/delete/switch actions. Opened from toolbar title.
+- **NoteOverlay / MediaOverlay** — Content viewers for notes and documents.
+- **HelpOverlay** — App documentation (inline in Toolbar).
 
 ### Seed endpoint
 
