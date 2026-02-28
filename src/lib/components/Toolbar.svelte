@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ThemeToggle from './ThemeToggle.svelte';
 	import SettingsOverlay from './SettingsOverlay.svelte';
+	import SpacesOverlay from './SpacesOverlay.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
 	import type { PaletteId } from '$lib/stores/palette.svelte';
 	import type { Tag, Space } from '$lib/types';
@@ -31,6 +32,7 @@
 	let showTagMenu = $state(false);
 	let showHelp = $state(false);
 	let showSettings = $state(false);
+	let showSpacesOverlay = $state(false);
 	let showSpaceMenu = $state(false);
 	let creatingSpace = $state(false);
 	let newSpaceName = $state('');
@@ -99,12 +101,43 @@
 		} catch { /* ignore */ }
 	}
 
+	async function handleCreateSpaceFromOverlay(name: string) {
+		try {
+			const res = await fetch('/api/spaces', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name })
+			});
+			const data = await res.json();
+			if (!res.ok) return;
+			showSpacesOverlay = false;
+			goto(`/s/${data.slug}`);
+		} catch { /* ignore */ }
+	}
+
+	async function handleDeleteSpaceFromOverlay(slug: string) {
+		try {
+			const res = await fetch(`/api/spaces/${slug}`, { method: 'DELETE' });
+			if (!res.ok) return;
+			if (slug === spaceSlug) {
+				const remaining = spaces.filter((s) => s.slug !== slug);
+				showSpacesOverlay = false;
+				goto(`/s/${remaining[0]?.slug ?? 'pane'}`);
+			} else {
+				location.reload();
+			}
+		} catch { /* ignore */ }
+	}
+
 	function handleGlobalKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && showSettings) {
 			showSettings = false;
 		}
 		if (e.key === 'Escape' && showHelp) {
 			showHelp = false;
+		}
+		if (e.key === 'Escape' && showSpacesOverlay) {
+			showSpacesOverlay = false;
 		}
 		if (e.key === 'Escape' && showSpaceMenu) {
 			showSpaceMenu = false;
@@ -127,7 +160,7 @@
 
 <header class="toolbar glass-strong">
 	<div class="toolbar-left">
-		<span class="toolbar-title">Pane</span>
+		<button class="toolbar-title" onclick={() => showSpacesOverlay = true} title="Browse spaces">Pane</button>
 		<div class="space-selector-wrapper">
 			<button
 				class="space-switcher-btn"
@@ -344,6 +377,17 @@
 	/>
 {/if}
 
+{#if showSpacesOverlay}
+	<SpacesOverlay
+		{spaces}
+		{spaceSlug}
+		onclose={() => showSpacesOverlay = false}
+		onnavigate={(slug) => { showSpacesOverlay = false; goto(`/s/${slug}`); }}
+		oncreate={handleCreateSpaceFromOverlay}
+		ondelete={handleDeleteSpaceFromOverlay}
+	/>
+{/if}
+
 {#if showHelp}
 	<div class="help-overlay" onclick={(e) => { if (e.target === e.currentTarget) showHelp = false; }} onkeydown={(e) => { if (e.key === 'Escape') showHelp = false; }} role="button" tabindex="-1">
 		<div class="help-panel glass-strong">
@@ -454,6 +498,16 @@
 		letter-spacing: -0.02em;
 		color: var(--text-primary);
 		flex-shrink: 0;
+		cursor: pointer;
+		border-radius: var(--radius-sm);
+		padding: 2px 6px;
+		margin: -2px -6px;
+		transition: color var(--transition), background-color var(--transition);
+	}
+
+	.toolbar-title:hover {
+		color: var(--accent);
+		background: var(--accent-soft);
 	}
 
 	.space-selector-wrapper {
