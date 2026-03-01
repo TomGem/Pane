@@ -20,35 +20,39 @@ No test framework is configured. Use `pnpm check` to validate types before commi
 
 ## Architecture
 
-**Pane** is a local-only Kanban dashboard built with SvelteKit 2 + SQLite. It organizes links, notes, and documents into draggable columns. All data stays on the local machine. Supports multiple isolated **Spaces**, each with its own database and file storage.
+**Pane** is a local-only Kanban dashboard built with SvelteKit 2 + SQLite. It organizes links, notes, and documents into draggable columns. All data stays on the local machine. Supports multiple **Spaces**, each with its own database and file storage, plus a shared global database for tags.
 
 ### Data flow
 
 ```
-hooks.server.ts (migration + default space)
+hooks.server.ts (migration + default space + global DB init)
   → /s/[space]/+layout.server.ts (validate space, load spaces list)
-  → /s/[space]/+page.server.ts (SSR load categories+items+tags)
-  → Board store (client state, space-aware API calls)
-  → API routes (mutations with ?space= param)
-  → SQLite (per-space DB)
+  → /s/[space]/+page.server.ts (SSR load categories+items from space DB, tags from global DB)
+  → Board store (client state, space-aware API calls + space-independent tag calls)
+  → API routes (mutations with ?space= param; tag routes use global DB directly)
+  → SQLite (per-space DB + data/_global.db for tags)
 ```
 
-Root `/` is a spaces dashboard showing all spaces with category/item counts and create/delete actions (creates a default `desk` space if none exist). If a space slug doesn't exist, the layout redirects back to `/`. The space layout validates the space slug and provides space metadata to the toolbar. The page server load hydrates the board. All mutations go through the `BoardStore` (`$lib/stores/board.svelte.ts`), which appends `?space={slug}` to all API calls. The store uses Svelte 5 runes (`$state`, `$derived`, `$effect`).
+Root `/` is a spaces dashboard showing all spaces with category/item counts and create/delete actions (creates a default `desk` space if none exist). If a space slug doesn't exist, the layout redirects back to `/`. The space layout validates the space slug and provides space metadata to the toolbar. The page server load hydrates the board. All mutations go through the `BoardStore` (`$lib/stores/board.svelte.ts`), which appends `?space={slug}` to space-scoped API calls (categories, items) but calls tag APIs without a space parameter. The store uses Svelte 5 runes (`$state`, `$derived`, `$effect`).
 
 ### Spaces (Multi-Database)
 
 Each space has its own SQLite database (`data/{slug}.db`) and storage directory (`storage/{slug}/`). Spaces are discovered by scanning `data/*.db` files and reading the `display_name` from each DB's `meta` table.
 
-- **`$lib/server/db.ts`** — Connection cache (`Map<string, Database>`), `getDb(slug)`, `createDb(slug, name)`, `closeDb(slug)`, `listSpaces()`, `slugExists(slug)`, `validateSpaceSlug(slug)`. Slug regex: `/^[a-z0-9-]{1,64}$/`.
+- **`$lib/server/db.ts`** — Connection cache (`Map<string, Database>`), `getDb(slug)`, `createDb(slug, name)`, `closeDb(slug)`, `getGlobalDb()`, `listSpaces()`, `slugExists(slug)`, `validateSpaceSlug(slug)`. `getGlobalDb()` opens/caches `data/_global.db` for shared tags. `listSpaces()` filters out `_global.db`. Slug regex: `/^[a-z0-9-]{1,64}$/`.
 - **`$lib/server/space.ts`** — `getSpaceSlug(url)` and `getSpaceDb(url)` helpers that read `?space=` from the URL
 - **`$lib/server/storage.ts`** — File I/O with path traversal defense (`assertWithinStorage`). UUID-based filenames on disk, original filename in DB. Functions: `saveFile()`, `moveFile()`, `deleteFile()`, `renameCategoryDir()`, `deleteCategoryDir()`.
 - **Space API** — `GET/POST /api/spaces`, `PUT/DELETE /api/spaces/[slug]`
 
 ### Database
 
-SQLite via `better-sqlite3` (synchronous API). Connection cache in `$lib/server/db.ts`, schema in `$lib/server/schema.ts`, initialized in `hooks.server.ts`. WAL mode, foreign keys ON. DB files: `data/{slug}.db` (gitignored, auto-created).
+SQLite via `better-sqlite3` (synchronous API). Connection cache in `$lib/server/db.ts`, schema in `$lib/server/schema.ts`, initialized in `hooks.server.ts`. WAL mode, foreign keys ON. DB files: `data/{slug}.db` per space + `data/_global.db` for shared data (all gitignored, auto-created).
 
-Five tables: `categories` (with optional `parent_id` for hierarchy), `items` (single table with `type` discriminator: link/note/document), `tags`, `item_tags` (junction), `meta` (key-value for space metadata like `display_name`). Items share a sort space per category to simplify cross-column drag-and-drop.
+**Global DB** (`data/_global.db`): `tags` table (shared across all spaces). The underscore prefix prevents collision with space slugs.
+
+**Per-space DB** (`data/{slug}.db`): `categories` (with optional `parent_id` for hierarchy), `items` (single table with `type` discriminator: link/note/document), `item_tags` (junction — `tag_id` references global DB, no FK constraint), `meta` (key-value for space metadata like `display_name`). Items share a sort space per category to simplify cross-column drag-and-drop.
+
+On startup, `hooks.server.ts` runs `migrateTagsToGlobal()` for each space (idempotent) — moves any local `tags` table into the global DB, remaps `item_tags` IDs, then drops the local `tags` table.
 
 ### Route structure
 
@@ -79,7 +83,7 @@ Documents stored at `storage/{space-slug}/{category-slug}/{uuid}.{ext}`. Origina
 
 ### Client stores
 
-- **`$lib/stores/board.svelte.ts`** — Board state (`BoardStore`). Tracks categories, items, tags, breadcrumb, and current parent. All mutations call API routes with `?space={slug}`.
+- **`$lib/stores/board.svelte.ts`** — Board state (`BoardStore`). Tracks categories, items, tags, breadcrumb, and current parent. Space-scoped mutations (categories, items) call API routes with `?space={slug}`. Tag mutations (`loadTags`, `addTag`, `updateTag`) call `/api/tags` directly (no space param).
 - **`$lib/stores/theme.svelte.ts`** — `ThemeMode` (`'light'|'dark'|'system'`), persists to localStorage, respects `prefers-color-scheme`.
 - **`$lib/stores/palette.svelte.ts`** — Accent color palette (8 choices: indigo, blue, teal, green, orange, red, pink, grey). Sets `data-palette` attribute and persists to localStorage. Maps to CSS `--accent`, `--accent-hover`, `--accent-soft` variables.
 
@@ -117,7 +121,7 @@ In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/a
 
 ### Seed endpoint
 
-`POST /api/seed?space={slug}` populates an empty database with curated sample data (categories, tags, items). Guards against duplicate seeding by checking if any categories exist. Called from the empty board state UI.
+`POST /api/seed?space={slug}` populates an empty database with curated sample data (categories, items). Tags are inserted into the global DB with `INSERT OR IGNORE` (idempotent). Guards against duplicate seeding by checking if any categories exist. Called from the empty board state UI.
 
 ### Keyboard shortcuts
 
@@ -138,7 +142,7 @@ User-facing docs in `docs/`: `getting-started.md`, `user-guide.md`, `architectur
 
 - **Svelte 5 runes only** — `$state`, `$derived`, `$effect`, `$props()`, `$bindable()`. No legacy `let` exports or `createEventDispatcher`.
 - **Callback props for events** — e.g. `onsubmit`, `onclose`, `onadd` (not `dispatch`).
-- **API routes return `json()`** from `@sveltejs/kit`. Errors return `{ error: string }` with status codes: 201 (created), 400 (bad request), 404 (not found), 409 (conflict), 429 (rate limited), 500 (server error). All API routes require `?space={slug}` query parameter (read via `getSpaceDb(url)` from `$lib/server/space`).
+- **API routes return `json()`** from `@sveltejs/kit`. Errors return `{ error: string }` with status codes: 201 (created), 400 (bad request), 404 (not found), 409 (conflict), 429 (rate limited), 500 (server error). Space-scoped routes (categories, items, seed, files) require `?space={slug}` (read via `getSpaceDb(url)`). Tag routes (`/api/tags`) use `getGlobalDb()` directly — no space param needed.
 - **DB operations are synchronous** — `.run()`, `.get()`, `.all()`. Use `db.transaction()` for multi-statement writes.
 - **Types** live in `$lib/types/index.ts`. `CategoryWithItems` is the joined type used by components. `Space` is `{ slug: string; name: string }`.
 - **Scoped CSS** — styles are component-scoped via `<style>` blocks. Global variables defined in `app.css`.
