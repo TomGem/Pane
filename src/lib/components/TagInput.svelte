@@ -65,7 +65,7 @@
 		{#each selectedTags as tag (tag.id)}
 			<span class="tag-chip" style:background-color="{tag.color}20" style:color={tag.color}>
 				{tag.name}
-				<button class="tag-remove" onclick={() => removeTag(tag.id)} aria-label="Remove {tag.name}" title="Remove {tag.name}">×</button>
+				<button type="button" class="tag-remove" onclick={() => removeTag(tag.id)} aria-label="Remove {tag.name}" title="Remove {tag.name}">×</button>
 			</span>
 		{/each}
 		<input
@@ -82,13 +82,13 @@
 	{#if showDropdown && (filtered.length > 0 || (inputValue.trim() && oncreate))}
 		<div class="tag-dropdown glass-strong">
 			{#each filtered as tag (tag.id)}
-				<button class="tag-option" onmousedown={(e) => { e.preventDefault(); selectTag(tag); }}>
+				<button type="button" class="tag-option" onmousedown={(e) => { e.preventDefault(); selectTag(tag); }}>
 					<span class="tag-dot" style:background-color={tag.color}></span>
 					{tag.name}
 				</button>
 			{/each}
 			{#if inputValue.trim() && !tags.some(t => t.name.toLowerCase() === inputValue.trim().toLowerCase()) && oncreate}
-				<button class="tag-option tag-create" onmousedown={(e) => { e.preventDefault(); createTag(); }}>
+				<button type="button" class="tag-option tag-create" onmousedown={(e) => { e.preventDefault(); createTag(); }}>
 					+ Create "{inputValue.trim()}"
 				</button>
 			{/if}
