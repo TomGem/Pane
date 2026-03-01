@@ -43,13 +43,16 @@ export const PUT: RequestHandler = async ({ request, url }) => {
 
 		reorder(moves);
 
-		// Move files after transaction committed successfully
+		// Move files after transaction committed successfully, batch path updates in a transaction
 		if (fileMoves.length > 0) {
-			const updateFilePath = db.prepare('UPDATE items SET file_path = ? WHERE id = ?');
-			for (const { item, newCategorySlug, moveId } of fileMoves) {
-				const newFilePath = moveFile(spaceSlug, item.file_path!, newCategorySlug);
-				updateFilePath.run(newFilePath, moveId);
-			}
+			const updateFilePaths = db.transaction(() => {
+				const updateFilePath = db.prepare('UPDATE items SET file_path = ? WHERE id = ?');
+				for (const { item, newCategorySlug, moveId } of fileMoves) {
+					const newFilePath = moveFile(spaceSlug, item.file_path!, newCategorySlug);
+					updateFilePath.run(newFilePath, moveId);
+				}
+			});
+			updateFilePaths();
 		}
 
 		return json({ success: true });

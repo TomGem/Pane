@@ -73,25 +73,22 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 				}
 			}
 
-			db.prepare(
-				`UPDATE items SET
-					title = COALESCE(?, title),
-					content = COALESCE(?, content),
-					description = COALESCE(?, description),
-					category_id = COALESCE(?, category_id),
-					is_pinned = COALESCE(?, is_pinned),
-					file_path = COALESCE(?, file_path),
-					updated_at = CURRENT_TIMESTAMP
-				 WHERE id = ?`
-			).run(
-				title ?? null,
-				content ?? null,
-				description ?? null,
-				category_id ?? null,
-				is_pinned ?? null,
-				newFilePath,
-				numId
-			);
+			// Build UPDATE dynamically so we can distinguish "not provided" from "explicitly null"
+			const fields: string[] = [];
+			const values: unknown[] = [];
+
+			if ('title' in body) { fields.push('title = ?'); values.push(title ?? null); }
+			if ('content' in body) { fields.push('content = ?'); values.push(content ?? null); }
+			if ('description' in body) { fields.push('description = ?'); values.push(description ?? null); }
+			if (category_id !== undefined) { fields.push('category_id = ?'); values.push(category_id); }
+			if (is_pinned !== undefined) { fields.push('is_pinned = ?'); values.push(is_pinned); }
+			if (newFilePath !== existing.file_path) { fields.push('file_path = ?'); values.push(newFilePath); }
+
+			if (fields.length > 0) {
+				fields.push('updated_at = CURRENT_TIMESTAMP');
+				values.push(numId);
+				db.prepare(`UPDATE items SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+			}
 
 			// Update tags if provided
 			if (Array.isArray(tags)) {

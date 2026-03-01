@@ -145,7 +145,11 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		if (title) form.append('title', title);
 		if (description) form.append('description', description);
 
-		await fetch(withSpace('/api/items/upload', spaceSlug), { method: 'POST', body: form });
+		const res = await fetch(withSpace('/api/items/upload', spaceSlug), { method: 'POST', body: form });
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+			throw new Error(err.error ?? 'Upload failed');
+		}
 		await refresh();
 	}
 

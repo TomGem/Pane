@@ -19,8 +19,8 @@ export function ensureSpaceDir(spaceSlug: string): string {
 
 export function deleteSpaceDir(spaceSlug: string) {
 	const dir = path.resolve(STORAGE_ROOT, spaceSlug);
-	// Defense-in-depth: ensure the resolved path is within STORAGE_ROOT
-	if (!dir.startsWith(STORAGE_ROOT + path.sep) && dir !== STORAGE_ROOT) {
+	// Defense-in-depth: ensure the resolved path is strictly inside STORAGE_ROOT
+	if (!dir.startsWith(STORAGE_ROOT + path.sep)) {
 		throw new Error('Path traversal detected');
 	}
 	if (fs.existsSync(dir)) {

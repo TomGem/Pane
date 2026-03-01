@@ -27,7 +27,7 @@
 
 	// Load tags on mount and register add callback
 	$effect(() => {
-		board.loadTags();
+		board.loadTags().catch((e: unknown) => console.error('Failed to load tags:', e));
 		app.setAddCallback(() => {
 			if (board.columns.length > 0) {
 				handleAddItem(board.columns[0].id);

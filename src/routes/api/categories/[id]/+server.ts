@@ -69,28 +69,33 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			}
 		}
 
-		if (parentIdProvided) {
-			db.prepare(
-				'UPDATE categories SET name = ?, slug = ?, color = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-			).run(name, slug, color, newParentId, categoryId);
-		} else {
-			db.prepare(
-				'UPDATE categories SET name = ?, slug = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-			).run(name, slug, color, categoryId);
-		}
+		// Wrap DB update + file path updates in a transaction for atomicity
+		const updateCategory = db.transaction(() => {
+			if (parentIdProvided) {
+				db.prepare(
+					'UPDATE categories SET name = ?, slug = ?, color = ?, parent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+				).run(name, slug, color, newParentId, categoryId);
+			} else {
+				db.prepare(
+					'UPDATE categories SET name = ?, slug = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+				).run(name, slug, color, categoryId);
+			}
 
-		// If slug changed, move files and update item paths
-		if (slug !== existing.slug) {
-			renameCategoryDir(spaceSlug, existing.slug, slug);
-			const items = db.prepare('SELECT id, file_path FROM items WHERE category_id = ? AND file_path IS NOT NULL').all(categoryId) as Pick<Item, 'id' | 'file_path'>[];
-			const updatePath = db.prepare('UPDATE items SET file_path = ? WHERE id = ?');
-			for (const item of items) {
-				if (item.file_path && item.file_path.startsWith(existing.slug + '/')) {
-					const newPath = slug + item.file_path.slice(existing.slug.length);
-					updatePath.run(newPath, item.id);
+			// If slug changed, move files and update item paths
+			if (slug !== existing.slug) {
+				renameCategoryDir(spaceSlug, existing.slug, slug);
+				const items = db.prepare('SELECT id, file_path FROM items WHERE category_id = ? AND file_path IS NOT NULL').all(categoryId) as Pick<Item, 'id' | 'file_path'>[];
+				const updatePath = db.prepare('UPDATE items SET file_path = ? WHERE id = ?');
+				for (const item of items) {
+					if (item.file_path && item.file_path.startsWith(existing.slug + '/')) {
+						const newPath = slug + item.file_path.slice(existing.slug.length);
+						updatePath.run(newPath, item.id);
+					}
 				}
 			}
-		}
+		});
+
+		updateCategory();
 
 		const category = db.prepare(
 			`SELECT c.*, (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id) AS children_count
