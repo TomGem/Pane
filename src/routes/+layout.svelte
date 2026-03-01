@@ -14,6 +14,11 @@
 	setContext('palette', palette);
 </script>
 
+<svelte:head>
+	<title>Pane</title>
+	<meta name="description" content="A local-only Kanban dashboard for organizing links, notes, and documents into draggable columns." />
+</svelte:head>
+
 <div class="app-shell">
 	{@render children()}
 </div>
