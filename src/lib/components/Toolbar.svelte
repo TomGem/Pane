@@ -636,8 +636,10 @@
 	}
 
 	.search-input {
+		padding: 6px 8px;
 		padding-left: 34px;
 		padding-right: 32px;
+		line-height: 1;
 		background-color: var(--bg-glass);
 		border-color: var(--border-glass);
 	}
