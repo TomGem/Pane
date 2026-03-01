@@ -32,7 +32,7 @@ html {
 
 	/* Borders */
 	--border: #e5e7eb;
-	--border-glass: rgba(255, 255, 255, 0.35);
+	--border-glass: rgba(0, 0, 0, 0.06);
 
 	/* Accent */
 	--accent: #6366f1;

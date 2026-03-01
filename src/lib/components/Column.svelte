@@ -247,6 +247,7 @@
 		display: flex;
 		flex-direction: column;
 		background: var(--bg-secondary);
+		border: 1px solid var(--border-glass);
 		border-radius: var(--radius-lg);
 		max-height: calc(100vh - 100px);
 	}
