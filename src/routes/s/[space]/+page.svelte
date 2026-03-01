@@ -149,6 +149,14 @@
 	// Category CRUD
 	function handleAddCategory() {
 		editingCategory = null;
+		// When inside a nested view, treat toolbar "add category" as adding a subcategory
+		if (board.currentParentId !== null) {
+			const parentCol = board.columns.find((c) => c.id === board.currentParentId);
+			if (parentCol) {
+				subcategoryParentId = parentCol.id;
+				subcategoryParentColor = parentCol.color;
+			}
+		}
 		showCategoryModal = true;
 	}
 
