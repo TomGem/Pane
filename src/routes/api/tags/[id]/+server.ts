@@ -1,9 +1,9 @@
-import { json, isHttpError } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb } from '$lib/server/space';
+import { getGlobalDb } from '$lib/server/db';
 import type { Tag } from '$lib/types';
 
-export const PUT: RequestHandler = async ({ params, request, url }) => {
+export const PUT: RequestHandler = async ({ params, request }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid tag id' }, { status: 400 });
@@ -14,7 +14,7 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			return json({ error: 'Name and color are required' }, { status: 400 });
 		}
 
-		const db = getSpaceDb(url);
+		const db = getGlobalDb();
 
 		const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag | undefined;
 		if (!existing) {
@@ -27,7 +27,6 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 
 		return json(tag);
 	} catch (err) {
-		if (isHttpError(err)) throw err;
 		if (err instanceof Error && err.message.includes('UNIQUE constraint')) {
 			return json({ error: 'A tag with that name already exists' }, { status: 409 });
 		}
@@ -36,12 +35,12 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params, url }) => {
+export const DELETE: RequestHandler = async ({ params }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid tag id' }, { status: 400 });
 
-		const db = getSpaceDb(url);
+		const db = getGlobalDb();
 
 		const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag | undefined;
 		if (!existing) {
@@ -52,7 +51,6 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 
 		return json({ success: true });
 	} catch (err) {
-		if (isHttpError(err)) throw err;
 		console.error('Failed to delete tag:', err);
 		return json({ error: 'Failed to delete tag' }, { status: 500 });
 	}

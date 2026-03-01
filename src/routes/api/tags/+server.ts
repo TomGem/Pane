@@ -1,21 +1,20 @@
-import { json, isHttpError } from '@sveltejs/kit';
+import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb } from '$lib/server/space';
+import { getGlobalDb } from '$lib/server/db';
 import type { Tag } from '$lib/types';
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async () => {
 	try {
-		const db = getSpaceDb(url);
+		const db = getGlobalDb();
 		const tags = db.prepare('SELECT * FROM tags ORDER BY name').all() as Tag[];
 		return json(tags);
 	} catch (err) {
-		if (isHttpError(err)) throw err;
 		console.error('Failed to fetch tags:', err);
 		return json({ error: 'Failed to fetch tags' }, { status: 500 });
 	}
 };
 
-export const POST: RequestHandler = async ({ request, url }) => {
+export const POST: RequestHandler = async ({ request }) => {
 	try {
 		const { name, color } = await request.json();
 
@@ -23,7 +22,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			return json({ error: 'Name and color are required' }, { status: 400 });
 		}
 
-		const db = getSpaceDb(url);
+		const db = getGlobalDb();
 
 		const result = db.prepare(
 			'INSERT INTO tags (name, color) VALUES (?, ?)'
@@ -33,7 +32,6 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		return json(tag, { status: 201 });
 	} catch (err) {
-		if (isHttpError(err)) throw err;
 		if (err instanceof Error && err.message.includes('UNIQUE constraint')) {
 			return json({ error: 'A tag with that name already exists' }, { status: 409 });
 		}

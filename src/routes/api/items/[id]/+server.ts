@@ -1,16 +1,16 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
+import { getGlobalDb } from '$lib/server/db';
 import { moveFile, deleteFile } from '$lib/server/storage';
 import type { Item, Tag, Category } from '$lib/types';
 
-function getTagsForItem(db: ReturnType<typeof getSpaceDb>, itemId: number): Tag[] {
-	return db.prepare(
-		`SELECT t.id, t.name, t.color
-		 FROM tags t
-		 INNER JOIN item_tags it ON it.tag_id = t.id
-		 WHERE it.item_id = ?`
-	).all(itemId) as Tag[];
+function getTagsForItem(spaceDb: ReturnType<typeof getSpaceDb>, itemId: number): Tag[] {
+	const tagIds = spaceDb.prepare('SELECT tag_id FROM item_tags WHERE item_id = ?').all(itemId) as { tag_id: number }[];
+	if (tagIds.length === 0) return [];
+	const globalDb = getGlobalDb();
+	const placeholders = tagIds.map(() => '?').join(',');
+	return globalDb.prepare(`SELECT id, name, color FROM tags WHERE id IN (${placeholders})`).all(...tagIds.map(r => r.tag_id)) as Tag[];
 }
 
 export const GET: RequestHandler = async ({ params, url }) => {
@@ -51,9 +51,10 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			return json({ error: 'Item not found' }, { status: 404 });
 		}
 
-		// Validate tags before transaction
+		// Validate tags against global DB before transaction
 		if (Array.isArray(tags)) {
-			const checkTag = db.prepare('SELECT id FROM tags WHERE id = ?');
+			const globalDb = getGlobalDb();
+			const checkTag = globalDb.prepare('SELECT id FROM tags WHERE id = ?');
 			for (const tagId of tags) {
 				if (!checkTag.get(tagId)) {
 					return json({ error: `Tag with id ${tagId} not found` }, { status: 400 });

@@ -1,6 +1,7 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb } from '$lib/server/space';
+import { getGlobalDb } from '$lib/server/db';
 import { slugify } from '$lib/utils/slugify';
 
 export const POST: RequestHandler = async ({ url }) => {
@@ -13,24 +14,28 @@ export const POST: RequestHandler = async ({ url }) => {
 			return json({ error: 'Database already contains data' }, { status: 409 });
 		}
 
+		// --- Tags (global DB, idempotent) ---
+		const globalDb = getGlobalDb();
+		const insertTag = globalDb.prepare('INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)');
+		const getTagId = globalDb.prepare('SELECT id FROM tags WHERE name = ?');
+		const tagIds: Record<string, number> = {};
+
+		const tags: [string, string][] = [
+			['Beginner', '#22c55e'],
+			['Tutorial', '#3b82f6'],
+			['Reference', '#a855f7'],
+			['Tips', '#f59e0b'],
+			['Video', '#ef4444'],
+			['Essential', '#ec4899']
+		];
+
+		for (const [name, color] of tags) {
+			insertTag.run(name, color);
+			const row = getTagId.get(name) as { id: number };
+			tagIds[name] = row.id;
+		}
+
 		const seed = db.transaction(() => {
-			// --- Tags ---
-			const insertTag = db.prepare('INSERT INTO tags (name, color) VALUES (?, ?)');
-			const tagIds: Record<string, number> = {};
-
-			const tags: [string, string][] = [
-				['Beginner', '#22c55e'],
-				['Tutorial', '#3b82f6'],
-				['Reference', '#a855f7'],
-				['Tips', '#f59e0b'],
-				['Video', '#ef4444'],
-				['Essential', '#ec4899']
-			];
-
-			for (const [name, color] of tags) {
-				const result = insertTag.run(name, color);
-				tagIds[name] = result.lastInsertRowid as number;
-			}
 
 			// --- Categories ---
 			const insertCategory = db.prepare(

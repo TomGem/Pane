@@ -1,12 +1,16 @@
 import type { Handle } from '@sveltejs/kit';
-import { getDb, createDb, slugExists } from '$lib/server/db';
-import { initSchema } from '$lib/server/schema';
+import { getDb, createDb, slugExists, getGlobalDb, listSpaces } from '$lib/server/db';
+import { initSchema, initGlobalSchema, migrateTagsToGlobal } from '$lib/server/schema';
 import { isRateLimited } from '$lib/server/rate-limit';
 import fs from 'fs';
 import path from 'path';
 
 fs.mkdirSync('data', { recursive: true });
 fs.mkdirSync('storage', { recursive: true });
+
+// Initialize global tags database
+const globalDb = getGlobalDb();
+initGlobalSchema(globalDb);
 
 if (slugExists('pane')) {
 	// Existing install: open and ensure schema + meta table
@@ -33,6 +37,12 @@ if (slugExists('pane')) {
 } else if (!slugExists('desk')) {
 	// Fresh install: create default space
 	createDb('desk', 'Desk');
+}
+
+// Migrate tags from all existing spaces to global DB (idempotent)
+for (const space of listSpaces()) {
+	const spaceDb = getDb(space.slug);
+	migrateTagsToGlobal(spaceDb, globalDb);
 }
 
 export const handle: Handle = async ({ event, resolve }) => {

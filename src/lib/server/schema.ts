@@ -1,5 +1,64 @@
 import type Database from 'better-sqlite3';
 
+export function initGlobalSchema(db: Database.Database) {
+	db.exec(`
+		CREATE TABLE IF NOT EXISTS tags (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			color TEXT NOT NULL DEFAULT '#8b5cf6'
+		);
+	`);
+}
+
+export function migrateTagsToGlobal(spaceDb: Database.Database, globalDb: Database.Database) {
+	// Check if the space still has a local tags table
+	const hasTagsTable = spaceDb.prepare(
+		"SELECT name FROM sqlite_master WHERE type='table' AND name='tags'"
+	).get();
+	if (!hasTagsTable) return; // Already migrated
+
+	// Copy tags to global DB (first color wins on name collision)
+	const localTags = spaceDb.prepare('SELECT id, name, color FROM tags').all() as { id: number; name: string; color: string }[];
+	const insertGlobal = globalDb.prepare('INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)');
+	const getGlobalId = globalDb.prepare('SELECT id FROM tags WHERE name = ?');
+
+	// Build old→new ID mapping
+	const idMap = new Map<number, number>();
+	for (const tag of localTags) {
+		insertGlobal.run(tag.name, tag.color);
+		const row = getGlobalId.get(tag.name) as { id: number };
+		idMap.set(tag.id, row.id);
+	}
+
+	// Remap item_tags to use global IDs, then drop local tags table
+	spaceDb.transaction(() => {
+		const itemTags = spaceDb.prepare('SELECT item_id, tag_id FROM item_tags').all() as { item_id: number; tag_id: number }[];
+
+		// Drop old item_tags (has FK to local tags)
+		spaceDb.exec('DROP TABLE IF EXISTS item_tags');
+		// Drop local tags table
+		spaceDb.exec('DROP TABLE IF EXISTS tags');
+
+		// Recreate item_tags without FK to tags (tags are now in global DB)
+		spaceDb.exec(`
+			CREATE TABLE IF NOT EXISTS item_tags (
+				item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+				tag_id INTEGER NOT NULL,
+				PRIMARY KEY (item_id, tag_id)
+			);
+		`);
+
+		// Re-insert with remapped IDs
+		const insert = spaceDb.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)');
+		for (const it of itemTags) {
+			const newTagId = idMap.get(it.tag_id);
+			if (newTagId !== undefined) {
+				insert.run(it.item_id, newTagId);
+			}
+		}
+	})();
+}
+
 export function initSchema(db: Database.Database, displayName?: string) {
 	db.exec(`
 		CREATE TABLE IF NOT EXISTS categories (
@@ -29,15 +88,9 @@ export function initSchema(db: Database.Database, displayName?: string) {
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
 
-		CREATE TABLE IF NOT EXISTS tags (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL UNIQUE,
-			color TEXT NOT NULL DEFAULT '#8b5cf6'
-		);
-
 		CREATE TABLE IF NOT EXISTS item_tags (
 			item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-			tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+			tag_id INTEGER NOT NULL,
 			PRIMARY KEY (item_id, tag_id)
 		);
 
@@ -59,12 +112,6 @@ export function initSchema(db: Database.Database, displayName?: string) {
 			CREATE INDEX idx_categories_parent ON categories(parent_id);
 			CREATE INDEX idx_categories_parent_sort ON categories(parent_id, sort_order);
 		`);
-	}
-
-	// Migration: add color to tags
-	const tagColumns = db.prepare('PRAGMA table_info(tags)').all() as { name: string }[];
-	if (!tagColumns.some((c) => c.name === 'color')) {
-		db.exec(`ALTER TABLE tags ADD COLUMN color TEXT NOT NULL DEFAULT '#8b5cf6'`);
 	}
 
 	// Insert display_name into meta if missing

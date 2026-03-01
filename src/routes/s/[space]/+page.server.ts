@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getDb } from '$lib/server/db';
+import { getDb, getGlobalDb } from '$lib/server/db';
 import type { Category, Item, Tag, CategoryWithItems } from '$lib/types';
 
 export const load: PageServerLoad = async ({ params }) => {
@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		).all(...categoryIds) as Category[];
 	}
 
-	const tags = db.prepare('SELECT * FROM tags ORDER BY name').all() as Tag[];
+	const tags = getGlobalDb().prepare('SELECT * FROM tags ORDER BY name').all() as Tag[];
 
 	// Attach tags to items using Map for O(n+m) instead of O(n*m)
 	if (allItems.length > 0) {

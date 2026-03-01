@@ -6,6 +6,7 @@ import type { Space } from '$lib/types';
 
 const DATA_DIR = path.resolve('data');
 const cache = new Map<string, Database.Database>();
+let globalDb: Database.Database | null = null;
 
 const SLUG_RE = /^[a-z0-9-]{1,64}$/;
 
@@ -53,11 +54,26 @@ export function closeDb(slug: string) {
 	}
 }
 
+export function getGlobalDb(): Database.Database {
+	if (!globalDb) {
+		fs.mkdirSync(DATA_DIR, { recursive: true });
+		const dbPath = path.join(DATA_DIR, '_global.db');
+		globalDb = new Database(dbPath);
+		globalDb.pragma('journal_mode = WAL');
+		globalDb.pragma('foreign_keys = ON');
+	}
+	return globalDb;
+}
+
 function closeAll() {
-	for (const [slug, db] of cache) {
+	for (const [, db] of cache) {
 		try { db.close(); } catch { /* ignore */ }
 	}
 	cache.clear();
+	if (globalDb) {
+		try { globalDb.close(); } catch { /* ignore */ }
+		globalDb = null;
+	}
 }
 
 process.on('exit', closeAll);
@@ -66,7 +82,7 @@ process.on('SIGINT', () => { closeAll(); process.exit(0); });
 
 export function listSpaces(): Space[] {
 	fs.mkdirSync(DATA_DIR, { recursive: true });
-	const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.db') && !f.endsWith('-journal') && !f.endsWith('-wal') && !f.endsWith('-shm'));
+	const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.db') && !f.endsWith('-journal') && !f.endsWith('-wal') && !f.endsWith('-shm') && f !== '_global.db');
 	const spaces: Space[] = [];
 
 	for (const file of files) {

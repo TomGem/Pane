@@ -17,7 +17,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	let breadcrumb = $state<BreadcrumbSegment[]>([]);
 
 	async function loadTags() {
-		allTags = await api<Tag[]>(withSpace('/api/tags', spaceSlug));
+		allTags = await api<Tag[]>('/api/tags');
 	}
 
 	async function refresh() {
@@ -161,7 +161,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 
 	// Tags
 	async function addTag(name: string, color: string) {
-		const tag = await api<Tag>(withSpace('/api/tags', spaceSlug), {
+		const tag = await api<Tag>('/api/tags', {
 			method: 'POST',
 			body: JSON.stringify({ name, color })
 		});
@@ -170,7 +170,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function updateTag(id: number, name: string, color: string) {
-		const tag = await api<Tag>(withSpace(`/api/tags/${id}`, spaceSlug), {
+		const tag = await api<Tag>(`/api/tags/${id}`, {
 			method: 'PUT',
 			body: JSON.stringify({ name, color })
 		});
