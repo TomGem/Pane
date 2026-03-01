@@ -214,12 +214,13 @@
 
 	// Keyboard shortcuts
 	function handleKeydown(e: KeyboardEvent) {
+		const modalOpen = showItemModal || showCategoryModal || showDeleteConfirm;
 		const inInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
 
+		// When a modal is open, let the Modal component handle Escape; skip all other shortcuts
+		if (modalOpen) return;
+
 		if (e.key === 'Escape') {
-			showItemModal = false;
-			showCategoryModal = false;
-			showDeleteConfirm = false;
 			subcategoryParentId = null;
 			subcategoryParentColor = null;
 		}

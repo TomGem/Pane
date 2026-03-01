@@ -10,8 +10,19 @@
 
 	let { title, onclose, children }: Props = $props();
 
+	// Track where mousedown started to prevent accidental backdrop closes
+	// (e.g. text selection dragging outside, or clicking slightly off the modal)
+	let mouseDownOnBackdrop = $state(false);
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
+			e.stopPropagation();
+			// If focus is in a form field, blur it first instead of closing
+			const active = document.activeElement;
+			if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement || active instanceof HTMLSelectElement) {
+				active.blur();
+				return;
+			}
 			onclose?.();
 		}
 	}
@@ -64,7 +75,10 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
-<div class="modal-backdrop" onclick={(e) => { if (e.target === e.currentTarget) onclose?.(); }}>
+<div class="modal-backdrop"
+	onmousedown={(e) => { mouseDownOnBackdrop = e.target === e.currentTarget; }}
+	onclick={(e) => { if (e.target === e.currentTarget && mouseDownOnBackdrop) onclose?.(); }}
+>
 	<div class="modal glass-strong" role="dialog" aria-labelledby="modal-title" aria-modal="true" use:trapFocus>
 		<div class="modal-header">
 			<h2 id="modal-title" class="modal-title">{title}</h2>
