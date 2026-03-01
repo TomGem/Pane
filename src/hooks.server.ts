@@ -39,9 +39,10 @@ if (slugExists('pane')) {
 	createDb('desk', 'Desk');
 }
 
-// Migrate tags from all existing spaces to global DB (idempotent)
+// Run schema migrations and tag migration for all existing spaces (idempotent)
 for (const space of listSpaces()) {
 	const spaceDb = getDb(space.slug);
+	initSchema(spaceDb);
 	migrateTagsToGlobal(spaceDb, globalDb);
 }
 

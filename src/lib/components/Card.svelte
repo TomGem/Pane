@@ -17,6 +17,12 @@
 
 	let showMediaOverlay = $state(false);
 	let showNoteOverlay = $state(false);
+	let faviconError = $state(false);
+
+	$effect(() => {
+		item.favicon_url;
+		faviconError = false;
+	});
 
 	function formatFileSize(bytes: number | null): string {
 		if (bytes == null) return '';
@@ -74,10 +80,14 @@
 	<div class="card-header">
 		<div class="card-type">
 			{#if item.type === 'link'}
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-					<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-				</svg>
+				{#if item.favicon_url && !faviconError}
+					<img class="favicon" src={item.favicon_url} alt="" width="14" height="14" onerror={() => faviconError = true} />
+				{:else}
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+						<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+					</svg>
+				{/if}
 			{:else if item.type === 'note'}
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -211,6 +221,13 @@
 
 	.card-type svg {
 		display: inline;
+	}
+
+	.favicon {
+		width: 14px;
+		height: 14px;
+		border-radius: 2px;
+		object-fit: contain;
 	}
 
 	.type-label {

@@ -27,16 +27,17 @@ function isPrivateUrl(urlStr: string): boolean {
 
 const MAX_FETCH_SIZE = 1024 * 1024; // 1 MB — YouTube inlines ~600KB of JS before meta tags
 
-async function fetchPageMeta(url: string): Promise<{ title: string | null; description: string | null }> {
+async function fetchPageMeta(url: string): Promise<{ title: string | null; description: string | null; favicon: string | null }> {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), 5000);
+	const nullResult = { title: null, description: null, favicon: null };
 	try {
 		let currentUrl = url;
 		let redirects = 0;
 		const MAX_REDIRECTS = 5;
 
 		while (redirects < MAX_REDIRECTS) {
-			if (isPrivateUrl(currentUrl)) return { title: null, description: null };
+			if (isPrivateUrl(currentUrl)) return nullResult;
 
 			const res = await fetch(currentUrl, {
 				headers: {
@@ -50,20 +51,20 @@ async function fetchPageMeta(url: string): Promise<{ title: string | null; descr
 
 			if (res.status >= 300 && res.status < 400) {
 				const location = res.headers.get('location');
-				if (!location) return { title: null, description: null };
+				if (!location) return nullResult;
 				currentUrl = new URL(location, currentUrl).href;
 				redirects++;
 				continue;
 			}
 
-			if (!res.ok) return { title: null, description: null };
+			if (!res.ok) return nullResult;
 
 			const contentType = res.headers.get('content-type') ?? '';
-			if (!contentType.includes('text/html')) return { title: null, description: null };
+			if (!contentType.includes('text/html')) return nullResult;
 			const contentLength = Number(res.headers.get('content-length'));
-			if (contentLength > MAX_FETCH_SIZE) return { title: null, description: null };
+			if (contentLength > MAX_FETCH_SIZE) return nullResult;
 			const reader = res.body?.getReader();
-			if (!reader) return { title: null, description: null };
+			if (!reader) return nullResult;
 			const chunks: Uint8Array[] = [];
 			let totalSize = 0;
 			while (true) {
@@ -94,11 +95,27 @@ async function fetchPageMeta(url: string): Promise<{ title: string | null; descr
 			} else if (descMatch?.[1]) {
 				description = descMatch[1].trim() || null;
 			}
-			return { title, description };
+
+			// Extract favicon
+			let favicon: string | null = null;
+			const origin = new URL(currentUrl).origin;
+			const iconMatch = text.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]+href=["']([^"']+)["']/i)
+				?? text.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:shortcut )?icon["']/i);
+			const appleTouchMatch = text.match(/<link[^>]+rel=["']apple-touch-icon["'][^>]+href=["']([^"']+)["']/i)
+				?? text.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["']apple-touch-icon["']/i);
+			if (iconMatch?.[1]) {
+				favicon = new URL(iconMatch[1], currentUrl).href;
+			} else if (appleTouchMatch?.[1]) {
+				favicon = new URL(appleTouchMatch[1], currentUrl).href;
+			} else {
+				favicon = `${origin}/favicon.ico`;
+			}
+
+			return { title, description, favicon };
 		}
-		return { title: null, description: null };
+		return nullResult;
 	} catch {
-		return { title: null, description: null };
+		return nullResult;
 	} finally {
 		clearTimeout(timeout);
 	}
@@ -174,10 +191,12 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		let title = rawTitle;
 		let desc = description;
+		let faviconUrl: string | null = null;
 		if (fetch_title && type === 'link' && content) {
 			const meta = await fetchPageMeta(content);
 			if (meta.title) title = meta.title;
 			if (meta.description && !desc) desc = meta.description;
+			faviconUrl = meta.favicon;
 		}
 
 		const db = getSpaceDb(url);
@@ -200,9 +219,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		const createItem = db.transaction(() => {
 			const result = db.prepare(
-				`INSERT INTO items (category_id, type, title, content, description, sort_order)
-				 VALUES (?, ?, ?, ?, ?, ?)`
-			).run(category_id, type, title, content || null, desc || null, sort_order);
+				`INSERT INTO items (category_id, type, title, content, description, favicon_url, sort_order)
+				 VALUES (?, ?, ?, ?, ?, ?, ?)`
+			).run(category_id, type, title, content || null, desc || null, faviconUrl, sort_order);
 
 			const itemId = result.lastInsertRowid as number;
 

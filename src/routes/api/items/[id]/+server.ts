@@ -41,7 +41,7 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
 
 		const body = await request.json();
-		const { title, content, description, category_id, is_pinned, tags } = body;
+		const { title, content, description, category_id, is_pinned, tags, favicon_url } = body;
 
 		const spaceSlug = getSpaceSlug(url);
 		const db = getSpaceDb(url);
@@ -82,6 +82,7 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			if ('description' in body) { fields.push('description = ?'); values.push(description ?? null); }
 			if (category_id !== undefined) { fields.push('category_id = ?'); values.push(category_id); }
 			if (is_pinned !== undefined) { fields.push('is_pinned = ?'); values.push(is_pinned); }
+			if ('favicon_url' in body) { fields.push('favicon_url = ?'); values.push(favicon_url ?? null); }
 			if (newFilePath !== existing.file_path) { fields.push('file_path = ?'); values.push(newFilePath); }
 
 			if (fields.length > 0) {

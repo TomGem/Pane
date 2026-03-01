@@ -128,7 +128,7 @@
 					<li>All data stays on your local machine — nothing is sent to the cloud</li>
 				</ul>
 			</section>
-			<div class="help-version">Pane v1.0</div>
+			<div class="help-version">Pane v1.1</div>
 		</div>
 	</div>
 </div>

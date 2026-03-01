@@ -20,6 +20,7 @@ export interface Item {
 	file_size: number | null;
 	mime_type: string | null;
 	description: string | null;
+	favicon_url: string | null;
 	sort_order: number;
 	is_pinned: number;
 	created_at: string;

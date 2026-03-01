@@ -82,6 +82,7 @@ export function initSchema(db: Database.Database, displayName?: string) {
 			file_size INTEGER,
 			mime_type TEXT,
 			description TEXT,
+			favicon_url TEXT,
 			sort_order INTEGER NOT NULL DEFAULT 0,
 			is_pinned INTEGER NOT NULL DEFAULT 0,
 			created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -103,6 +104,12 @@ export function initSchema(db: Database.Database, displayName?: string) {
 		CREATE INDEX IF NOT EXISTS idx_items_sort ON items(category_id, sort_order);
 		CREATE INDEX IF NOT EXISTS idx_categories_sort ON categories(sort_order);
 	`);
+
+	// Migration: add favicon_url for link items
+	const itemColumns = db.prepare('PRAGMA table_info(items)').all() as { name: string }[];
+	if (!itemColumns.some((c) => c.name === 'favicon_url')) {
+		db.exec('ALTER TABLE items ADD COLUMN favicon_url TEXT');
+	}
 
 	// Migration: add parent_id for hierarchical categories
 	const columns = db.prepare('PRAGMA table_info(categories)').all() as { name: string }[];
