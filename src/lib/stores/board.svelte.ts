@@ -169,6 +169,22 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		return tag;
 	}
 
+	async function updateTag(id: number, name: string, color: string) {
+		const tag = await api<Tag>(withSpace(`/api/tags/${id}`, spaceSlug), {
+			method: 'PUT',
+			body: JSON.stringify({ name, color })
+		});
+		allTags = allTags.map(t => t.id === id ? tag : t);
+		columns = columns.map(col => ({
+			...col,
+			items: col.items.map(item => ({
+				...item,
+				tags: item.tags?.map(t => t.id === id ? tag : t)
+			}))
+		}));
+		return tag;
+	}
+
 	return {
 		get columns() { return columns; },
 		set columns(v: CategoryWithItems[]) { columns = v; },
@@ -192,7 +208,8 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		reorderItems,
 		uploadFile,
 		addLink,
-		addTag
+		addTag,
+		updateTag
 	};
 }
 

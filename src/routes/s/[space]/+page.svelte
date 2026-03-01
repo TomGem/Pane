@@ -16,7 +16,7 @@
 
 	// svelte-ignore state_referenced_locally — intentionally capturing initial SSR data; store manages its own state after hydration
 	const board = createBoardStore(data.columns, data.allItems, spaceSlug);
-	const app = getContext<{ searchQuery: string; setSearchQuery: (query: string) => void; selectedTagIds: number[]; toggleTag: (tagId: number) => void; focusSearch: () => void; setAddCallback: (fn: () => void) => void; setAddCategoryCallback: (fn: () => void) => void; setTags: (tags: Tag[]) => void }>('app');
+	const app = getContext<{ searchQuery: string; setSearchQuery: (query: string) => void; selectedTagIds: number[]; toggleTag: (tagId: number) => void; focusSearch: () => void; setAddCallback: (fn: () => void) => void; setAddCategoryCallback: (fn: () => void) => void; setTags: (tags: Tag[]) => void; setUpdateTag: (fn: (id: number, name: string, color: string) => Promise<Tag>) => void }>('app');
 
 	let isNested = $derived(board.currentParentId !== null);
 
@@ -38,6 +38,7 @@
 		app.setAddCategoryCallback(() => {
 			handleAddCategory();
 		});
+		app.setUpdateTag(board.updateTag);
 	});
 
 	// Modal state

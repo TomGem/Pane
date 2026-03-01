@@ -61,6 +61,12 @@ export function initSchema(db: Database.Database, displayName?: string) {
 		`);
 	}
 
+	// Migration: add color to tags
+	const tagColumns = db.prepare('PRAGMA table_info(tags)').all() as { name: string }[];
+	if (!tagColumns.some((c) => c.name === 'color')) {
+		db.exec(`ALTER TABLE tags ADD COLUMN color TEXT NOT NULL DEFAULT '#8b5cf6'`);
+	}
+
 	// Insert display_name into meta if missing
 	if (displayName) {
 		const existing = getMeta(db, 'display_name');

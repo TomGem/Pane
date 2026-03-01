@@ -16,6 +16,7 @@
 	let focusSearchFn = $state<(() => void) | null>(null);
 	let addCallback = $state<(() => void) | null>(null);
 	let addCategoryCallback = $state<(() => void) | null>(null);
+	let updateTagFn = $state<((id: number, name: string, color: string) => Promise<Tag>) | null>(null);
 
 	function handleSearch(query: string) {
 		searchQuery = query;
@@ -41,6 +42,10 @@
 		addCategoryCallback?.();
 	}
 
+	async function handleTagUpdate(id: number, name: string, color: string) {
+		await updateTagFn?.(id, name, color);
+	}
+
 	// Reset layout state when switching spaces
 	$effect(() => {
 		data.spaceSlug;
@@ -58,7 +63,8 @@
 		setFocusSearch(fn: () => void) { focusSearchFn = fn; },
 		setAddCallback(fn: () => void) { addCallback = fn; },
 		setAddCategoryCallback(fn: () => void) { addCategoryCallback = fn; },
-		setTags(t: Tag[]) { tags = t; }
+		setTags(t: Tag[]) { tags = t; },
+		setUpdateTag(fn: (id: number, name: string, color: string) => Promise<Tag>) { updateTagFn = fn; }
 	});
 </script>
 
@@ -75,6 +81,7 @@
 	oncleartags={handleClearTags}
 	onadd={handleAdd}
 	onaddcategory={handleAddCategory}
+	ontagupdate={handleTagUpdate}
 	onthemechange={(mode: string) => theme.setMode(mode as 'light' | 'dark' | 'system')}
 	paletteId={palette.palette}
 	onpalettechange={(id) => palette.setPalette(id)}

@@ -23,14 +23,18 @@
 		oncleartags?: () => void;
 		onadd?: () => void;
 		onaddcategory?: () => void;
+		ontagupdate?: (id: number, name: string, color: string) => Promise<void>;
 		onthemechange?: (mode: ThemeMode) => void;
 		onpalettechange?: (id: PaletteId) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, onthemechange, onpalettechange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
+
+	const TAG_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
 	let searchInputEl = $state<HTMLInputElement | null>(null);
 	let showTagMenu = $state(false);
+	let editingTagId = $state<number | null>(null);
 	let showHelp = $state(false);
 	let showSettings = $state(false);
 	let showSpaceMenu = $state(false);
@@ -104,6 +108,8 @@
 			creatingSpace = false;
 			newSpaceName = '';
 			confirmDeleteSlug = null;
+		} else if (e.key === 'Escape' && editingTagId !== null) {
+			editingTagId = null;
 		} else if (e.key === 'Escape' && showTagMenu) {
 			showTagMenu = false;
 		}
@@ -256,19 +262,40 @@
 						</div>
 						<div class="tag-menu-list">
 							{#each tags as tag (tag.id)}
-								<button
-									class="tag-menu-item"
-									class:selected={selectedTagIds.includes(tag.id)}
-									onclick={() => ontagtoggle?.(tag.id)}
-								>
-									<span class="tag-menu-dot" style:background-color={tag.color}></span>
-									<span class="tag-menu-name">{tag.name}</span>
-									{#if selectedTagIds.includes(tag.id)}
-										<svg class="tag-menu-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-											<polyline points="20 6 9 17 4 12" />
-										</svg>
-									{/if}
-								</button>
+								<div class="tag-menu-row">
+									<button
+										class="tag-menu-dot-btn"
+										title="Change color"
+										onclick={(e) => { e.stopPropagation(); editingTagId = editingTagId === tag.id ? null : tag.id; }}
+									>
+										<span class="tag-menu-dot" style:background-color={tag.color}></span>
+									</button>
+									<button
+										class="tag-menu-item"
+										class:selected={selectedTagIds.includes(tag.id)}
+										onclick={() => ontagtoggle?.(tag.id)}
+									>
+										<span class="tag-menu-name">{tag.name}</span>
+										{#if selectedTagIds.includes(tag.id)}
+											<svg class="tag-menu-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+												<polyline points="20 6 9 17 4 12" />
+											</svg>
+										{/if}
+									</button>
+								</div>
+								{#if editingTagId === tag.id}
+									<div class="tag-color-picker">
+										{#each TAG_COLORS as color}
+											<button
+												class="tag-color-swatch"
+												class:active={tag.color === color}
+												style:background-color={color}
+												title={color}
+												onclick={() => { ontagupdate?.(tag.id, tag.name, color); editingTagId = null; }}
+											></button>
+										{/each}
+									</div>
+								{/if}
 							{/each}
 						</div>
 					</div>
@@ -295,7 +322,7 @@
 </header>
 
 {#if showTagMenu}
-	<div class="tag-menu-backdrop" onclick={() => showTagMenu = false} aria-hidden="true"></div>
+	<div class="tag-menu-backdrop" onclick={() => { showTagMenu = false; editingTagId = null; }} aria-hidden="true"></div>
 {/if}
 
 {#if showSpaceMenu}
@@ -725,12 +752,40 @@
 		overflow-y: auto;
 	}
 
+	.tag-menu-row {
+		display: flex;
+		align-items: center;
+		border-radius: var(--radius-sm);
+	}
+
+	.tag-menu-dot-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		flex-shrink: 0;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: background-color var(--transition);
+		margin-left: 4px;
+	}
+
+	.tag-menu-dot-btn:hover {
+		background: var(--bg-secondary);
+	}
+
+	.tag-menu-dot-btn:hover .tag-menu-dot {
+		box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px currentColor;
+	}
+
 	.tag-menu-item {
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		width: 100%;
-		padding: 7px 10px;
+		flex: 1;
+		min-width: 0;
+		padding: 7px 10px 7px 6px;
 		border-radius: var(--radius-sm);
 		cursor: pointer;
 		transition: background-color var(--transition);
@@ -750,6 +805,7 @@
 		height: 10px;
 		border-radius: 50%;
 		flex-shrink: 0;
+		transition: box-shadow 0.15s ease;
 	}
 
 	.tag-menu-name {
@@ -761,6 +817,30 @@
 	.tag-menu-check {
 		flex-shrink: 0;
 		color: var(--accent);
+	}
+
+	.tag-color-picker {
+		display: flex;
+		gap: 6px;
+		padding: 6px 10px 8px;
+		justify-content: center;
+	}
+
+	.tag-color-swatch {
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		cursor: pointer;
+		border: 2px solid transparent;
+		transition: transform 0.15s ease, border-color 0.15s ease;
+	}
+
+	.tag-color-swatch:hover {
+		transform: scale(1.2);
+	}
+
+	.tag-color-swatch.active {
+		border-color: var(--text-primary);
 	}
 
 	.tag-menu-backdrop {
