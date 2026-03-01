@@ -25,7 +25,7 @@ function isPrivateUrl(urlStr: string): boolean {
 	}
 }
 
-const MAX_FETCH_SIZE = 100 * 1024; // 100 KB — enough for meta tags
+const MAX_FETCH_SIZE = 1024 * 1024; // 1 MB — YouTube inlines ~600KB of JS before meta tags
 
 async function fetchPageMeta(url: string): Promise<{ title: string | null; description: string | null }> {
 	const controller = new AbortController();
@@ -39,7 +39,11 @@ async function fetchPageMeta(url: string): Promise<{ title: string | null; descr
 			if (isPrivateUrl(currentUrl)) return { title: null, description: null };
 
 			const res = await fetch(currentUrl, {
-				headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Pane/1.0)' },
+				headers: {
+					'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+					'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+					'Accept-Language': 'en-US,en;q=0.9'
+				},
 				signal: controller.signal,
 				redirect: 'manual'
 			});
@@ -72,14 +76,22 @@ async function fetchPageMeta(url: string): Promise<{ title: string | null; descr
 			reader.cancel().catch(() => {});
 			const text = new TextDecoder().decode(Buffer.concat(chunks).subarray(0, MAX_FETCH_SIZE));
 			let title: string | null = null;
+			const ogTitleMatch = text.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+				?? text.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
 			const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i);
-			if (titleMatch?.[1]) {
+			if (ogTitleMatch?.[1]) {
+				title = ogTitleMatch[1].trim().replace(/\s+/g, ' ') || null;
+			} else if (titleMatch?.[1]) {
 				title = titleMatch[1].trim().replace(/\s+/g, ' ') || null;
 			}
 			let description: string | null = null;
+			const ogDescMatch = text.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
+				?? text.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:description["']/i);
 			const descMatch = text.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
 				?? text.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
-			if (descMatch?.[1]) {
+			if (ogDescMatch?.[1]) {
+				description = ogDescMatch[1].trim() || null;
+			} else if (descMatch?.[1]) {
 				description = descMatch[1].trim() || null;
 			}
 			return { title, description };

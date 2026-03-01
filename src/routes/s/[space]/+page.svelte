@@ -135,7 +135,7 @@
 				await board.uploadFile(data.file, data.category_id, data.title, data.description);
 				toast('Document uploaded');
 			} else {
-				await board.addItem(data);
+				await board.addItem(data.type === 'link' ? { ...data, fetch_title: true } : data);
 				toast('Item created');
 			}
 			showItemModal = false;
