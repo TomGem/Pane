@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { dndzone } from 'svelte-dnd-action';
+	import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
 	import { api } from '$lib/utils/api';
 	import Card from './Card.svelte';
 	import type { Category, Item, ReorderMove } from '$lib/types';
@@ -17,6 +17,10 @@
 	let expanded = $state(false);
 	let items = $state<Item[]>([]);
 	let loaded = $state(false);
+
+	let isDraggedOver = $derived(
+		!expanded && items.some((i) => (i as any)[SHADOW_ITEM_MARKER_PROPERTY_NAME])
+	);
 
 	async function toggle() {
 		expanded = !expanded;
@@ -57,7 +61,7 @@
 </script>
 
 <div class="subcategory-wrapper">
-	<div class="subcategory-card">
+	<div class="subcategory-card" class:drop-highlight={isDraggedOver}>
 		<button class="expand-btn" onclick={toggle} aria-label={expanded ? 'Collapse' : 'Expand'} title={expanded ? 'Collapse' : 'Expand'}>
 			<svg class="collapse-chevron" class:expanded width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<polyline points="6 9 12 15 18 9" />
@@ -75,24 +79,26 @@
 		</button>
 	</div>
 
-	{#if expanded}
-		<div
-			class="expanded-items"
-			use:dndzone={{ items, flipDurationMs: 200, dropTargetStyle: {} }}
-			onconsider={handleDndConsider}
-			onfinalize={handleDndFinalize}
-		>
-			{#each items as item (item.id)}
+	<div
+		class="drop-zone"
+		class:expanded
+		use:dndzone={{ items, flipDurationMs: 200, dropTargetStyle: {} }}
+		onconsider={handleDndConsider}
+		onfinalize={handleDndFinalize}
+	>
+		{#each items as item (item.id)}
+			<div class:hidden-item={!expanded}>
 				<Card {item} {spaceSlug} onedit={onitemedit} ondelete={onitemdelete} />
-			{/each}
-		</div>
-	{/if}
+			</div>
+		{/each}
+	</div>
 </div>
 
 <style>
 	.subcategory-wrapper {
 		display: flex;
 		flex-direction: column;
+		position: relative;
 	}
 
 	.subcategory-card {
@@ -194,11 +200,35 @@
 		color: var(--accent);
 	}
 
-	.expanded-items {
+	.drop-zone {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		pointer-events: none;
+	}
+
+	.drop-zone.expanded {
+		position: static;
+		pointer-events: auto;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
 		padding: 6px 0 0 16px;
 		min-height: 40px;
+	}
+
+	.hidden-item {
+		position: absolute;
+		visibility: hidden;
+		pointer-events: none;
+		height: 0;
+		overflow: hidden;
+	}
+
+	.subcategory-card.drop-highlight {
+		background: var(--accent-soft);
+		box-shadow: 0 0 0 2px var(--accent);
 	}
 </style>
