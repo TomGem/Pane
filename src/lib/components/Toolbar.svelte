@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ThemeToggle from './ThemeToggle.svelte';
 	import SettingsOverlay from './SettingsOverlay.svelte';
+	import ExportImportOverlay from './ExportImportOverlay.svelte';
 	import HelpPanel from './HelpPanel.svelte';
 	import Icon from './Icon.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
@@ -37,6 +38,7 @@
 	let editingTagId = $state<number | null>(null);
 	let showHelp = $state(false);
 	let showSettings = $state(false);
+	let showExportImport = $state(false);
 	let showSpaceMenu = $state(false);
 	let creatingSpace = $state(false);
 	let newSpaceName = $state('');
@@ -99,7 +101,9 @@
 	}
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && showSettings) {
+		if (e.key === 'Escape' && showExportImport) {
+			showExportImport = false;
+		} else if (e.key === 'Escape' && showSettings) {
 			showSettings = false;
 		} else if (e.key === 'Escape' && showHelp) {
 			showHelp = false;
@@ -336,6 +340,14 @@
 		onclose={() => showSettings = false}
 		onthemechange={onthemechange}
 		onpalettechange={onpalettechange}
+		onexportimport={() => { showSettings = false; showExportImport = true; }}
+	/>
+{/if}
+
+{#if showExportImport}
+	<ExportImportOverlay
+		{spaces}
+		onclose={() => showExportImport = false}
 	/>
 {/if}
 

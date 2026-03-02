@@ -52,7 +52,7 @@ SQLite via `better-sqlite3` (synchronous API). Connection cache in `$lib/server/
 
 **Per-space DB** (`data/{slug}.db`): `categories` (with optional `parent_id` for hierarchy), `items` (single table with `type` discriminator: link/note/document), `item_tags` (junction — `tag_id` references global DB, no FK constraint), `meta` (key-value for space metadata like `display_name`). Items share a sort space per category to simplify cross-column drag-and-drop.
 
-On startup, `hooks.server.ts` runs `migrateTagsToGlobal()` for each space (idempotent) — moves any local `tags` table into the global DB, remaps `item_tags` IDs, then drops the local `tags` table.
+On startup, `hooks.server.ts` runs `migrateTagsToGlobal()` for each space (idempotent) — moves any local `tags` table into the global DB, remaps `item_tags` IDs, then drops the local `tags` table. Also creates a default `desk` space if none exist. Schema helper `getMeta(db, key)` / `setMeta(db, key, value)` manages per-space metadata in the `meta` table.
 
 ### Route structure
 
@@ -66,7 +66,7 @@ Root layout (`+layout.svelte`) owns theme and palette stores. Space layout (`/s/
 
 ### Hierarchical navigation
 
-Categories can be nested via `parent_id`. The board store tracks `currentParentId` and `breadcrumb` state. Drilling into a subcategory re-fetches categories and items scoped to that parent. Breadcrumb navigation allows jumping back to any ancestor level.
+Categories can be nested via `parent_id`. The board store tracks `currentParentId` and `breadcrumb` state. Key store methods: `drillDown(categoryId)` enters a subcategory, `navigateTo(parentId)` jumps to any level (null for root), `fetchBreadcrumb(categoryId)` loads the ancestor chain. Drilling re-fetches categories and items scoped to that parent. Search auto-expands subcategories when matches are found within them.
 
 ### Layout ↔ Page communication
 
@@ -97,7 +97,7 @@ Global CSS utility classes in `app.css`: `.glass`, `.glass-strong`, `.input`, `.
 
 ### Drag-and-drop
 
-`svelte-dnd-action` for internal reorder (columns and items). Native HTML5 drag events on Column for external URL and file drops. Reorder persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`).
+`svelte-dnd-action` for internal reorder (columns and items). Native HTML5 drag events on Column for external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. Reorder persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`).
 
 ### Markdown rendering
 
@@ -132,7 +132,7 @@ In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/a
 
 ### Link meta-fetching
 
-When creating link items, the server fetches up to 100KB of HTML to extract `<title>` and meta description. 5-second timeout, max 5 redirects. Rejects private IPs and non-http(s) URLs.
+When creating link items, the server fetches up to 100KB of HTML to extract `<title>`, meta description, and favicon URL (`favicon_url` stored in items table). 5-second timeout, max 5 redirects. Rejects private IPs and non-http(s) URLs.
 
 ### Documentation
 
@@ -144,5 +144,5 @@ User-facing docs in `docs/`: `getting-started.md`, `user-guide.md`, `architectur
 - **Callback props for events** — e.g. `onsubmit`, `onclose`, `onadd` (not `dispatch`).
 - **API routes return `json()`** from `@sveltejs/kit`. Errors return `{ error: string }` with status codes: 201 (created), 400 (bad request), 404 (not found), 409 (conflict), 429 (rate limited), 500 (server error). Space-scoped routes (categories, items, seed, files) require `?space={slug}` (read via `getSpaceDb(url)`). Tag routes (`/api/tags`) use `getGlobalDb()` directly — no space param needed.
 - **DB operations are synchronous** — `.run()`, `.get()`, `.all()`. Use `db.transaction()` for multi-statement writes.
-- **Types** live in `$lib/types/index.ts`. `CategoryWithItems` is the joined type used by components. `Space` is `{ slug: string; name: string }`.
+- **Types** live in `$lib/types/index.ts`. `CategoryWithItems` is the joined type used by components. `Space` is `{ slug: string; name: string }`. `SpaceWithStats` extends with category/item counts for the dashboard. `BreadcrumbSegment` for hierarchical navigation. `ReorderMove` for batch sort operations.
 - **Scoped CSS** — styles are component-scoped via `<style>` blocks. Global variables defined in `app.css`.

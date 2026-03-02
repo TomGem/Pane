@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ThemeToggle from './ThemeToggle.svelte';
+	import Icon from './Icon.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
 	import { PALETTES, type PaletteId } from '$lib/stores/palette.svelte';
 
@@ -9,9 +10,10 @@
 		onclose: () => void;
 		onthemechange?: (mode: ThemeMode) => void;
 		onpalettechange?: (id: PaletteId) => void;
+		onexportimport?: () => void;
 	}
 
-	let { themeMode, paletteId, onclose, onthemechange, onpalettechange }: Props = $props();
+	let { themeMode, paletteId, onclose, onthemechange, onpalettechange, onexportimport }: Props = $props();
 
 	let isDark = $derived(themeMode === 'dark' || (themeMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches));
 
@@ -77,6 +79,13 @@
 						</button>
 					{/each}
 				</div>
+			</section>
+			<section class="settings-section">
+				<h3 class="settings-section-title">Data</h3>
+				<button class="data-btn" onclick={() => onexportimport?.()}>
+					<Icon name="download" size={16} />
+					<span>Export & Import</span>
+				</button>
 			</section>
 		</div>
 	</div>
@@ -203,5 +212,25 @@
 		font-size: 11px;
 		font-weight: 500;
 		color: var(--text-secondary);
+	}
+
+	.data-btn {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 9px 12px;
+		border-radius: var(--radius);
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--text-primary);
+		background: var(--bg-secondary);
+		cursor: pointer;
+		transition: background-color var(--transition);
+	}
+
+	.data-btn:hover {
+		background: var(--accent-soft);
+		color: var(--accent);
 	}
 </style>
