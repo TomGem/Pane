@@ -163,6 +163,15 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		await addItem({ category_id: categoryId, type: 'link', title, content: url, fetch_title: true });
 	}
 
+	// Move category to another space
+	async function moveCategoryToSpace(categoryId: number, targetSpace: string) {
+		await api(withSpace(`/api/categories/${categoryId}/move`, spaceSlug), {
+			method: 'POST',
+			body: JSON.stringify({ targetSpace })
+		});
+		await refresh();
+	}
+
 	// Tags
 	async function addTag(name: string, color: string) {
 		const tag = await api<Tag>('/api/tags', {
@@ -212,6 +221,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		reorderItems,
 		uploadFile,
 		addLink,
+		moveCategoryToSpace,
 		addTag,
 		updateTag
 	};

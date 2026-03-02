@@ -7,7 +7,7 @@
 	import Toast from '$lib/components/Toast.svelte';
 	import { createBoardStore } from '$lib/stores/board.svelte';
 	import { getContext } from 'svelte';
-	import type { CategoryWithItems, Item, Tag } from '$lib/types';
+	import type { CategoryWithItems, Item, Tag, Space } from '$lib/types';
 	import { page } from '$app/stores';
 
 	let { data } = $props();
@@ -52,6 +52,9 @@
 	let defaultCategoryId = $state<number | null>(null);
 	let subcategoryParentId = $state<number | null>(null);
 	let subcategoryParentColor = $state<string | null>(null);
+	let showMoveModal = $state(false);
+	let movingCategory = $state<CategoryWithItems | null>(null);
+	let moveTargetSpace = $state('');
 
 	// Sample data loading
 	let loadingSampleData = $state(false);
@@ -177,6 +180,29 @@
 		showDeleteConfirm = true;
 	}
 
+	function handleMoveCategory(category: CategoryWithItems) {
+		const otherSpaces = ($page.data.spaces as Space[]).filter((s) => s.slug !== spaceSlug);
+		if (otherSpaces.length === 0) return;
+		movingCategory = category;
+		moveTargetSpace = otherSpaces[0].slug;
+		showMoveModal = true;
+	}
+
+	async function confirmMoveCategory() {
+		if (!movingCategory || !moveTargetSpace) return;
+		try {
+			await board.moveCategoryToSpace(movingCategory.id, moveTargetSpace);
+			const targetName = ($page.data.spaces as Space[]).find((s) => s.slug === moveTargetSpace)?.name ?? moveTargetSpace;
+			toast(`Moved "${movingCategory.name}" to ${targetName}`);
+		} catch (e) {
+			console.error('Failed to move category:', e);
+			toast('Failed to move category', 'error');
+		}
+		movingCategory = null;
+		moveTargetSpace = '';
+		showMoveModal = false;
+	}
+
 	async function confirmDeleteCategory() {
 		if (!deletingCategory) return;
 		try {
@@ -292,6 +318,7 @@
 			oneditcategory={handleEditCategory}
 			ondeletecategory={handleDeleteCategory}
 			onaddsubcategory={handleAddSubcategory}
+			onmovecategory={($page.data.spaces as Space[]).length > 1 ? handleMoveCategory : undefined}
 			ondrilldown={handleDrillDown}
 		/>
 	{/if}
@@ -341,6 +368,27 @@
 			<div class="confirm-actions">
 				<button class="btn" onclick={() => { showDeleteConfirm = false; deletingItem = null; deletingCategory = null; }}>Cancel</button>
 				<button class="btn btn-danger" onclick={() => deletingItem ? confirmDeleteItem() : confirmDeleteCategory()}>Delete</button>
+			</div>
+		</div>
+	</Modal>
+{/if}
+
+<!-- Move Category Modal -->
+{#if showMoveModal && movingCategory}
+	<Modal title="Move to Space" onclose={() => { showMoveModal = false; movingCategory = null; }}>
+		<div class="confirm-dialog">
+			<p>Move <strong>{movingCategory.name}</strong> to another space:</p>
+			<select class="input move-select" bind:value={moveTargetSpace}>
+				{#each ($page.data.spaces as Space[]).filter((s) => s.slug !== spaceSlug) as space}
+					<option value={space.slug}>{space.name}</option>
+				{/each}
+			</select>
+			{#if movingCategory.children_count > 0}
+				<p class="confirm-hint">This will also move {movingCategory.children_count} {movingCategory.children_count === 1 ? 'subcategory' : 'subcategories'} and all their items.</p>
+			{/if}
+			<div class="confirm-actions">
+				<button class="btn" onclick={() => { showMoveModal = false; movingCategory = null; }}>Cancel</button>
+				<button class="btn btn-primary" onclick={confirmMoveCategory}>Move</button>
 			</div>
 		</div>
 	</Modal>
@@ -442,6 +490,11 @@
 	.confirm-hint-warn {
 		color: var(--danger);
 		font-weight: 500;
+	}
+
+	.move-select {
+		width: 100%;
+		margin: 12px 0;
 	}
 
 	.confirm-actions {

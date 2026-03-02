@@ -18,6 +18,7 @@
 		oneditcategory?: (category: CategoryWithItems) => void;
 		ondeletecategory?: (category: CategoryWithItems) => void;
 		onaddsubcategory?: (category: CategoryWithItems) => void;
+		onmovecategory?: (category: CategoryWithItems) => void;
 		ondropurl?: (url: string, categoryId: number) => void;
 		ondropfile?: (file: File, categoryId: number) => void;
 		ondrilldown?: (categoryId: number) => void;
@@ -37,6 +38,7 @@
 		oneditcategory,
 		ondeletecategory,
 		onaddsubcategory,
+		onmovecategory,
 		ondropurl,
 		ondropfile,
 		ondrilldown
@@ -184,6 +186,9 @@
 					<div class="menu glass" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') showMenu = false; }} role="menu" tabindex="-1" use:menuKeyboard>
 						<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; oneditcategory?.(category); }}>Edit category</button>
 						<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; onaddsubcategory?.(category); }}>Add subcategory</button>
+						{#if onmovecategory}
+							<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; onmovecategory?.(category); }}>Move to space...</button>
+						{/if}
 						<button class="menu-item menu-item-danger" role="menuitem" onclick={() => { showMenu = false; ondeletecategory?.(category); }}>Delete category</button>
 					</div>
 				{/if}

@@ -88,6 +88,23 @@ export function deleteCategoryDir(spaceSlug: string, categorySlug: string) {
 	}
 }
 
+export function moveCategoryDirAcrossSpaces(
+	sourceSpace: string,
+	targetSpace: string,
+	categorySlug: string
+): void {
+	const sourceDir = path.resolve(STORAGE_ROOT, sourceSpace, categorySlug);
+	const targetDir = path.resolve(STORAGE_ROOT, targetSpace, categorySlug);
+	assertWithinStorage(sourceDir, sourceSpace);
+	assertWithinStorage(targetDir, targetSpace);
+
+	if (!fs.existsSync(sourceDir)) return;
+
+	fs.mkdirSync(path.dirname(targetDir), { recursive: true });
+	fs.cpSync(sourceDir, targetDir, { recursive: true });
+	fs.rmSync(sourceDir, { recursive: true, force: true });
+}
+
 export function getStorageRoot(): string {
 	return STORAGE_ROOT;
 }
