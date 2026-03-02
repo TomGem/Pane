@@ -64,7 +64,11 @@
 
 	let activePalette = $derived(parentColor ? generateMatchingPalette(parentColor) : presetColors);
 
-	let defaultColor = $derived(parentColor ?? '#6366f1');
+	let defaultColor = $derived(
+		parentColor
+			? generateMatchingPalette(parentColor)[Math.floor(Math.random() * 7)]
+			: presetColors[Math.floor(Math.random() * presetColors.length)]
+	);
 	// svelte-ignore state_referenced_locally — intentional initial-value capture; component remounts each time modal opens
 	let name = $state(category?.name ?? '');
 	// svelte-ignore state_referenced_locally
