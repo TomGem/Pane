@@ -6,6 +6,7 @@
 
 	interface Props {
 		category: Category;
+		allItems?: Item[];
 		spaceSlug?: string;
 		searchQuery?: string;
 		selectedTagIds?: number[];
@@ -15,12 +16,22 @@
 		onitemdelete?: (item: Item) => void;
 	}
 
-	let { category, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemedit, onitemdelete }: Props = $props();
+	let { category, allItems = [], spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemedit, onitemdelete }: Props = $props();
 
 	let userExpanded = $state(false);
 	let expanded = $derived(userExpanded || searchMatch);
-	let items = $state<Item[]>([]);
-	let loaded = $state(false);
+	let items = $derived(allItems.filter((i) => i.category_id === category.id).sort((a, b) => a.sort_order - b.sort_order));
+	let dndItems = $state<Item[]>([]);
+	let dragging = $state(false);
+
+	// Sync dndItems from derived items when not actively dragging
+	$effect(() => {
+		if (!dragging) {
+			dndItems = items;
+		}
+	});
+
+	let displayItems = $derived(dragging ? dndItems : items);
 
 	let nameMatchesSearch = $derived.by(() => {
 		const q = searchQuery.toLowerCase().trim();
@@ -31,10 +42,10 @@
 		const q = searchQuery.toLowerCase().trim();
 		const hasQuery = q.length > 0;
 		const hasTags = selectedTagIds.length > 0;
-		if (!hasQuery && !hasTags) return items;
+		if (!hasQuery && !hasTags) return displayItems;
 		// If the subcategory name itself matches, show all items (only filter by tags)
-		if (nameMatchesSearch && !hasTags) return items;
-		return items.filter((item) => {
+		if (nameMatchesSearch && !hasTags) return displayItems;
+		return displayItems.filter((item) => {
 			const matchesSearch = !hasQuery || nameMatchesSearch || (
 				item.title.toLowerCase().includes(q) ||
 				item.description?.toLowerCase().includes(q) ||
@@ -47,38 +58,23 @@
 		});
 	});
 
-	$effect(() => {
-		if (searchMatch && !loaded) {
-			api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`)
-				.then((result) => { items = result; loaded = true; })
-				.catch((e) => console.error('Failed to load subcategory items:', e));
-		}
-	});
-
 	let isDraggedOver = $derived(
-		!expanded && items.some((i) => (i as any)[SHADOW_ITEM_MARKER_PROPERTY_NAME])
+		!expanded && dndItems.some((i) => (i as any)[SHADOW_ITEM_MARKER_PROPERTY_NAME])
 	);
 
-	async function toggle() {
+	function toggle() {
 		userExpanded = !userExpanded;
-		if (userExpanded && !loaded) {
-			try {
-				items = await api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`);
-				loaded = true;
-			} catch (e) {
-				console.error('Failed to load subcategory items:', e);
-				userExpanded = false;
-			}
-		}
 	}
 
 	function handleDndConsider(e: CustomEvent<{ items: Item[] }>) {
-		items = e.detail.items;
+		dragging = true;
+		dndItems = e.detail.items;
 	}
 
 	async function handleDndFinalize(e: CustomEvent<{ items: Item[] }>) {
-		items = e.detail.items;
-		const moves: ReorderMove[] = items.map((item, i) => ({
+		dndItems = e.detail.items;
+		dragging = false;
+		const moves: ReorderMove[] = dndItems.map((item, i) => ({
 			id: item.id,
 			category_id: category.id,
 			sort_order: i
@@ -89,7 +85,6 @@
 					method: 'PUT',
 					body: JSON.stringify({ moves })
 				});
-				items = await api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`);
 			} catch (e) {
 				console.error('Failed to reorder subcategory items:', e);
 			}
@@ -119,11 +114,11 @@
 	<div
 		class="drop-zone"
 		class:expanded
-		use:dndzone={{ items, flipDurationMs: 200, dropTargetStyle: {} }}
+		use:dndzone={{ items: displayItems, flipDurationMs: 200, dropTargetStyle: {} }}
 		onconsider={handleDndConsider}
 		onfinalize={handleDndFinalize}
 	>
-		{#each items as item (item.id)}
+		{#each displayItems as item (item.id)}
 			{@const visible = expanded && filteredItems.some((fi) => fi.id === item.id)}
 			<div class:hidden-item={!expanded} class:search-hidden={expanded && !visible}>
 				<Card {item} {spaceSlug} onedit={onitemedit} ondelete={onitemdelete} />

@@ -164,6 +164,7 @@
 		<div class:search-hidden={!visible}>
 			<Column
 				category={column}
+				allItems={board.allItems}
 				{spaceSlug}
 				{searchQuery}
 				{selectedTagIds}
