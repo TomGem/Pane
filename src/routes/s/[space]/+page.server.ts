@@ -12,14 +12,10 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	const categoryIds = categories.map((c) => c.id);
 
-	// Only load items belonging to root-level categories (not all items in DB)
-	let allItems: Item[] = [];
-	if (categoryIds.length > 0) {
-		const placeholders = categoryIds.map(() => '?').join(',');
-		allItems = db.prepare(
-			`SELECT * FROM items WHERE category_id IN (${placeholders}) ORDER BY sort_order`
-		).all(...categoryIds) as Item[];
-	}
+	// Load all items (including subcategory items) so search can match across the full tree
+	const allItems = db.prepare(
+		'SELECT * FROM items ORDER BY sort_order'
+	).all() as Item[];
 
 	let childCategories: Category[] = [];
 	if (categoryIds.length > 0) {

@@ -7,30 +7,67 @@
 	interface Props {
 		category: Category;
 		spaceSlug?: string;
+		searchQuery?: string;
+		selectedTagIds?: number[];
+		searchMatch?: boolean;
 		ondrilldown: (id: number) => void;
 		onitemedit?: (item: Item) => void;
 		onitemdelete?: (item: Item) => void;
 	}
 
-	let { category, spaceSlug = 'desk', ondrilldown, onitemedit, onitemdelete }: Props = $props();
+	let { category, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemedit, onitemdelete }: Props = $props();
 
-	let expanded = $state(false);
+	let userExpanded = $state(false);
+	let expanded = $derived(userExpanded || searchMatch);
 	let items = $state<Item[]>([]);
 	let loaded = $state(false);
+
+	let nameMatchesSearch = $derived.by(() => {
+		const q = searchQuery.toLowerCase().trim();
+		return q.length > 0 && category.name.toLowerCase().includes(q);
+	});
+
+	let filteredItems = $derived.by(() => {
+		const q = searchQuery.toLowerCase().trim();
+		const hasQuery = q.length > 0;
+		const hasTags = selectedTagIds.length > 0;
+		if (!hasQuery && !hasTags) return items;
+		// If the subcategory name itself matches, show all items (only filter by tags)
+		if (nameMatchesSearch && !hasTags) return items;
+		return items.filter((item) => {
+			const matchesSearch = !hasQuery || nameMatchesSearch || (
+				item.title.toLowerCase().includes(q) ||
+				item.description?.toLowerCase().includes(q) ||
+				item.content?.toLowerCase().includes(q) ||
+				item.file_name?.toLowerCase().includes(q) ||
+				item.tags?.some((tag) => tag.name.toLowerCase().includes(q))
+			);
+			const matchesTags = !hasTags || item.tags?.some((tag) => selectedTagIds.includes(tag.id));
+			return matchesSearch && matchesTags;
+		});
+	});
+
+	$effect(() => {
+		if (searchMatch && !loaded) {
+			api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`)
+				.then((result) => { items = result; loaded = true; })
+				.catch((e) => console.error('Failed to load subcategory items:', e));
+		}
+	});
 
 	let isDraggedOver = $derived(
 		!expanded && items.some((i) => (i as any)[SHADOW_ITEM_MARKER_PROPERTY_NAME])
 	);
 
 	async function toggle() {
-		expanded = !expanded;
-		if (expanded && !loaded) {
+		userExpanded = !userExpanded;
+		if (userExpanded && !loaded) {
 			try {
 				items = await api<Item[]>(`/api/items?category_id=${category.id}&space=${spaceSlug}`);
 				loaded = true;
 			} catch (e) {
 				console.error('Failed to load subcategory items:', e);
-				expanded = false;
+				userExpanded = false;
 			}
 		}
 	}
@@ -87,7 +124,8 @@
 		onfinalize={handleDndFinalize}
 	>
 		{#each items as item (item.id)}
-			<div class:hidden-item={!expanded}>
+			{@const visible = expanded && filteredItems.some((fi) => fi.id === item.id)}
+			<div class:hidden-item={!expanded} class:search-hidden={expanded && !visible}>
 				<Card {item} {spaceSlug} onedit={onitemedit} ondelete={onitemdelete} />
 			</div>
 		{/each}
@@ -230,5 +268,9 @@
 	.subcategory-card.drop-highlight {
 		background: var(--accent-soft);
 		box-shadow: 0 0 0 2px var(--accent);
+	}
+
+	.search-hidden {
+		display: none;
 	}
 </style>

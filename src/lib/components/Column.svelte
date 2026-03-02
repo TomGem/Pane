@@ -9,6 +9,7 @@
 		spaceSlug?: string;
 		searchQuery?: string;
 		selectedTagIds?: number[];
+		matchingSubcategoryIds?: Set<number>;
 		onitemsupdate?: (categoryId: number, items: Item[]) => void;
 		onitemedit?: (item: Item) => void;
 		onitemdelete?: (item: Item) => void;
@@ -26,6 +27,7 @@
 		spaceSlug = 'desk',
 		searchQuery = '',
 		selectedTagIds = [],
+		matchingSubcategoryIds = new Set(),
 		onitemsupdate,
 		onitemedit,
 		onitemdelete,
@@ -191,7 +193,7 @@
 		{#if category.children && category.children.length > 0}
 			<div class="subcategory-list">
 				{#each category.children as child (child.id)}
-					<SubcategoryCard category={child} {spaceSlug} ondrilldown={ondrilldown ?? (() => {})} {onitemedit} {onitemdelete} />
+					<SubcategoryCard category={child} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemedit} {onitemdelete} />
 				{/each}
 			</div>
 		{/if}

@@ -113,6 +113,25 @@
 		return itemMatchesSearch(item, q) && itemMatchesTags(item, tagIds);
 	}
 
+	let matchingSubcategoryIds = $derived.by(() => {
+		const q = searchQuery.toLowerCase().trim();
+		const hasTags = selectedTagIds.length > 0;
+		if (!q && !hasTags) return new Set<number>();
+		const ids = new Set<number>();
+		for (const col of board.columns) {
+			for (const child of col.children ?? []) {
+				if (q && child.name.toLowerCase().includes(q)) {
+					ids.add(child.id);
+					continue;
+				}
+				if (board.allItems.some((item) => item.category_id === child.id && itemMatchesFilters(item, q, selectedTagIds))) {
+					ids.add(child.id);
+				}
+			}
+		}
+		return ids;
+	});
+
 	function columnHasMatch(column: CategoryWithItems, query: string, tagIds: number[]): boolean {
 		const q = query.toLowerCase().trim();
 		if (!q && tagIds.length === 0) return true;
@@ -148,6 +167,7 @@
 				{spaceSlug}
 				{searchQuery}
 				{selectedTagIds}
+				{matchingSubcategoryIds}
 				onitemsupdate={handleItemsUpdate}
 				onitemedit={onitemedit}
 				onitemdelete={onitemdelete}
