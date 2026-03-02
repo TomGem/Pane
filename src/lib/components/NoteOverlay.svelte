@@ -21,6 +21,16 @@
 		setTimeout(() => (copied = false), 2000);
 	}
 
+	function downloadMarkdown() {
+		const blob = new Blob([content], { type: 'text/markdown' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${title}.md`;
+		a.click();
+		URL.revokeObjectURL(url);
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') onclose();
 	}
@@ -60,6 +70,9 @@
 			{:else}
 				<Icon name="copy" size={20} />
 			{/if}
+		</button>
+		<button class="ctrl-btn" onclick={downloadMarkdown} aria-label="Download as Markdown" title="Download as Markdown">
+			<Icon name="download" size={20} />
 		</button>
 		<button class="ctrl-btn" onclick={onclose} aria-label="Close" title="Close">
 			<Icon name="close" size={20} />
