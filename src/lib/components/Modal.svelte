@@ -74,8 +74,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
-<div class="modal-backdrop"
+<div class="modal-backdrop" role="presentation"
 	onmousedown={(e) => { mouseDownOnBackdrop = e.target === e.currentTarget; }}
 	onclick={(e) => { if (e.target === e.currentTarget && mouseDownOnBackdrop) onclose?.(); }}
 >
