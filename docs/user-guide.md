@@ -6,7 +6,7 @@ Pane supports multiple **spaces** — isolated workspaces, each with its own cat
 
 - The root page is a **Spaces dashboard** showing all your spaces as cards with category and item counts.
 - Click **Pane** in the toolbar to return to the dashboard, or use the **space switcher** dropdown to jump between spaces directly.
-- From the dashboard you can create new spaces, rename them, or delete them.
+- From the dashboard you can create new spaces or delete them.
 - The last space cannot be deleted. If all spaces are removed, a default one is recreated automatically.
 - Each space stores its data in a separate SQLite database (`data/{slug}.db`) and file directory (`storage/{slug}/`).
 
@@ -38,7 +38,7 @@ Add a URL with a title and optional description. When you save a link, the serve
 Create text notes with full **markdown** support — headings, bold, italic, lists, code blocks, and more. Click a note card to open it in a full-screen reader with rendered markdown.
 
 ### Documents
-Upload files (images, PDFs, etc.) up to **100 MB** per file. Click a document card to preview it in a full-screen overlay — **PDFs are displayed inline**, images and videos play natively, and audio files have a built-in player. Files are stored locally in the `storage/` directory.
+Upload files (images, PDFs, etc.) up to **100 MB** per file. Click a document card to preview it in a full-screen overlay — **PDFs are displayed inline**, images and videos play natively, and audio files have a built-in player. **Text and markdown files** open in a dedicated reader with syntax rendering and a copy-to-clipboard button. Files are stored locally in the `storage/` directory.
 
 ## Adding items
 

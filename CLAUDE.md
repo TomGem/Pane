@@ -110,6 +110,8 @@ Full-screen overlay components follow a shared pattern: glass backdrop (`glass-s
 
 - **SettingsOverlay** — Theme mode toggle and accent palette selection.
 - **NoteOverlay / MediaOverlay** — Content viewers for notes and documents.
+- **TextFileOverlay** — Fetches and displays plain text/markdown files with copy-to-clipboard and markdown rendering.
+- **ExportImportOverlay** — Tabbed UI for exporting spaces as ZIP and importing from ZIP (preview + conflict resolution).
 - **HelpPanel** — App documentation (inline in Toolbar).
 
 ### Rate limiting
@@ -118,7 +120,9 @@ In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/a
 
 ### Shared components
 
-**`Icon.svelte`** — Centralized SVG icon component. All icons use this component rather than inline SVGs.
+- **`Icon.svelte`** — Centralized SVG icon component. All icons use this component rather than inline SVGs.
+- **`Modal.svelte`** — Reusable dialog wrapper (glass backdrop, focus trap, Escape/click-outside to close). Used by `ItemForm`, `CategoryForm`, and other form modals. Accepts a `title` and renders children via Snippet.
+- **`Toast.svelte`** — Notification component (`success`/`error` types) with optional progress bar. Positioned fixed, auto-dismisses.
 
 ### Additional API routes
 

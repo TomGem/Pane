@@ -147,10 +147,11 @@ src/
       MediaOverlay.svelte Full-screen document/image viewer
       Modal.svelte        Reusable modal dialog
       NoteOverlay.svelte  Full-screen markdown note reader
+      ExportImportOverlay.svelte  Export/import spaces as ZIP archives
       SettingsOverlay.svelte  Theme and palette settings
-      SpacesOverlay.svelte    Space management overlay
       SubcategoryCard.svelte  Subcategory display within a column
       TagInput.svelte     Tag selector with create-on-the-fly
+      TextFileOverlay.svelte  Full-screen text/markdown file viewer
       ThemeToggle.svelte  Light/dark/system toggle
       Toast.svelte        Notification toast
       Toolbar.svelte      App toolbar with search, actions, settings, help
@@ -169,6 +170,8 @@ src/
     types/
       index.ts            TypeScript interfaces
       export.ts           Export/import types (manifest, preview, conflict modes)
+    actions/
+      trapFocus.ts        Svelte action: traps keyboard focus within modals/overlays
     utils/
       api.ts              Fetch helpers
       slugify.ts          URL-safe slug generation

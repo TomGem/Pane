@@ -61,7 +61,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        client_max_body_size 50m;
+        client_max_body_size 110m;
     }
 }
 ```
@@ -78,7 +78,7 @@ Example Apache config (requires `mod_proxy` and `mod_proxy_http`):
 
     RequestHeader set X-Forwarded-Proto "https"
 
-    LimitRequestBody 52428800
+    LimitRequestBody 115343360
 </VirtualHost>
 ```
 

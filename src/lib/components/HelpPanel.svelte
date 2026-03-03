@@ -70,7 +70,7 @@
 					<li>Click <strong>Pane</strong> in the toolbar to go to the Spaces dashboard</li>
 					<li>Use the <strong>space switcher</strong> dropdown to jump between spaces directly</li>
 					<li>Each space has its own categories, items, and files</li>
-					<li>Create, rename, or delete spaces from the Spaces dashboard</li>
+					<li>Create or delete spaces from the Spaces dashboard</li>
 					<li><strong>Move categories</strong> between spaces from the column menu</li>
 				</ul>
 			</section>
@@ -114,6 +114,7 @@
 					<li>Upload files up to <strong>100 MB</strong> per document</li>
 					<li><strong>PDFs</strong> are displayed inline in a full-screen overlay</li>
 					<li>Images, videos, and audio files play natively in the viewer</li>
+					<li><strong>Text and markdown files</strong> open in a reader with rendered formatting and copy-to-clipboard</li>
 				</ul>
 			</section>
 			<section class="help-section">
@@ -160,7 +161,7 @@
 				</ul>
 			</section>
 			<div class="help-clock">{clockText}</div>
-			<div class="help-version">Pane v1.2</div>
+			<div class="help-version">Pane v1.3</div>
 		</div>
 	</div>
 </div>
