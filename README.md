@@ -2,8 +2,6 @@
 
 A local-only Kanban dashboard for organizing links, notes, and documents into draggable columns. Built with SvelteKit 2, Svelte 5, and SQLite.
 
-All data stays on your machine — no accounts, no cloud, no tracking.
-
 ![Pane dashboard in dark mode](docs/images/pane.png)
 
 ## Features
