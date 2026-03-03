@@ -5,6 +5,8 @@
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import SettingsOverlay from '$lib/components/SettingsOverlay.svelte';
+	import HelpPanel from '$lib/components/HelpPanel.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 
 	let { data } = $props();
 
@@ -12,6 +14,7 @@
 	const palette = getContext<PaletteStore>('palette');
 
 	let showSettings = $state(false);
+	let showHelp = $state(false);
 	let creatingSpace = $state(false);
 	let newSpaceName = $state('');
 	let newSpaceInputEl = $state<HTMLInputElement | null>(null);
@@ -44,7 +47,9 @@
 	}
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && showSettings) {
+		if (e.key === 'Escape' && showHelp) {
+			showHelp = false;
+		} else if (e.key === 'Escape' && showSettings) {
 			showSettings = false;
 		}
 		if (e.key === 'Escape' && creatingSpace) {
@@ -68,6 +73,9 @@
 				<circle cx="12" cy="12" r="3" />
 				<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
 			</svg>
+		</button>
+		<button class="btn-toolbar-icon" onclick={() => showHelp = true} aria-label="Help" title="Help">
+			<Icon name="help-circle" size={18} />
 		</button>
 	</div>
 </header>
@@ -172,6 +180,10 @@
 	</div>
 </main>
 
+{#if showHelp}
+	<HelpPanel onclose={() => showHelp = false} />
+{/if}
+
 {#if showSettings}
 	<SettingsOverlay
 		themeMode={theme.mode}
@@ -241,21 +253,18 @@
 		display: flex;
 		flex-direction: column;
 		padding: 24px 20px;
-		overflow-x: auto;
 	}
 
 	.spaces-columns {
-		display: flex;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 		gap: 16px;
-		align-items: flex-start;
 		min-height: 0;
 	}
 
 	.space-column {
 		display: flex;
 		flex-direction: column;
-		width: 240px;
-		min-width: 240px;
 		border-radius: var(--radius-lg);
 		border: 1px solid var(--border);
 		background: var(--bg-secondary);
@@ -426,9 +435,8 @@
 			padding: 16px 12px;
 		}
 
-		.space-column {
-			width: 200px;
-			min-width: 200px;
+		.spaces-columns {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>
