@@ -79,7 +79,7 @@
 	}
 
 	// Toast
-	let toasts = $state<{ id: number; message: string; type: 'success' | 'error' }[]>([]);
+	let toasts = $state<{ id: number; message: string; type: 'success' | 'error'; progress?: { current: number; total: number } }[]>([]);
 	let nextToastId = 0;
 
 	function toast(message: string, type: 'success' | 'error' = 'success') {
@@ -88,6 +88,22 @@
 		setTimeout(() => {
 			toasts = toasts.filter((t) => t.id !== id);
 		}, 3000);
+	}
+
+	function createToast(message: string, type: 'success' | 'error' = 'success', progress?: { current: number; total: number }): number {
+		const id = nextToastId++;
+		toasts = [...toasts, { id, message, type, progress }];
+		return id;
+	}
+
+	function updateToast(id: number, updates: { message?: string; type?: 'success' | 'error'; progress?: { current: number; total: number } }) {
+		toasts = toasts.map((t) => t.id === id ? { ...t, ...updates } : t);
+	}
+
+	function dismissToast(id: number, delay = 3000) {
+		setTimeout(() => {
+			toasts = toasts.filter((t) => t.id !== id);
+		}, delay);
 	}
 
 	// Navigation
@@ -239,6 +255,47 @@
 		}
 	}
 
+	// Folder import progress (shared between Board drops and empty board drops)
+	let folderProgressToastId = $state<number | null>(null);
+
+	function handleFolderProgress(current: number, total: number, fileName: string) {
+		if (folderProgressToastId === null) {
+			folderProgressToastId = createToast(`Importing file ${current}/${total}: ${fileName}`, 'success', { current, total });
+		} else {
+			updateToast(folderProgressToastId, {
+				message: `Importing file ${current}/${total}: ${fileName}`,
+				progress: { current, total }
+			});
+		}
+	}
+
+	function handleFolderImported(stats: { categories: number; items: number }) {
+		if (folderProgressToastId !== null) {
+			updateToast(folderProgressToastId, {
+				message: `Imported ${stats.categories} ${stats.categories === 1 ? 'category' : 'categories'} and ${stats.items} ${stats.items === 1 ? 'item' : 'items'}`,
+				progress: undefined
+			});
+			dismissToast(folderProgressToastId);
+			folderProgressToastId = null;
+		} else {
+			toast(`Imported ${stats.categories} ${stats.categories === 1 ? 'category' : 'categories'} and ${stats.items} ${stats.items === 1 ? 'item' : 'items'}`);
+		}
+	}
+
+	function handleFolderError(error: string) {
+		if (folderProgressToastId !== null) {
+			updateToast(folderProgressToastId, {
+				message: error,
+				type: 'error',
+				progress: undefined
+			});
+			dismissToast(folderProgressToastId, 5000);
+			folderProgressToastId = null;
+		} else {
+			toast(error, 'error');
+		}
+	}
+
 	// Folder drop on empty board
 	let emptyBoardDragOver = $state(false);
 
@@ -270,13 +327,28 @@
 		if (dirs.length === 0) return;
 		e.preventDefault();
 		for (const entry of dirs) {
+			const progressToastId = createToast(`Importing "${entry.name}"...`, 'success', { current: 0, total: 1 });
 			try {
 				const folder = await traverseDirectory(entry);
-				const stats = await board.importFolder(folder);
-				toast(`Imported ${stats.categories} ${stats.categories === 1 ? 'category' : 'categories'} and ${stats.items} ${stats.items === 1 ? 'item' : 'items'}`);
+				const stats = await board.importFolder(folder, (current, total, fileName) => {
+					updateToast(progressToastId, {
+						message: `Importing file ${current}/${total}: ${fileName}`,
+						progress: { current, total }
+					});
+				});
+				updateToast(progressToastId, {
+					message: `Imported ${stats.categories} ${stats.categories === 1 ? 'category' : 'categories'} and ${stats.items} ${stats.items === 1 ? 'item' : 'items'}`,
+					progress: undefined
+				});
+				dismissToast(progressToastId);
 			} catch (err) {
 				console.error(`Failed to import folder "${entry.name}":`, err);
-				toast(err instanceof Error ? err.message : `Failed to import "${entry.name}"`, 'error');
+				updateToast(progressToastId, {
+					message: err instanceof Error ? err.message : `Failed to import "${entry.name}"`,
+					type: 'error',
+					progress: undefined
+				});
+				dismissToast(progressToastId, 5000);
 			}
 		}
 	}
@@ -379,8 +451,9 @@
 			onaddsubcategory={handleAddSubcategory}
 			onmovecategory={($page.data.spaces as Space[]).length > 1 ? handleMoveCategory : undefined}
 			ondrilldown={handleDrillDown}
-			onfolderimported={(stats) => toast(`Imported ${stats.categories} ${stats.categories === 1 ? 'category' : 'categories'} and ${stats.items} ${stats.items === 1 ? 'item' : 'items'}`)}
-			onfoldererror={(error) => toast(error, 'error')}
+			onfolderimported={handleFolderImported}
+			onfoldererror={handleFolderError}
+			onprogress={handleFolderProgress}
 		/>
 	{/if}
 </div>
@@ -458,7 +531,7 @@
 <!-- Toasts -->
 <div class="toast-container" role="status" aria-live="polite">
 	{#each toasts as t (t.id)}
-		<Toast message={t.message} type={t.type} onclose={() => toasts = toasts.filter(x => x.id !== t.id)} />
+		<Toast message={t.message} type={t.type} progress={t.progress} onclose={() => toasts = toasts.filter(x => x.id !== t.id)} />
 	{/each}
 </div>
 

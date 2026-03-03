@@ -21,9 +21,10 @@
 		ondrilldown?: (categoryId: number) => void;
 		onfolderimported?: (stats: { categories: number; items: number }) => void;
 		onfoldererror?: (error: string) => void;
+		onprogress?: (current: number, total: number, fileName: string) => void;
 	}
 
-	let { board, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], onitemedit, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, onmovecategory, ondrilldown, onfolderimported, onfoldererror }: Props = $props();
+	let { board, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], onitemedit, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, onmovecategory, ondrilldown, onfolderimported, onfoldererror, onprogress }: Props = $props();
 
 	function handleColumnConsider(e: CustomEvent<{ items: CategoryWithItems[] }>) {
 		board.columns = e.detail.items;
@@ -75,7 +76,7 @@
 		for (const entry of entries) {
 			try {
 				const folder = await traverseDirectory(entry);
-				const stats = await board.importFolder(folder);
+				const stats = await board.importFolder(folder, onprogress);
 				onfolderimported?.(stats);
 			} catch (e) {
 				console.error(`Failed to import folder "${entry.name}":`, e);

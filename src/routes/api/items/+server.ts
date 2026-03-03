@@ -27,17 +27,17 @@ function isPrivateUrl(urlStr: string): boolean {
 
 const MAX_FETCH_SIZE = 1024 * 1024; // 1 MB — YouTube inlines ~600KB of JS before meta tags
 
-async function fetchPageMeta(url: string): Promise<{ title: string | null; description: string | null; favicon: string | null }> {
+async function fetchPageMeta(url: string): Promise<{ title: string | null; description: string | null; favicon: string | null; unavailable: boolean }> {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), 5000);
-	const nullResult = { title: null, description: null, favicon: null };
+	const unavailableResult = { title: null, description: null, favicon: null, unavailable: true };
 	try {
 		let currentUrl = url;
 		let redirects = 0;
 		const MAX_REDIRECTS = 5;
 
 		while (redirects < MAX_REDIRECTS) {
-			if (isPrivateUrl(currentUrl)) return nullResult;
+			if (isPrivateUrl(currentUrl)) return unavailableResult;
 
 			const res = await fetch(currentUrl, {
 				headers: {
@@ -51,20 +51,20 @@ async function fetchPageMeta(url: string): Promise<{ title: string | null; descr
 
 			if (res.status >= 300 && res.status < 400) {
 				const location = res.headers.get('location');
-				if (!location) return nullResult;
+				if (!location) return unavailableResult;
 				currentUrl = new URL(location, currentUrl).href;
 				redirects++;
 				continue;
 			}
 
-			if (!res.ok) return nullResult;
+			if (!res.ok) return unavailableResult;
 
 			const contentType = res.headers.get('content-type') ?? '';
-			if (!contentType.includes('text/html')) return nullResult;
+			if (!contentType.includes('text/html')) return { title: null, description: null, favicon: null, unavailable: false };
 			const contentLength = Number(res.headers.get('content-length'));
-			if (contentLength > MAX_FETCH_SIZE) return nullResult;
+			if (contentLength > MAX_FETCH_SIZE) return { title: null, description: null, favicon: null, unavailable: false };
 			const reader = res.body?.getReader();
-			if (!reader) return nullResult;
+			if (!reader) return { title: null, description: null, favicon: null, unavailable: false };
 			const chunks: Uint8Array[] = [];
 			let totalSize = 0;
 			while (true) {
@@ -111,11 +111,11 @@ async function fetchPageMeta(url: string): Promise<{ title: string | null; descr
 				favicon = `${origin}/favicon.ico`;
 			}
 
-			return { title, description, favicon };
+			return { title, description, favicon, unavailable: false };
 		}
-		return nullResult;
+		return unavailableResult;
 	} catch {
-		return nullResult;
+		return unavailableResult;
 	} finally {
 		clearTimeout(timeout);
 	}
@@ -192,20 +192,30 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		let title = rawTitle;
 		let desc = description;
 		let faviconUrl: string | null = null;
+		let tagIds: number[] = Array.isArray(tags) ? [...tags] : [];
 		if (fetch_title && type === 'link' && content) {
 			const meta = await fetchPageMeta(content);
 			if (meta.title) title = meta.title;
 			if (meta.description && !desc) desc = meta.description;
 			faviconUrl = meta.favicon;
+
+			if (meta.unavailable) {
+				const globalDb = getGlobalDb();
+				globalDb.prepare("INSERT OR IGNORE INTO tags (name, color) VALUES ('404', '#ef4444')").run();
+				const tag404 = globalDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number };
+				if (!tagIds.includes(tag404.id)) {
+					tagIds.push(tag404.id);
+				}
+			}
 		}
 
 		const db = getSpaceDb(url);
 
 		// Validate tags against global DB before transaction
-		if (Array.isArray(tags) && tags.length > 0) {
+		if (tagIds.length > 0) {
 			const globalDb = getGlobalDb();
 			const checkTag = globalDb.prepare('SELECT id FROM tags WHERE id = ?');
-			for (const tagId of tags) {
+			for (const tagId of tagIds) {
 				if (!checkTag.get(tagId)) {
 					return json({ error: `Tag with id ${tagId} not found` }, { status: 400 });
 				}
@@ -225,9 +235,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 			const itemId = result.lastInsertRowid as number;
 
-			if (Array.isArray(tags) && tags.length > 0) {
+			if (tagIds.length > 0) {
 				const insertTag = db.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)');
-				for (const tagId of tags) {
+				for (const tagId of tagIds) {
 					insertTag.run(itemId, tagId);
 				}
 			}

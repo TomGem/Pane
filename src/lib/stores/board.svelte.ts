@@ -240,10 +240,15 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		throw new Error(`Could not create category "${name}" — too many name collisions`);
 	}
 
-	async function importFolder(folder: FolderStructure): Promise<{ categories: number; items: number }> {
+	async function importFolder(folder: FolderStructure, onProgress?: (current: number, total: number, fileName: string) => void): Promise<{ categories: number; items: number }> {
 		let totalCategories = 0;
 		let totalItems = 0;
 		const color = nextColor();
+
+		// Pre-calculate total file count for progress tracking
+		let totalFiles = folder.files.length;
+		for (const [, files] of folder.subfolders) totalFiles += files.length;
+		let processedFiles = 0;
 
 		// Create main category
 		const mainCat = await createCategoryWithRetry(folder.name, color, currentParentId);
@@ -257,6 +262,8 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 			} catch (e) {
 				console.error(`Failed to import file "${file.name}":`, e);
 			}
+			processedFiles++;
+			onProgress?.(processedFiles, totalFiles, file.name);
 		}
 
 		// Import subfolders as subcategories
@@ -272,13 +279,15 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 					} catch (e) {
 						console.error(`Failed to import file "${file.name}" into "${subName}":`, e);
 					}
+					processedFiles++;
+					onProgress?.(processedFiles, totalFiles, file.name);
 				}
 			} catch (e) {
 				console.error(`Failed to create subcategory "${subName}":`, e);
 			}
 		}
 
-		await refresh();
+		await Promise.all([refresh(), loadTags()]);
 		return { categories: totalCategories, items: totalItems };
 	}
 
