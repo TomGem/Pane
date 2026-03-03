@@ -48,13 +48,13 @@ export const POST: RequestHandler = async ({ url }) => {
 			const cat4 = insertCategory.run('Tools & Ecosystem', slugify('Tools & Ecosystem'), '#ef4444', 4, null).lastInsertRowid as number;
 
 			// Subcategories
-			insertCategory.run('Setup Guides', slugify('Setup Guides'), '#22c55e', 1, cat1);
-			insertCategory.run('Advanced Features', slugify('Advanced Features'), '#6366f1', 1, cat2);
+			const cat1Sub = insertCategory.run('Setup Guides', slugify('Setup Guides'), '#22c55e', 1, cat1).lastInsertRowid as number;
+			const cat2Sub = insertCategory.run('Advanced Features', slugify('Advanced Features'), '#6366f1', 1, cat2).lastInsertRowid as number;
 
 			// --- Items ---
 			const insertItem = db.prepare(
-				`INSERT INTO items (category_id, type, title, content, description, sort_order)
-				 VALUES (?, ?, ?, ?, ?, ?)`
+				`INSERT INTO items (category_id, type, title, content, description, favicon_url, sort_order)
+				 VALUES (?, ?, ?, ?, ?, ?, ?)`
 			);
 			const insertItemTag = db.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)');
 
@@ -65,15 +65,24 @@ export const POST: RequestHandler = async ({ url }) => {
 				content: string | null,
 				description: string | null,
 				sortOrder: number,
-				itemTags: string[]
+				itemTags: string[],
+				faviconUrl: string | null = null
 			) {
-				const id = insertItem.run(categoryId, type, title, content, description, sortOrder).lastInsertRowid as number;
+				const id = insertItem.run(categoryId, type, title, content, description, faviconUrl, sortOrder).lastInsertRowid as number;
 				for (const tag of itemTags) {
 					if (tagIds[tag]) {
 						insertItemTag.run(id, tagIds[tag]);
 					}
 				}
 			}
+
+			// Favicon URLs (verified working)
+			const favAntropic = 'https://www.anthropic.com/favicon.ico';
+			const favYouTube = 'https://www.youtube.com/favicon.ico';
+			const favGitHub = 'https://github.githubassets.com/favicons/favicon.svg';
+			const favCursor = 'https://cursor.com/favicon.ico';
+			const favAider = 'https://aider.chat/assets/icons/favicon-32x32.png';
+			const favMCP = 'https://modelcontextprotocol.io/favicon.svg';
 
 			// ===== GETTING STARTED =====
 			addItem(cat1, 'note', 'What is AI-Assisted Coding?',
@@ -84,17 +93,33 @@ export const POST: RequestHandler = async ({ url }) => {
 			addItem(cat1, 'link', 'Anthropic Documentation — Getting Started',
 				'https://docs.anthropic.com/en/docs/welcome',
 				'Official Anthropic docs covering Claude models, capabilities, and API basics.',
-				2, ['Beginner', 'Reference']);
+				2, ['Beginner', 'Reference'], favAntropic);
 
 			addItem(cat1, 'link', 'Introduction to Claude Code — Official Docs',
 				'https://docs.anthropic.com/en/docs/claude-code/overview',
 				'Overview of Claude Code: what it is, how to install it, and your first steps.',
-				3, ['Beginner', 'Tutorial']);
+				3, ['Beginner', 'Tutorial'], favAntropic);
 
 			addItem(cat1, 'link', 'AI-Assisted Programming — Harvard CS50 Lecture (YouTube)',
 				'https://www.youtube.com/watch?v=eKKMRhLdIHI',
 				'David Malan discusses how AI tools are changing how we learn and write code.',
-				4, ['Beginner', 'Video']);
+				4, ['Beginner', 'Video'], favYouTube);
+
+			// ===== SETUP GUIDES (subcategory of Getting Started) =====
+			addItem(cat1Sub, 'note', 'Setting Up Your Environment',
+				'## Prerequisites\n- **Node.js 18+** — Required to run Claude Code\n- **Git** — For version control integration\n- **A code editor** — VS Code, Cursor, or JetBrains\n\n## Installation\n```bash\n# macOS / Linux\ncurl -fsSL https://claude.ai/install.sh | bash\n\n# Windows PowerShell\nirm https://claude.ai/install.ps1 | iex\n```\n\n## First Run\n```bash\ncd your-project\nclaude\n```\nYou\'ll be prompted to log in on first use.\n\n## Recommended Setup\n1. Run `claude /init` to generate a `CLAUDE.md` for your project\n2. Install the VS Code extension for IDE integration\n3. Try `claude "what does this project do?"` to verify everything works',
+				'Step-by-step checklist for installing Claude Code and setting up your development environment.',
+				1, ['Beginner', 'Essential']);
+
+			addItem(cat1Sub, 'link', 'Claude Code Quickstart',
+				'https://docs.anthropic.com/en/docs/claude-code/quickstart',
+				'Official quickstart guide: install Claude Code, log in, and run your first commands in minutes.',
+				2, ['Beginner', 'Tutorial'], favAntropic);
+
+			addItem(cat1Sub, 'link', 'Claude Code in VS Code',
+				'https://docs.anthropic.com/en/docs/claude-code/ide-integrations',
+				'Set up the Claude Code VS Code extension for inline diffs, @-mentions, and integrated chat.',
+				3, ['Beginner', 'Tutorial'], favAntropic);
 
 			// ===== CLAUDE CODE =====
 			addItem(cat2, 'note', 'Claude Code Cheat Sheet',
@@ -105,22 +130,38 @@ export const POST: RequestHandler = async ({ url }) => {
 			addItem(cat2, 'link', 'Best Practices for Claude Code',
 				'https://docs.anthropic.com/en/docs/claude-code/best-practices',
 				'Official guide on writing effective CLAUDE.md files, structuring prompts, and getting the most out of Claude Code.',
-				2, ['Tips', 'Essential']);
+				2, ['Tips', 'Essential'], favAntropic);
 
 			addItem(cat2, 'link', 'How Claude Code Works — Under the Hood',
 				'https://docs.anthropic.com/en/docs/claude-code/overview',
 				'Understand the agentic loop, built-in tools, and how Claude Code interacts with your project.',
-				3, ['Reference']);
+				3, ['Reference'], favAntropic);
 
 			addItem(cat2, 'link', 'Claude Code GitHub Repository',
 				'https://github.com/anthropics/claude-code',
 				'Source code, issues, and discussions for Claude Code.',
-				4, ['Reference']);
+				4, ['Reference'], favGitHub);
 
 			addItem(cat2, 'link', 'Claude Code Tutorial — Building a Project from Scratch (YouTube)',
 				'https://www.youtube.com/watch?v=dGMFkP0IN7A',
 				'Step-by-step walkthrough of using Claude Code to build a complete application.',
-				5, ['Tutorial', 'Video']);
+				5, ['Tutorial', 'Video'], favYouTube);
+
+			// ===== ADVANCED FEATURES (subcategory of Claude Code) =====
+			addItem(cat2Sub, 'note', 'Advanced Claude Code Workflows',
+				'## Multi-File Edits\nClaude Code can read and modify multiple files in a single session. Describe the change at a high level and let it find the relevant files.\n\n## Hooks\nAutomate workflows with hooks — shell commands that run at specific points in Claude Code\'s lifecycle (e.g., before/after edits, on commit).\n\n## MCP Servers\nConnect Claude Code to external tools (databases, APIs, issue trackers) via the Model Context Protocol.\n\n## Memory with CLAUDE.md\n- **Project-level**: `CLAUDE.md` at project root — shared conventions, architecture notes\n- **User-level**: `~/.claude/CLAUDE.md` — personal preferences across all projects\n\n## Custom Slash Commands\nCreate reusable prompts as `.md` files in `.claude/commands/` to standardize team workflows.',
+				'Power-user features: hooks, MCP, memory files, and custom commands.',
+				1, ['Tips', 'Reference']);
+
+			addItem(cat2Sub, 'link', 'Hooks — Automate Claude Code Workflows',
+				'https://docs.anthropic.com/en/docs/claude-code/hooks',
+				'Reference for hook events, configuration, and examples for automating tasks in Claude Code.',
+				2, ['Reference', 'Tips'], favAntropic);
+
+			addItem(cat2Sub, 'link', 'MCP in Claude Code',
+				'https://docs.anthropic.com/en/docs/claude-code/mcp',
+				'Connect Claude Code to external tools and data sources via the Model Context Protocol.',
+				3, ['Reference', 'Tutorial'], favAntropic);
 
 			// ===== PROMPTING FOR CODE =====
 			addItem(cat3, 'note', 'The Anatomy of a Good Coding Prompt',
@@ -131,7 +172,7 @@ export const POST: RequestHandler = async ({ url }) => {
 			addItem(cat3, 'link', 'Prompt Engineering Guide — Anthropic',
 				'https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview',
 				'Comprehensive guide to crafting effective prompts for Claude models.',
-				2, ['Tutorial', 'Reference']);
+				2, ['Tutorial', 'Reference'], favAntropic);
 
 			addItem(cat3, 'note', 'Common Prompting Mistakes',
 				'## Mistakes to Avoid\n\n### 1. Being Too Vague\n`make it better` → Better: `Refactor this function to use early returns instead of nested if-else`\n\n### 2. Asking for Too Much at Once\nBreak `build me a todo app` into: create the data model → build the API → add the UI → write tests\n\n### 3. Not Providing Context\nAlways mention the framework, language version, and relevant conventions.\n\n### 4. Ignoring the Output\nAlways **read and understand** generated code before using it. AI can produce plausible-looking but incorrect code.\n\n### 5. Not Iterating\nYour first prompt rarely gives the perfect result. Refine and follow up.',
@@ -141,7 +182,7 @@ export const POST: RequestHandler = async ({ url }) => {
 			addItem(cat3, 'link', 'Prompt Engineering Interactive Tutorial',
 				'https://github.com/anthropics/prompt-eng-interactive-tutorial',
 				'Hands-on Jupyter notebook course for learning prompt engineering with Claude.',
-				4, ['Tutorial', 'Beginner']);
+				4, ['Tutorial', 'Beginner'], favGitHub);
 
 			// ===== TOOLS & ECOSYSTEM =====
 			addItem(cat4, 'note', 'AI Coding Tools Comparison',
@@ -152,22 +193,22 @@ export const POST: RequestHandler = async ({ url }) => {
 			addItem(cat4, 'link', 'Cursor — The AI Code Editor',
 				'https://www.cursor.com',
 				'AI-first code editor built on VS Code with chat, autocomplete, and codebase-aware features.',
-				2, ['Reference']);
+				2, ['Reference'], favCursor);
 
 			addItem(cat4, 'link', 'Aider — AI Pair Programming in the Terminal',
 				'https://aider.chat',
 				'Open-source command-line tool for AI-assisted coding. Supports Claude, GPT, and local models.',
-				3, ['Reference']);
+				3, ['Reference'], favAider);
 
 			addItem(cat4, 'link', 'Model Context Protocol (MCP) — Extending AI Tools',
 				'https://modelcontextprotocol.io',
 				'Open standard for connecting AI assistants to external data sources and tools.',
-				4, ['Reference', 'Tips']);
+				4, ['Reference', 'Tips'], favMCP);
 
 			addItem(cat4, 'link', 'GitHub Copilot',
 				'https://github.com/features/copilot',
 				'AI-powered code suggestions directly in your editor. Free tier available for individual developers.',
-				5, ['Beginner', 'Reference']);
+				5, ['Beginner', 'Reference'], favGitHub);
 		});
 
 		seed();
