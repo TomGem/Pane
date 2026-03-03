@@ -2,6 +2,7 @@
 	import type { Item } from '$lib/types';
 	import MediaOverlay from './MediaOverlay.svelte';
 	import NoteOverlay from './NoteOverlay.svelte';
+	import TextFileOverlay from './TextFileOverlay.svelte';
 	import { getContext } from 'svelte';
 
 	interface Props {
@@ -17,6 +18,7 @@
 
 	let showMediaOverlay = $state(false);
 	let showNoteOverlay = $state(false);
+	let showTextOverlay = $state(false);
 	let faviconError = $state(false);
 
 	$effect(() => {
@@ -40,6 +42,11 @@
 	function isDisplayableMedia(): boolean {
 		if (item.type !== 'document' || !item.mime_type) return false;
 		return /^(image|video|audio)\//.test(item.mime_type) || item.mime_type === 'application/pdf';
+	}
+
+	function isTextFile(): boolean {
+		if (item.type !== 'document' || !item.mime_type) return false;
+		return item.mime_type.startsWith('text/') || item.mime_type === 'application/json';
 	}
 
 	function isClickable(): boolean {
@@ -69,6 +76,8 @@
 		if (!url) return;
 		if (isDisplayableMedia()) {
 			showMediaOverlay = true;
+		} else if (isTextFile()) {
+			showTextOverlay = true;
 		} else {
 			window.open(url, '_blank', 'noopener,noreferrer');
 		}
@@ -173,6 +182,15 @@
 		title={item.title}
 		content={item.content ?? ''}
 		onclose={() => showNoteOverlay = false}
+	/>
+{/if}
+
+{#if showTextOverlay}
+	<TextFileOverlay
+		url={`/api/files/${item.file_path}?space=${spaceSlug}`}
+		fileName={item.file_name ?? ''}
+		mimeType={item.mime_type ?? ''}
+		onclose={() => showTextOverlay = false}
 	/>
 {/if}
 

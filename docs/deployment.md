@@ -66,6 +66,22 @@ server {
 }
 ```
 
+Example Apache config (requires `mod_proxy` and `mod_proxy_http`):
+
+```apache
+<VirtualHost *:443>
+    ServerName pane.example.com
+
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:3000/
+    ProxyPassReverse / http://127.0.0.1:3000/
+
+    RequestHeader set X-Forwarded-Proto "https"
+
+    LimitRequestBody 52428800
+</VirtualHost>
+```
+
 ## Docker
 
 A `Dockerfile` and `docker-compose.yml` are included. Docker is the easiest way to run Pane without installing Node.js or native build tools.
