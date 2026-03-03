@@ -74,6 +74,8 @@
 				<span class="audio-filename">{fileName}</span>
 				<audio bind:this={audioEl} controls src={url}></audio>
 			</div>
+		{:else if mimeType === 'application/pdf'}
+			<iframe src={url} title={fileName}></iframe>
 		{/if}
 	</div>
 </div>
@@ -157,5 +159,12 @@
 
 	audio {
 		min-width: 320px;
+	}
+
+	iframe {
+		width: 90vw;
+		height: 90vh;
+		border: none;
+		border-radius: 4px;
 	}
 </style>

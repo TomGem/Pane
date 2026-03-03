@@ -39,7 +39,7 @@
 
 	function isDisplayableMedia(): boolean {
 		if (item.type !== 'document' || !item.mime_type) return false;
-		return /^(image|video|audio)\//.test(item.mime_type);
+		return /^(image|video|audio)\//.test(item.mime_type) || item.mime_type === 'application/pdf';
 	}
 
 	function isClickable(): boolean {
