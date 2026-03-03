@@ -1,7 +1,7 @@
 import AdmZip from 'adm-zip';
 import path from 'path';
 import fs from 'fs';
-import { getDb, getGlobalDb, slugExists, createDb, closeDb } from './db';
+import { getDb, getGlobalDb, slugExists, createDb, closeDb, validateSpaceSlug } from './db';
 import { getMeta } from './schema';
 import { getStorageRoot, ensureCategoryDir } from './storage';
 import type { Category, Item, ItemTag, Tag } from '$lib/types';
@@ -17,11 +17,35 @@ import type {
 	ConflictMode
 } from '$lib/types/export';
 
+const MAX_DECOMPRESSED_SIZE = 1024 * 1024 * 1024; // 1 GB
+const MAX_ENTRY_COUNT = 50_000;
+const MAX_JSON_ENTRY_SIZE = 50 * 1024 * 1024; // 50 MB
+
+function validateZipLimits(zip: AdmZip): string | null {
+	const entries = zip.getEntries();
+	if (entries.length > MAX_ENTRY_COUNT) {
+		return `ZIP contains too many entries (${entries.length}, max ${MAX_ENTRY_COUNT})`;
+	}
+	let totalSize = 0;
+	for (const entry of entries) {
+		totalSize += entry.header.size;
+		if (totalSize > MAX_DECOMPRESSED_SIZE) {
+			return `ZIP decompressed size exceeds limit (max ${MAX_DECOMPRESSED_SIZE / (1024 * 1024)} MB)`;
+		}
+	}
+	return null;
+}
+
 function parseJsonEntry<T>(zip: AdmZip, entryName: string): T | null {
 	const entry = zip.getEntry(entryName);
 	if (!entry) return null;
-	const text = entry.getData().toString('utf8');
-	return JSON.parse(text) as T;
+	if (entry.header.size > MAX_JSON_ENTRY_SIZE) return null;
+	try {
+		const text = entry.getData().toString('utf8');
+		return JSON.parse(text) as T;
+	} catch {
+		return null;
+	}
 }
 
 function validateManifest(manifest: ExportManifest): string[] {
@@ -37,6 +61,17 @@ function validateManifest(manifest: ExportManifest): string[] {
 export function previewImport(zipBuffer: Buffer): ImportPreview {
 	const zip = new AdmZip(zipBuffer);
 	const errors: string[] = [];
+
+	const zipError = validateZipLimits(zip);
+	if (zipError) {
+		return {
+			manifest: { version: 1, app: 'pane', exported_at: '', spaces: [], include_files: false, stats: { spaces: 0, categories: 0, items: 0, tags: 0 } },
+			spaces: [],
+			tags: [],
+			valid: false,
+			errors: [zipError]
+		};
+	}
 
 	const manifest = parseJsonEntry<ExportManifest>(zip, 'manifest.json');
 	if (!manifest) {
@@ -54,6 +89,10 @@ export function previewImport(zipBuffer: Buffer): ImportPreview {
 	// Check spaces
 	const spaces: ImportPreviewSpace[] = [];
 	for (const slug of manifest.spaces) {
+		if (!validateSpaceSlug(slug)) {
+			errors.push(`Invalid space slug in export: ${slug}`);
+			continue;
+		}
 		const spaceData = parseJsonEntry<ExportSpaceData>(zip, `spaces/${slug}/data.json`);
 		if (!spaceData) {
 			errors.push(`Missing data.json for space: ${slug}`);
@@ -139,6 +178,9 @@ function importTags(tagsData: ExportTags | null): Map<number, number> {
 }
 
 function deleteExistingSpace(slug: string) {
+	if (!validateSpaceSlug(slug)) {
+		throw new Error(`Invalid space slug: '${slug}'`);
+	}
 	// Close cached connection
 	closeDb(slug);
 	// Delete DB file
@@ -220,11 +262,17 @@ function importSpace(
 	if (includeFiles) {
 		const prefix = `spaces/${spaceData.slug}/files/`;
 		const storageRoot = getStorageRoot();
+		let extractedSize = 0;
 		for (const entry of zip.getEntries()) {
 			if (entry.isDirectory) continue;
 			if (!entry.entryName.startsWith(prefix)) continue;
 			const relativePath = entry.entryName.slice(prefix.length);
 			if (!relativePath) continue;
+
+			extractedSize += entry.header.size;
+			if (extractedSize > MAX_DECOMPRESSED_SIZE) {
+				throw new Error('Decompressed file size exceeds safety limit');
+			}
 
 			const targetPath = path.resolve(storageRoot, finalSlug, relativePath);
 			// Safety: ensure target is within storage
@@ -247,6 +295,11 @@ export function executeImport(zipBuffer: Buffer, options: ImportOptions): Import
 		errors: []
 	};
 
+	const zipError = validateZipLimits(zip);
+	if (zipError) {
+		return { ...result, success: false, errors: [zipError] };
+	}
+
 	const manifest = parseJsonEntry<ExportManifest>(zip, 'manifest.json');
 	if (!manifest) {
 		return { ...result, success: false, errors: ['Missing manifest.json'] };
@@ -264,6 +317,10 @@ export function executeImport(zipBuffer: Buffer, options: ImportOptions): Import
 
 	// Import each space
 	for (const slug of manifest.spaces) {
+		if (!validateSpaceSlug(slug)) {
+			result.errors.push(`Invalid space slug in export: ${slug}`);
+			continue;
+		}
 		const spaceData = parseJsonEntry<ExportSpaceData>(zip, `spaces/${slug}/data.json`);
 		if (!spaceData) {
 			result.errors.push(`Missing data.json for space: ${slug}`);

@@ -43,6 +43,7 @@ Each space has its own SQLite database (`data/{slug}.db`) and storage directory 
 - **`$lib/server/space.ts`** — `getSpaceSlug(url)` and `getSpaceDb(url)` helpers that read `?space=` from the URL
 - **`$lib/server/storage.ts`** — File I/O with path traversal defense (`assertWithinStorage`). UUID-based filenames on disk, original filename in DB. Functions: `saveFile()`, `moveFile()`, `deleteFile()`, `renameCategoryDir()`, `deleteCategoryDir()`.
 - **Space API** — `GET/POST /api/spaces`, `PUT/DELETE /api/spaces/[slug]`
+- **Export/Import** — `$lib/server/export.ts` and `$lib/server/import.ts`. Export creates ZIP archives with a JSON manifest; import supports `preview` and `execute` actions with conflict modes (`skip`/`rename`/`replace`). Types in `$lib/types/export.ts`.
 
 ### Database
 
@@ -118,6 +119,14 @@ In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/a
 ### Shared components
 
 **`Icon.svelte`** — Centralized SVG icon component. All icons use this component rather than inline SVGs.
+
+### Additional API routes
+
+- `POST /api/items/upload?space={slug}` — File upload for document items (100MB max).
+- `GET /api/categories/[id]/breadcrumb?space={slug}` — Ancestor chain via recursive CTE (root-first order).
+- `POST /api/categories/[id]/move?space={slug}` — Move entire category subtree to a different space (recursive CTE, transaction-based, physical file migration, slug collision handling).
+- `POST /api/export?spaces={slug|all}&include_files={true|false}` — Export spaces as ZIP with JSON manifest.
+- `POST /api/import?action={preview|execute}&conflict_mode={skip|rename|replace}` — Import ZIP archive.
 
 ### Seed endpoint
 

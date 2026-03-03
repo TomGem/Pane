@@ -1,7 +1,8 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceSlug } from '$lib/server/space';
-import fs from 'fs';
+import fs, { createReadStream } from 'fs';
+import { Readable } from 'stream';
 import path from 'path';
 
 const STORAGE_ROOT = path.resolve('storage');
@@ -15,11 +16,16 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		throw error(403, 'Forbidden');
 	}
 
-	if (!fs.existsSync(filePath)) {
+	let stat: fs.Stats;
+	try {
+		stat = fs.statSync(filePath);
+	} catch {
+		throw error(404, 'File not found');
+	}
+	if (!stat.isFile()) {
 		throw error(404, 'File not found');
 	}
 
-	const data = fs.readFileSync(filePath);
 	const ext = path.extname(filePath).toLowerCase();
 	const mimeTypes: Record<string, string> = {
 		'.pdf': 'application/pdf',
@@ -45,6 +51,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
 	const headers: Record<string, string> = {
 		'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+		'Content-Length': String(stat.size),
 		'Content-Disposition': `${disposition}; filename="${path.basename(filePath).replace(/["\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(path.basename(filePath))}`,
 		'X-Content-Type-Options': 'nosniff'
 	};
@@ -53,5 +60,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		headers['Content-Security-Policy'] = "default-src 'none'";
 	}
 
-	return new Response(data, { headers });
+	const stream = createReadStream(filePath);
+	const webStream = Readable.toWeb(stream) as ReadableStream;
+
+	return new Response(webStream, { headers });
 };

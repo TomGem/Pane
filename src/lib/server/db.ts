@@ -40,6 +40,9 @@ export function getDb(slug: string): Database.Database {
 }
 
 export function createDb(slug: string, displayName: string): Database.Database {
+	if (!SLUG_RE.test(slug)) {
+		throw new Error(`Invalid space slug: '${slug}'`);
+	}
 	const db = openDb(slug);
 	initSchema(db, displayName);
 	cache.set(slug, db);
