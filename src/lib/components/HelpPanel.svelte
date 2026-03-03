@@ -10,14 +10,35 @@
 	let now = $state(new Date());
 
 	$effect(() => {
-		const interval = setInterval(() => { now = new Date(); }, 1000);
+		const interval = setInterval(() => { now = new Date(); }, 10000);
 		return () => clearInterval(interval);
 	});
 
+	function toDiscordianDate(date: Date): string {
+		const year = date.getFullYear() + 1166;
+		const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+		const leap = isLeap(date.getFullYear());
+		const start = new Date(date.getFullYear(), 0, 0);
+		const dayOfYear = Math.floor((date.getTime() - start.getTime()) / 86400000);
+
+		if (leap && dayOfYear === 60) {
+			return `St. Tib's Day, ${year} YOLD`;
+		}
+
+		const adj = leap && dayOfYear > 60 ? dayOfYear - 1 : dayOfYear;
+		const seasons = ['Chaos', 'Discord', 'Confusion', 'Bureaucracy', 'The Aftermath'];
+		const weekdays = ['Sweetmorn', 'Boomtime', 'Pungenday', 'Prickle-Prickle', 'Setting Orange'];
+		const seasonIndex = Math.floor((adj - 1) / 73);
+		const dayOfSeason = ((adj - 1) % 73) + 1;
+		const weekdayIndex = (adj - 1) % 5;
+
+		return `${weekdays[weekdayIndex]}, ${seasons[seasonIndex]} ${dayOfSeason}, ${year} YOLD`;
+	}
+
 	let clockText = $derived.by(() => {
-		const date = now.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-		const time = now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-		return `${date} ${time}`;
+		const ddate = toDiscordianDate(now);
+		const time = now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit', hour12: false });
+		return `${ddate} — ${time}`;
 	});
 
 	function trapFocus(node: HTMLElement) {
@@ -50,7 +71,6 @@
 			</button>
 		</div>
 		<div class="help-body">
-			<div class="help-clock">{clockText}</div>
 			<section class="help-section">
 				<h3>Getting started</h3>
 				<p>Pane is a local Kanban dashboard for organizing links, notes, and documents into columns. Use <strong>Spaces</strong> to keep separate boards for different projects or topics.</p>
@@ -156,6 +176,7 @@
 					<li>All data stays on your local machine — nothing is sent to the cloud</li>
 				</ul>
 			</section>
+			<div class="help-clock">{clockText}</div>
 			<div class="help-version">Pane v1.2</div>
 		</div>
 	</div>
@@ -215,14 +236,13 @@
 	}
 
 	.help-clock {
-		font-size: 14px;
-		font-weight: 600;
+		font-size: 12px;
 		font-variant-numeric: tabular-nums;
-		color: var(--text-secondary);
+		color: var(--text-muted);
 		text-align: center;
-		padding-bottom: 14px;
-		margin-bottom: 14px;
-		border-bottom: 1px solid var(--border);
+		margin-top: 16px;
+		padding-top: 14px;
+		border-top: 1px solid var(--border);
 	}
 
 	.help-body {
@@ -276,9 +296,7 @@
 	}
 
 	.help-version {
-		margin-top: 16px;
-		padding-top: 14px;
-		border-top: 1px solid var(--border);
+		margin-top: 4px;
 		font-size: 12px;
 		color: var(--text-muted);
 		text-align: center;
