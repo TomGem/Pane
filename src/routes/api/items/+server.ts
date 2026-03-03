@@ -2,7 +2,13 @@ import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getSpaceDb } from '$lib/server/space';
 import { getGlobalDb } from '$lib/server/db';
-import type { Item, Tag } from '$lib/types';
+import { getTagsForItem, attachTagsBatched } from '$lib/server/tags';
+import type { Item } from '$lib/types';
+
+const VALID_ITEM_TYPES = ['link', 'note', 'document'];
+const MAX_TITLE_LENGTH = 1000;
+const MAX_CONTENT_LENGTH = 500_000;
+const MAX_DESCRIPTION_LENGTH = 5000;
 
 function isPrivateUrl(urlStr: string): boolean {
 	try {
@@ -121,21 +127,6 @@ async function fetchPageMeta(url: string): Promise<{ title: string | null; descr
 	}
 }
 
-function getTagsForItem(spaceDb: ReturnType<typeof getSpaceDb>, itemId: number): Tag[] {
-	const tagIds = spaceDb.prepare('SELECT tag_id FROM item_tags WHERE item_id = ?').all(itemId) as { tag_id: number }[];
-	if (tagIds.length === 0) return [];
-	const globalDb = getGlobalDb();
-	const placeholders = tagIds.map(() => '?').join(',');
-	return globalDb.prepare(`SELECT id, name, color FROM tags WHERE id IN (${placeholders})`).all(...tagIds.map(r => r.tag_id)) as Tag[];
-}
-
-function attachTags(spaceDb: ReturnType<typeof getSpaceDb>, items: Item[]): Item[] {
-	return items.map((item) => ({
-		...item,
-		tags: getTagsForItem(spaceDb, item.id)
-	}));
-}
-
 export const GET: RequestHandler = async ({ url }) => {
 	try {
 		const db = getSpaceDb(url);
@@ -171,7 +162,7 @@ export const GET: RequestHandler = async ({ url }) => {
 		query += ' ORDER BY sort_order';
 
 		const items = db.prepare(query).all(...params) as Item[];
-		const itemsWithTags = attachTags(db, items);
+		const itemsWithTags = attachTagsBatched(db, items);
 
 		return json(itemsWithTags);
 	} catch (err) {
@@ -187,6 +178,20 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		if (!category_id || !type || !rawTitle) {
 			return json({ error: 'category_id, type, and title are required' }, { status: 400 });
+		}
+
+		if (!VALID_ITEM_TYPES.includes(type)) {
+			return json({ error: `Invalid type: must be one of ${VALID_ITEM_TYPES.join(', ')}` }, { status: 400 });
+		}
+
+		if (typeof rawTitle === 'string' && rawTitle.length > MAX_TITLE_LENGTH) {
+			return json({ error: `Title exceeds maximum length of ${MAX_TITLE_LENGTH} characters` }, { status: 400 });
+		}
+		if (typeof content === 'string' && content.length > MAX_CONTENT_LENGTH) {
+			return json({ error: `Content exceeds maximum length of ${MAX_CONTENT_LENGTH} characters` }, { status: 400 });
+		}
+		if (typeof description === 'string' && description.length > MAX_DESCRIPTION_LENGTH) {
+			return json({ error: `Description exceeds maximum length of ${MAX_DESCRIPTION_LENGTH} characters` }, { status: 400 });
 		}
 
 		let title = rawTitle;

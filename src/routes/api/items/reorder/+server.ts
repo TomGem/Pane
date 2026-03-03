@@ -1,6 +1,7 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
+import { getSpaceSlug } from '$lib/server/space';
+import { getDb } from '$lib/server/db';
 import { moveFile } from '$lib/server/storage';
 import type { Item, Category, ReorderMove } from '$lib/types';
 
@@ -13,7 +14,7 @@ export const PUT: RequestHandler = async ({ request, url }) => {
 		}
 
 		const spaceSlug = getSpaceSlug(url);
-		const db = getSpaceDb(url);
+		const db = getDb(spaceSlug);
 
 		// Collect file moves to perform outside the transaction
 		const fileMoves: { item: Item; newCategorySlug: string; moveId: number }[] = [];

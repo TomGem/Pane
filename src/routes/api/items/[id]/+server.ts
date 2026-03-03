@@ -1,24 +1,17 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
-import { getGlobalDb } from '$lib/server/db';
+import { getSpaceSlug } from '$lib/server/space';
+import { getDb, getGlobalDb } from '$lib/server/db';
 import { moveFile, deleteFile } from '$lib/server/storage';
-import type { Item, Tag, Category } from '$lib/types';
-
-function getTagsForItem(spaceDb: ReturnType<typeof getSpaceDb>, itemId: number): Tag[] {
-	const tagIds = spaceDb.prepare('SELECT tag_id FROM item_tags WHERE item_id = ?').all(itemId) as { tag_id: number }[];
-	if (tagIds.length === 0) return [];
-	const globalDb = getGlobalDb();
-	const placeholders = tagIds.map(() => '?').join(',');
-	return globalDb.prepare(`SELECT id, name, color FROM tags WHERE id IN (${placeholders})`).all(...tagIds.map(r => r.tag_id)) as Tag[];
-}
+import { getTagsForItem } from '$lib/server/tags';
+import type { Item, Category } from '$lib/types';
 
 export const GET: RequestHandler = async ({ params, url }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
 
-		const db = getSpaceDb(url);
+		const db = getDb(getSpaceSlug(url));
 		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 
 		if (!item) {
@@ -44,7 +37,7 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 		const { title, content, description, category_id, is_pinned, tags, favicon_url } = body;
 
 		const spaceSlug = getSpaceSlug(url);
-		const db = getSpaceDb(url);
+		const db = getDb(spaceSlug);
 
 		const existing = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 		if (!existing) {
@@ -120,7 +113,7 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
 
 		const spaceSlug = getSpaceSlug(url);
-		const db = getSpaceDb(url);
+		const db = getDb(spaceSlug);
 
 		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 		if (!item) {

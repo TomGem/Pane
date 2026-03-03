@@ -1,16 +1,20 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
+import { getSpaceSlug } from '$lib/server/space';
+import { getDb } from '$lib/server/db';
 import { slugify } from '$lib/utils/slugify';
 import { deleteCategoryDir, renameCategoryDir } from '$lib/server/storage';
 import type { Category, Item } from '$lib/types';
+
+const MAX_NAME_LENGTH = 255;
+const MAX_COLOR_LENGTH = 50;
 
 export const GET: RequestHandler = async ({ params, url }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid category id' }, { status: 400 });
 
-		const db = getSpaceDb(url);
+		const db = getDb(getSpaceSlug(url));
 		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(numId) as Category | undefined;
 
 		if (!category) {
@@ -36,8 +40,15 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			return json({ error: 'Name and color are required' }, { status: 400 });
 		}
 
+		if (typeof name === 'string' && name.length > MAX_NAME_LENGTH) {
+			return json({ error: `Name exceeds maximum length of ${MAX_NAME_LENGTH} characters` }, { status: 400 });
+		}
+		if (typeof color === 'string' && color.length > MAX_COLOR_LENGTH) {
+			return json({ error: `Color exceeds maximum length of ${MAX_COLOR_LENGTH} characters` }, { status: 400 });
+		}
+
 		const spaceSlug = getSpaceSlug(url);
-		const db = getSpaceDb(url);
+		const db = getDb(spaceSlug);
 		const slug = slugify(name);
 
 		const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId) as Category | undefined;
@@ -119,7 +130,7 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 		if (isNaN(numId)) return json({ error: 'Invalid category id' }, { status: 400 });
 
 		const spaceSlug = getSpaceSlug(url);
-		const db = getSpaceDb(url);
+		const db = getDb(spaceSlug);
 
 		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(numId) as Category | undefined;
 		if (!category) {

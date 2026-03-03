@@ -66,9 +66,14 @@
 	app.setFocusSearch(focusSearch);
 
 	async function handleDeleteSpace(slug: string) {
+		spaceError = null;
 		try {
 			const res = await fetch(`/api/spaces/${slug}`, { method: 'DELETE' });
-			if (!res.ok) return;
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({ error: 'Failed to delete space' }));
+				spaceError = data.error || 'Failed to delete space';
+				return;
+			}
 			confirmDeleteSlug = null;
 			showSpaceMenu = false;
 			// Navigate to another space if we deleted the current one
@@ -79,12 +84,15 @@
 				// Reload to refresh the spaces list
 				location.reload();
 			}
-		} catch { /* ignore */ }
+		} catch {
+			confirmDeleteSlug = null;
+		}
 	}
 
 	async function handleCreateSpace() {
 		const name = newSpaceName.trim();
 		if (!name) return;
+		spaceError = null;
 		try {
 			const res = await fetch('/api/spaces', {
 				method: 'POST',
@@ -92,13 +100,21 @@
 				body: JSON.stringify({ name })
 			});
 			const data = await res.json();
-			if (!res.ok) return;
+			if (!res.ok) {
+				spaceError = data.error || 'Failed to create space';
+				return;
+			}
 			creatingSpace = false;
 			newSpaceName = '';
 			showSpaceMenu = false;
 			goto(`/s/${data.slug}`);
-		} catch { /* ignore */ }
+		} catch {
+			creatingSpace = false;
+			newSpaceName = '';
+		}
 	}
+
+	let spaceError = $state<string | null>(null);
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && showExportImport) {
@@ -136,9 +152,11 @@
 		<div class="space-selector-wrapper">
 			<button
 				class="space-switcher-btn"
-				onclick={() => showSpaceMenu = !showSpaceMenu}
+				onclick={() => { showSpaceMenu = !showSpaceMenu; spaceError = null; }}
 				title="Switch space"
 				aria-label="Switch space"
+				aria-expanded={showSpaceMenu}
+				aria-haspopup="true"
 			>
 				<span class="space-switcher-name">{spaceName}</span>
 				<svg class="space-chevron" class:open={showSpaceMenu} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -191,7 +209,10 @@
 							{/if}
 						{/each}
 					</div>
-					<div class="space-menu-footer">
+					{#if spaceError}
+					<div class="space-menu-error">{spaceError}</div>
+				{/if}
+				<div class="space-menu-footer">
 						{#if creatingSpace}
 							<form class="space-create-form" onsubmit={(e) => { e.preventDefault(); handleCreateSpace(); }}>
 								<input
@@ -246,6 +267,8 @@
 					class:has-selection={selectedTagIds.length > 0}
 					title="Filter by tags"
 					aria-label="Filter by tags"
+					aria-expanded={showTagMenu}
+					aria-haspopup="true"
 					onclick={() => showTagMenu = !showTagMenu}
 				>
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -577,6 +600,13 @@
 
 	.space-menu-confirm-btn.delete:hover {
 		opacity: 0.9;
+	}
+
+	.space-menu-error {
+		padding: 6px 12px;
+		font-size: 12px;
+		color: var(--danger, #ef4444);
+		border-top: 1px solid var(--border);
 	}
 
 	.space-menu-footer {

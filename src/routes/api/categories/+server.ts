@@ -4,6 +4,9 @@ import { getSpaceDb } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
 import type { Category } from '$lib/types';
 
+const MAX_NAME_LENGTH = 255;
+const MAX_COLOR_LENGTH = 50;
+
 export const GET: RequestHandler = async ({ url }) => {
 	try {
 		const db = getSpaceDb(url);
@@ -48,6 +51,13 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		if (!name || !color) {
 			return json({ error: 'Name and color are required' }, { status: 400 });
+		}
+
+		if (typeof name === 'string' && name.length > MAX_NAME_LENGTH) {
+			return json({ error: `Name exceeds maximum length of ${MAX_NAME_LENGTH} characters` }, { status: 400 });
+		}
+		if (typeof color === 'string' && color.length > MAX_COLOR_LENGTH) {
+			return json({ error: `Color exceeds maximum length of ${MAX_COLOR_LENGTH} characters` }, { status: 400 });
 		}
 
 		const db = getSpaceDb(url);

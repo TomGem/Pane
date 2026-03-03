@@ -2,13 +2,12 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { listSpaces, createDb, validateSpaceSlug, slugExists } from '$lib/server/db';
 import { ensureSpaceDir } from '$lib/server/storage';
+import { slugify } from '$lib/utils/slugify';
+
+const MAX_NAME_LENGTH = 255;
 
 function generateSlug(name: string): string {
-	return name
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '')
-		.slice(0, 64) || 'space';
+	return slugify(name).slice(0, 64) || 'space';
 }
 
 export const GET: RequestHandler = async () => {
@@ -27,6 +26,10 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		if (!name || typeof name !== 'string' || !name.trim()) {
 			return json({ error: 'Name is required' }, { status: 400 });
+		}
+
+		if (name.trim().length > MAX_NAME_LENGTH) {
+			return json({ error: `Name exceeds maximum length of ${MAX_NAME_LENGTH} characters` }, { status: 400 });
 		}
 
 		let slug = generateSlug(name.trim());

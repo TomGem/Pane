@@ -3,6 +3,9 @@ import type { RequestHandler } from './$types';
 import { getGlobalDb } from '$lib/server/db';
 import type { Tag } from '$lib/types';
 
+const MAX_NAME_LENGTH = 255;
+const MAX_COLOR_LENGTH = 50;
+
 export const PUT: RequestHandler = async ({ params, request }) => {
 	try {
 		const numId = Number(params.id);
@@ -12,6 +15,13 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 
 		if (!name || !color) {
 			return json({ error: 'Name and color are required' }, { status: 400 });
+		}
+
+		if (typeof name === 'string' && name.length > MAX_NAME_LENGTH) {
+			return json({ error: `Name exceeds maximum length of ${MAX_NAME_LENGTH} characters` }, { status: 400 });
+		}
+		if (typeof color === 'string' && color.length > MAX_COLOR_LENGTH) {
+			return json({ error: `Color exceeds maximum length of ${MAX_COLOR_LENGTH} characters` }, { status: 400 });
 		}
 
 		const db = getGlobalDb();

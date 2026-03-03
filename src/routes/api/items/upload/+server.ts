@@ -1,6 +1,7 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb, getSpaceSlug } from '$lib/server/space';
+import { getSpaceSlug } from '$lib/server/space';
+import { getDb } from '$lib/server/db';
 import { saveFile, deleteFile } from '$lib/server/storage';
 import type { Item, Category } from '$lib/types';
 
@@ -29,7 +30,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		const numCategoryId = Number(categoryId);
 		const spaceSlug = getSpaceSlug(url);
-		const db = getSpaceDb(url);
+		const db = getDb(spaceSlug);
 
 		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(numCategoryId) as Category | undefined;
 		if (!category) {

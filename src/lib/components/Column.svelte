@@ -186,7 +186,7 @@
 				</svg>
 			</button>
 			<div class="menu-wrapper">
-				<button class="btn-icon" onclick={() => showMenu = !showMenu} aria-label="Column menu" title="Column menu">
+				<button class="btn-icon" onclick={() => showMenu = !showMenu} aria-label="Column menu" title="Column menu" aria-expanded={showMenu} aria-haspopup="menu">
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<circle cx="12" cy="12" r="1" />
 						<circle cx="12" cy="5" r="1" />

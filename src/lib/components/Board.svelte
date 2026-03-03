@@ -32,7 +32,7 @@
 
 	function handleColumnFinalize(e: CustomEvent<{ items: CategoryWithItems[] }>) {
 		board.columns = e.detail.items;
-		board.reorderCategories(e.detail.items.map((c) => c.id));
+		board.reorderCategories(e.detail.items.map((c) => c.id)).catch(() => board.refresh());
 	}
 
 	function handleItemsUpdate(categoryId: number, items: Item[]) {
@@ -44,7 +44,7 @@
 				sort_order: index + 1
 			}))
 		);
-		board.reorderItems(moves);
+		board.reorderItems(moves).catch(() => board.refresh());
 	}
 
 	async function handleDropUrl(url: string, categoryId: number) {
