@@ -6,6 +6,7 @@
 	import CategoryForm from '$lib/components/CategoryForm.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { createBoardStore } from '$lib/stores/board.svelte';
+	import { getDirectoryEntries, traverseDirectory } from '$lib/utils/folder-drop';
 	import { getContext } from 'svelte';
 	import type { CategoryWithItems, Item, Tag, Space } from '$lib/types';
 	import { page } from '$app/stores';
@@ -238,6 +239,48 @@
 		}
 	}
 
+	// Folder drop on empty board
+	let emptyBoardDragOver = $state(false);
+
+	function handleEmptyDragEnter(e: DragEvent) {
+		if (e.dataTransfer?.types.includes('Files')) {
+			e.preventDefault();
+			emptyBoardDragOver = true;
+		}
+	}
+
+	function handleEmptyDragOver(e: DragEvent) {
+		if (e.dataTransfer?.types.includes('Files')) {
+			e.preventDefault();
+			if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+		}
+	}
+
+	function handleEmptyDragLeave(e: DragEvent) {
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		if (e.clientX <= rect.left || e.clientX >= rect.right || e.clientY <= rect.top || e.clientY >= rect.bottom) {
+			emptyBoardDragOver = false;
+		}
+	}
+
+	async function handleEmptyDrop(e: DragEvent) {
+		emptyBoardDragOver = false;
+		if (!e.dataTransfer) return;
+		const dirs = getDirectoryEntries(e.dataTransfer);
+		if (dirs.length === 0) return;
+		e.preventDefault();
+		for (const entry of dirs) {
+			try {
+				const folder = await traverseDirectory(entry);
+				const stats = await board.importFolder(folder);
+				toast(`Imported ${stats.categories} ${stats.categories === 1 ? 'category' : 'categories'} and ${stats.items} ${stats.items === 1 ? 'item' : 'items'}`);
+			} catch (err) {
+				console.error(`Failed to import folder "${entry.name}":`, err);
+				toast(err instanceof Error ? err.message : `Failed to import "${entry.name}"`, 'error');
+			}
+		}
+	}
+
 	// Keyboard shortcuts
 	function handleKeydown(e: KeyboardEvent) {
 		const modalOpen = showItemModal || showCategoryModal || showDeleteConfirm;
@@ -283,26 +326,42 @@
 	<Breadcrumb segments={board.breadcrumb} onnavigate={handleBreadcrumbNavigate} />
 
 	{#if board.columns.length === 0}
-		<div class="empty-board">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="empty-board"
+			class:empty-board-drag-over={emptyBoardDragOver}
+			ondragenter={handleEmptyDragEnter}
+			ondragover={handleEmptyDragOver}
+			ondragleave={handleEmptyDragLeave}
+			ondrop={handleEmptyDrop}
+		>
 			<div class="empty-board-content glass">
-				<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-					<rect x="3" y="3" width="7" height="7" />
-					<rect x="14" y="3" width="7" height="7" />
-					<rect x="3" y="14" width="7" height="7" />
-					<rect x="14" y="14" width="7" height="7" />
-				</svg>
-				<h2>{isNested ? 'No subcategories yet' : 'No categories yet'}</h2>
-				<p>{isNested ? 'Create a subcategory to organize this level' : 'Create your first category to get started'}</p>
-				<button class="btn btn-primary" onclick={handleAddCategory}>
-					{isNested ? 'Create Subcategory' : 'Create Category'}
-				</button>
-				{#if !isNested}
-					<div class="empty-board-divider">
-						<span>or</span>
-					</div>
-					<button class="btn btn-outline" onclick={handleLoadSampleData} disabled={loadingSampleData}>
-						{loadingSampleData ? 'Loading...' : 'Load Sample Data'}
+				{#if emptyBoardDragOver}
+					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+					</svg>
+					<h2>Drop folder to create category</h2>
+					<p>Subfolders will become subcategories</p>
+				{:else}
+					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+						<rect x="3" y="3" width="7" height="7" />
+						<rect x="14" y="3" width="7" height="7" />
+						<rect x="3" y="14" width="7" height="7" />
+						<rect x="14" y="14" width="7" height="7" />
+					</svg>
+					<h2>{isNested ? 'No subcategories yet' : 'No categories yet'}</h2>
+					<p>{isNested ? 'Create a subcategory to organize this level' : 'Create your first category to get started, or drop a folder here'}</p>
+					<button class="btn btn-primary" onclick={handleAddCategory}>
+						{isNested ? 'Create Subcategory' : 'Create Category'}
 					</button>
+					{#if !isNested}
+						<div class="empty-board-divider">
+							<span>or</span>
+						</div>
+						<button class="btn btn-outline" onclick={handleLoadSampleData} disabled={loadingSampleData}>
+							{loadingSampleData ? 'Loading...' : 'Load Sample Data'}
+						</button>
+					{/if}
 				{/if}
 			</div>
 		</div>
@@ -320,6 +379,8 @@
 			onaddsubcategory={handleAddSubcategory}
 			onmovecategory={($page.data.spaces as Space[]).length > 1 ? handleMoveCategory : undefined}
 			ondrilldown={handleDrillDown}
+			onfolderimported={(stats) => toast(`Imported ${stats.categories} ${stats.categories === 1 ? 'category' : 'categories'} and ${stats.items} ${stats.items === 1 ? 'item' : 'items'}`)}
+			onfoldererror={(error) => toast(error, 'error')}
 		/>
 	{/if}
 </div>
@@ -411,6 +472,14 @@
 		align-items: center;
 		justify-content: center;
 		min-height: 60vh;
+		border-radius: var(--radius-lg);
+		transition: outline-color 0.15s ease;
+	}
+
+	.empty-board.empty-board-drag-over {
+		outline: 2px dashed var(--accent);
+		outline-offset: -2px;
+		background: rgba(99, 102, 241, 0.04);
 	}
 
 	.empty-board-content {

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { dndzone } from 'svelte-dnd-action';
 	import Column from './Column.svelte';
+	import { getDirectoryEntries, traverseDirectory } from '$lib/utils/folder-drop';
+	import { extractWeblocUrl } from '$lib/utils/webloc';
 	import type { CategoryWithItems, Item } from '$lib/types';
 	import type { BoardStore } from '$lib/stores/board.svelte';
 
@@ -17,9 +19,11 @@
 		onaddsubcategory?: (category: CategoryWithItems) => void;
 		onmovecategory?: (category: CategoryWithItems) => void;
 		ondrilldown?: (categoryId: number) => void;
+		onfolderimported?: (stats: { categories: number; items: number }) => void;
+		onfoldererror?: (error: string) => void;
 	}
 
-	let { board, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], onitemedit, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, onmovecategory, ondrilldown }: Props = $props();
+	let { board, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], onitemedit, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, onmovecategory, ondrilldown, onfolderimported, onfoldererror }: Props = $props();
 
 	function handleColumnConsider(e: CustomEvent<{ items: CategoryWithItems[] }>) {
 		board.columns = e.detail.items;
@@ -67,33 +71,51 @@
 		await board.uploadFile(file, categoryId);
 	}
 
-	async function extractWeblocUrl(file: File): Promise<string | null> {
-		// Try XML plist first
-		const text = await file.text();
-		try {
-			const doc = new DOMParser().parseFromString(text, 'text/xml');
-			const keys = doc.getElementsByTagName('key');
-			for (let i = 0; i < keys.length; i++) {
-				if (keys[i].textContent === 'URL') {
-					const sibling = keys[i].nextElementSibling;
-					if (sibling?.tagName === 'string' && sibling.textContent) {
-						return sibling.textContent;
-					}
-				}
+	async function handleDropFolder(entries: FileSystemDirectoryEntry[]) {
+		for (const entry of entries) {
+			try {
+				const folder = await traverseDirectory(entry);
+				const stats = await board.importFolder(folder);
+				onfolderimported?.(stats);
+			} catch (e) {
+				console.error(`Failed to import folder "${entry.name}":`, e);
+				onfoldererror?.(e instanceof Error ? e.message : `Failed to import "${entry.name}"`);
 			}
-		} catch { /* not XML */ }
-		const xmlMatch = text.match(/<string>(https?:\/\/[^<]+)<\/string>/);
-		if (xmlMatch) return xmlMatch[1];
-
-		// Binary plist: scan raw bytes for an ASCII URL
-		const bytes = new Uint8Array(await file.arrayBuffer());
-		let ascii = '';
-		for (let i = 0; i < bytes.length; i++) {
-			const b = bytes[i];
-			ascii += b >= 0x20 && b < 0x7f ? String.fromCharCode(b) : ' ';
 		}
-		const binMatch = ascii.match(/https?:\/\/[^\s]+/);
-		return binMatch?.[0] ?? null;
+	}
+
+	// Board-level folder drop (for drops on the background, between columns)
+	let boardDragOver = $state(false);
+
+	function handleBoardDragEnter(e: DragEvent) {
+		if (e.dataTransfer?.types.includes('Files')) {
+			e.preventDefault();
+			boardDragOver = true;
+		}
+	}
+
+	function handleBoardDragOver(e: DragEvent) {
+		if (e.dataTransfer?.types.includes('Files')) {
+			e.preventDefault();
+			if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+		}
+	}
+
+	function handleBoardDragLeave(e: DragEvent) {
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		if (e.clientX <= rect.left || e.clientX >= rect.right || e.clientY <= rect.top || e.clientY >= rect.bottom) {
+			boardDragOver = false;
+		}
+	}
+
+	function handleBoardDrop(e: DragEvent) {
+		boardDragOver = false;
+		if (!e.dataTransfer) return;
+		const dirs = getDirectoryEntries(e.dataTransfer);
+		if (dirs.length > 0) {
+			e.preventDefault();
+			handleDropFolder(dirs);
+		}
 	}
 
 	function itemMatchesSearch(item: Item, q: string): boolean {
@@ -148,8 +170,10 @@
 	}
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	class="board"
+	class:board-drag-over={boardDragOver}
 	use:dndzone={{
 		items: board.columns,
 		flipDurationMs: 200,
@@ -159,6 +183,10 @@
 	}}
 	onconsider={handleColumnConsider}
 	onfinalize={handleColumnFinalize}
+	ondragenter={handleBoardDragEnter}
+	ondragover={handleBoardDragOver}
+	ondragleave={handleBoardDragLeave}
+	ondrop={handleBoardDrop}
 >
 	{#each board.columns as column (column.id)}
 		{@const visible = columnHasMatch(column, searchQuery, selectedTagIds)}
@@ -180,20 +208,55 @@
 				onmovecategory={onmovecategory}
 				ondropurl={handleDropUrl}
 				ondropfile={handleDropFile}
+				ondropfolder={handleDropFolder}
 				{ondrilldown}
 			/>
 		</div>
 	{/each}
+
+	{#if boardDragOver}
+		<div class="board-drop-overlay">
+			<div class="board-drop-label">Drop folder to create category</div>
+		</div>
+	{/if}
 </div>
 
 <style>
 	.board {
+		position: relative;
 		display: flex;
 		flex-wrap: wrap;
 		gap: 16px;
 		padding: 4px;
 		min-height: 200px;
 		align-items: flex-start;
+	}
+
+	.board.board-drag-over {
+		outline: 2px dashed var(--accent);
+		outline-offset: -2px;
+		border-radius: var(--radius-lg);
+	}
+
+	.board-drop-overlay {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(99, 102, 241, 0.06);
+		border-radius: var(--radius-lg);
+		pointer-events: none;
+		z-index: 10;
+	}
+
+	.board-drop-label {
+		font-size: 15px;
+		font-weight: 600;
+		color: var(--accent);
+		background: var(--bg-glass-strong);
+		padding: 10px 20px;
+		border-radius: var(--radius);
 	}
 
 	.search-hidden {

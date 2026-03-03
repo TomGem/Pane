@@ -2,6 +2,7 @@
 	import { dndzone } from 'svelte-dnd-action';
 	import Card from './Card.svelte';
 	import SubcategoryCard from './SubcategoryCard.svelte';
+	import { getDirectoryEntries } from '$lib/utils/folder-drop';
 	import type { CategoryWithItems, Item } from '$lib/types';
 
 	interface Props {
@@ -21,6 +22,7 @@
 		onmovecategory?: (category: CategoryWithItems) => void;
 		ondropurl?: (url: string, categoryId: number) => void;
 		ondropfile?: (file: File, categoryId: number) => void;
+		ondropfolder?: (entries: FileSystemDirectoryEntry[]) => void;
 		ondrilldown?: (categoryId: number) => void;
 	}
 
@@ -41,6 +43,7 @@
 		onmovecategory,
 		ondropurl,
 		ondropfile,
+		ondropfolder,
 		ondrilldown
 	}: Props = $props();
 
@@ -125,6 +128,14 @@
 		if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
 			e.preventDefault();
 			ondropurl?.(url, category.id);
+			return;
+		}
+
+		// Check for directory drops (before file drops)
+		const dirs = getDirectoryEntries(e.dataTransfer);
+		if (dirs.length > 0) {
+			e.preventDefault();
+			ondropfolder?.(dirs);
 			return;
 		}
 

@@ -1,5 +1,7 @@
 import type { CategoryWithItems, Category, Item, Tag, ReorderMove, BreadcrumbSegment } from '$lib/types';
+import type { FolderStructure } from '$lib/utils/folder-drop';
 import { api } from '$lib/utils/api';
+import { extractWeblocUrl } from '$lib/utils/webloc';
 
 function spaceParam(spaceSlug: string): string {
 	return `space=${encodeURIComponent(spaceSlug)}`;
@@ -172,6 +174,114 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		await refresh();
 	}
 
+	// Folder import
+	const folderColors = ['#6366f1', '#3b82f6', '#14b8a6', '#22c55e', '#f97316', '#ef4444', '#ec4899', '#6b7280'];
+	let colorIndex = 0;
+	function nextColor(): string {
+		const color = folderColors[colorIndex % folderColors.length];
+		colorIndex++;
+		return color;
+	}
+
+	async function importFileToCategory(file: File, categoryId: number): Promise<void> {
+		const name = file.name.toLowerCase();
+
+		if (name.endsWith('.webloc')) {
+			const url = await extractWeblocUrl(file);
+			if (url) {
+				let title = url;
+				try {
+					const u = new URL(url);
+					title = u.hostname + u.pathname;
+				} catch { /* keep raw url as title */ }
+				await api<Item>(withSpace('/api/items', spaceSlug), {
+					method: 'POST',
+					body: JSON.stringify({ category_id: categoryId, type: 'link', title, content: url, fetch_title: true })
+				});
+				return;
+			}
+		}
+
+		if (name.endsWith('.md')) {
+			const content = await file.text();
+			const title = file.name.replace(/\.md$/i, '');
+			await api<Item>(withSpace('/api/items', spaceSlug), {
+				method: 'POST',
+				body: JSON.stringify({ category_id: categoryId, type: 'note', title, content })
+			});
+			return;
+		}
+
+		// Document upload
+		const form = new FormData();
+		form.append('file', file);
+		form.append('category_id', String(categoryId));
+		const res = await fetch(withSpace('/api/items/upload', spaceSlug), { method: 'POST', body: form });
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+			throw new Error(err.error ?? 'Upload failed');
+		}
+	}
+
+	async function createCategoryWithRetry(name: string, color: string, parentId: number | null): Promise<Category> {
+		let attempt = name;
+		for (let i = 2; i <= 10; i++) {
+			try {
+				return await api<Category>(withSpace('/api/categories', spaceSlug), {
+					method: 'POST',
+					body: JSON.stringify({ name: attempt, color, parent_id: parentId })
+				});
+			} catch (e: unknown) {
+				const is409 = e instanceof Error && e.message.includes('409');
+				if (!is409) throw e;
+				attempt = `${name} (${i})`;
+			}
+		}
+		throw new Error(`Could not create category "${name}" — too many name collisions`);
+	}
+
+	async function importFolder(folder: FolderStructure): Promise<{ categories: number; items: number }> {
+		let totalCategories = 0;
+		let totalItems = 0;
+		const color = nextColor();
+
+		// Create main category
+		const mainCat = await createCategoryWithRetry(folder.name, color, currentParentId);
+		totalCategories++;
+
+		// Import root-level files
+		for (const file of folder.files) {
+			try {
+				await importFileToCategory(file, mainCat.id);
+				totalItems++;
+			} catch (e) {
+				console.error(`Failed to import file "${file.name}":`, e);
+			}
+		}
+
+		// Import subfolders as subcategories
+		for (const [subName, files] of folder.subfolders) {
+			try {
+				const subColor = nextColor();
+				const subCat = await createCategoryWithRetry(subName, subColor, mainCat.id);
+				totalCategories++;
+				for (const file of files) {
+					try {
+						await importFileToCategory(file, subCat.id);
+						totalItems++;
+					} catch (e) {
+						console.error(`Failed to import file "${file.name}" into "${subName}":`, e);
+					}
+				}
+			} catch (e) {
+				console.error(`Failed to create subcategory "${subName}":`, e);
+			}
+		}
+
+		await refresh();
+		return { categories: totalCategories, items: totalItems };
+	}
+
 	// Tags
 	async function addTag(name: string, color: string) {
 		const tag = await api<Tag>('/api/tags', {
@@ -222,6 +332,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		uploadFile,
 		addLink,
 		moveCategoryToSpace,
+		importFolder,
 		addTag,
 		updateTag
 	};
