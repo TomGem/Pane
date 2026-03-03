@@ -65,8 +65,10 @@
 				<h3>Spaces</h3>
 				<ul>
 					<li>Click <strong>Pane</strong> in the toolbar to go to the Spaces dashboard</li>
-					<li>Each space has its own categories, items, tags, and files</li>
+					<li>Use the <strong>space switcher</strong> dropdown to jump between spaces directly</li>
+					<li>Each space has its own categories, items, and files</li>
 					<li>Create, rename, or delete spaces from the Spaces dashboard</li>
+					<li><strong>Move categories</strong> between spaces from the column menu</li>
 				</ul>
 			</section>
 			<section class="help-section">
@@ -81,10 +83,19 @@
 			<section class="help-section">
 				<h3>Tags &amp; filtering</h3>
 				<ul>
+					<li>Tags are <strong>shared across all spaces</strong></li>
 					<li>Assign tags to items when creating or editing them</li>
+					<li>Edit tag names and colours from the <strong>tag dropdown</strong> in the toolbar</li>
 					<li>Click a <strong>tag badge</strong> on a card to filter by that tag</li>
-					<li>Use the <strong>tag dropdown</strong> next to the search box to filter by multiple tags</li>
+					<li>Use the tag dropdown to filter by multiple tags at once</li>
 					<li>Search and tag filters combine — both must match</li>
+				</ul>
+			</section>
+			<section class="help-section">
+				<h3>Links &amp; metadata</h3>
+				<ul>
+					<li>When you add a link, the page title, description, and <strong>favicon</strong> are fetched automatically</li>
+					<li>Favicons appear on link cards for quick visual identification</li>
 				</ul>
 			</section>
 			<section class="help-section">
@@ -92,6 +103,14 @@
 				<ul>
 					<li>Notes support <strong>markdown</strong> formatting — headings, bold, lists, code blocks, and more</li>
 					<li>Click a note card to open it in a full-screen reader</li>
+				</ul>
+			</section>
+			<section class="help-section">
+				<h3>Documents &amp; media</h3>
+				<ul>
+					<li>Upload files up to <strong>100 MB</strong> per document</li>
+					<li><strong>PDFs</strong> are displayed inline in a full-screen overlay</li>
+					<li>Images, videos, and audio files play natively in the viewer</li>
 				</ul>
 			</section>
 			<section class="help-section">
@@ -116,6 +135,15 @@
 				</div>
 			</section>
 			<section class="help-section">
+				<h3>Export &amp; import</h3>
+				<ul>
+					<li>Open <strong>Settings</strong> (gear icon) and click <strong>Export &amp; Import</strong></li>
+					<li>Export one or more spaces as a ZIP archive, optionally including files</li>
+					<li>Import a ZIP to restore or transfer spaces between machines</li>
+					<li>Choose how to handle conflicts: <strong>skip</strong>, <strong>rename</strong>, or <strong>replace</strong></li>
+				</ul>
+			</section>
+			<section class="help-section">
 				<h3>Appearance</h3>
 				<ul>
 					<li>Toggle between <strong>light</strong>, <strong>dark</strong>, and <strong>system</strong> themes</li>
@@ -128,7 +156,7 @@
 					<li>All data stays on your local machine — nothing is sent to the cloud</li>
 				</ul>
 			</section>
-			<div class="help-version">Pane v1.1</div>
+			<div class="help-version">Pane v1.2</div>
 		</div>
 	</div>
 </div>

@@ -2,10 +2,11 @@
 
 ## Spaces
 
-Pane supports multiple **spaces** — isolated workspaces, each with its own categories, items, tags, and file storage.
+Pane supports multiple **spaces** — isolated workspaces, each with its own categories, items, and file storage. Tags are shared across all spaces.
 
-- Click **Pane** in the toolbar to open the Spaces overview.
-- From there you can switch between spaces, create new ones, rename them, or delete them.
+- The root page is a **Spaces dashboard** showing all your spaces as cards with category and item counts.
+- Click **Pane** in the toolbar to return to the dashboard, or use the **space switcher** dropdown to jump between spaces directly.
+- From the dashboard you can create new spaces, rename them, or delete them.
 - The last space cannot be deleted. If all spaces are removed, a default one is recreated automatically.
 - Each space stores its data in a separate SQLite database (`data/{slug}.db`) and file directory (`storage/{slug}/`).
 
@@ -20,20 +21,24 @@ Categories are the columns on your board.
 
 ### Subcategories
 
-Categories can be nested. From the column menu, choose **Add subcategory** to create a child category. Click the subcategory card to drill down into it. Use the breadcrumb trail at the top to navigate back up.
+Categories can be nested. From the column menu, choose **Add subcategory** to create a child category. Click the subcategory card to drill down into it. A **breadcrumb trail** appears at the top of the board showing the path from root to the current level — click any segment to jump back up.
+
+### Moving categories between spaces
+
+From the column menu, choose **Move to space** to move an entire category (including all subcategories, items, and files) to a different space. Slug collisions are resolved automatically.
 
 ## Items
 
 There are three item types:
 
 ### Links
-Add a URL with a title and optional description. Click a link card to open the URL in a new tab.
+Add a URL with a title and optional description. When you save a link, the server automatically fetches the page title, description, and **favicon** — the favicon is displayed on the card for quick visual identification. Click a link card to open the URL in a new tab.
 
 ### Notes
 Create text notes with full **markdown** support — headings, bold, italic, lists, code blocks, and more. Click a note card to open it in a full-screen reader with rendered markdown.
 
 ### Documents
-Upload files (images, PDFs, etc.) to a category. Click a document card to preview or download it. Files are stored locally in the `storage/` directory.
+Upload files (images, PDFs, etc.) up to **100 MB** per file. Click a document card to preview it in a full-screen overlay — **PDFs are displayed inline**, images and videos play natively, and audio files have a built-in player. Files are stored locally in the `storage/` directory.
 
 ## Adding items
 
@@ -44,14 +49,17 @@ Upload files (images, PDFs, etc.) to a category. Click a document card to previe
 
 ## Tags & filtering
 
+Tags are **shared across all spaces**, so you can use a consistent set of labels everywhere.
+
 - Create tags with custom names and colours when adding or editing items.
+- Edit tag names and colours from the **tag dropdown** in the toolbar.
 - Click a **tag badge** on any card to filter the board by that tag.
-- Use the **tag dropdown** (next to the search box) to filter by multiple tags.
+- Use the **tag dropdown** (next to the search box) to filter by multiple tags at once.
 - Search and tag filters combine — an item must match both to appear.
 
 ## Search
 
-Type in the search box (or press `/` or `Cmd+K`) to filter items across all columns. Search matches against titles, descriptions, and content. Press `Esc` to clear.
+Type in the search box (or press `/` or `Cmd+K`) to filter items across all columns. Search matches against titles, descriptions, and content. When matches are found inside subcategories, those subcategories are automatically expanded so you can see the results. Press `Esc` to clear.
 
 ## Appearance
 
@@ -77,6 +85,15 @@ Both theme and palette preferences are saved to localStorage and persist across 
 ## Sample data
 
 On an empty board, click **Load Sample Data** to populate it with curated content. This is useful for exploring the app's features without creating your own data first.
+
+## Export & import
+
+You can export and import spaces as ZIP archives to back up your data or transfer it between machines.
+
+- Open **Settings** (gear icon) and click **Export & Import**.
+- **Export** one or more spaces (or all spaces at once). Optionally include uploaded files in the archive.
+- **Import** a previously exported ZIP file. Before importing, you get a **preview** of what will be added.
+- When an imported space conflicts with an existing one, choose a conflict mode: **skip** (leave existing), **rename** (auto-suffix the imported space), or **replace** (overwrite the existing space).
 
 ## Privacy
 

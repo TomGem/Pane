@@ -54,7 +54,7 @@ pnpm dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-On first launch a default space called **Pane** is created automatically. You'll see an empty board — click **Load Sample Data** to populate it with curated content, or start creating your own categories.
+On first launch a default space called **Desk** is created automatically. You'll land on the **Spaces dashboard**, which shows all your spaces as cards with category and item counts. Click a space to open its board. On an empty board, click **Load Sample Data** to populate it with curated content, or start creating your own categories.
 
 ## Docker (alternative)
 
