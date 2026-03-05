@@ -82,6 +82,51 @@ Example Apache config (requires `mod_proxy` and `mod_proxy_http`):
 </VirtualHost>
 ```
 
+## Running with pm2
+
+[pm2](https://pm2.keymetrics.io/) is a process manager for Node.js that keeps Pane running in the background and can auto-restart it on reboot.
+
+### Quick start
+
+```bash
+npm install -g pm2
+PORT=3000 HOST=127.0.0.1 pm2 start build/index.js --name pane
+pm2 save
+```
+
+### Using the ecosystem file
+
+An example config is included in the repository:
+
+```bash
+cp ecosystem.config.example.cjs ecosystem.config.cjs
+```
+
+Edit `ecosystem.config.cjs` to set your port, host, and origin, then start with:
+
+```bash
+pm2 start ecosystem.config.cjs
+pm2 save
+```
+
+### Auto-start on reboot
+
+```bash
+pm2 startup
+```
+
+Follow the printed instructions, then run `pm2 save` to persist the process list.
+
+### Useful commands
+
+| Command | Description |
+|---------|-------------|
+| `pm2 status` | Check process status |
+| `pm2 logs pane` | Tail live logs |
+| `pm2 restart pane` | Restart after a rebuild |
+| `pm2 stop pane` | Stop the server |
+| `pm2 delete pane` | Remove from pm2 |
+
 ## Docker
 
 A `Dockerfile` and `docker-compose.yml` are included. Docker is the easiest way to run Pane without installing Node.js or native build tools.
