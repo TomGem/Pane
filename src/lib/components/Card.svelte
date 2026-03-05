@@ -9,10 +9,11 @@
 		item: Item;
 		spaceSlug?: string;
 		onedit?: (item: Item) => void;
+		onrefresh?: (item: Item) => void;
 		ondelete?: (item: Item) => void;
 	}
 
-	let { item, spaceSlug = 'desk', onedit, ondelete }: Props = $props();
+	let { item, spaceSlug = 'desk', onedit, onrefresh, ondelete }: Props = $props();
 
 	const app = getContext<{ toggleTag: (tagId: number) => void }>('app');
 
@@ -119,6 +120,13 @@
 					<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
 				</svg>
 			</button>
+			{#if item.type === 'link'}
+				<button class="btn-icon" onclick={() => onrefresh?.(item)} aria-label="Update link" title="Update link">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+					</svg>
+				</button>
+			{/if}
 			<button class="btn-icon btn-icon-danger" onclick={() => ondelete?.(item)} aria-label="Delete" title="Delete item">
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<polyline points="3 6 5 6 21 6" />

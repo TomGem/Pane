@@ -12,6 +12,7 @@
 		searchQuery?: string;
 		selectedTagIds?: number[];
 		onitemedit?: (item: Item) => void;
+		onitemrefresh?: (item: Item) => void;
 		onitemdelete?: (item: Item) => void;
 		onadditem?: (categoryId: number) => void;
 		oneditcategory?: (category: CategoryWithItems) => void;
@@ -24,7 +25,7 @@
 		onprogress?: (current: number, total: number, fileName: string) => void;
 	}
 
-	let { board, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], onitemedit, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, onmovecategory, ondrilldown, onfolderimported, onfoldererror, onprogress }: Props = $props();
+	let { board, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], onitemedit, onitemrefresh, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, onmovecategory, ondrilldown, onfolderimported, onfoldererror, onprogress }: Props = $props();
 
 	function handleColumnConsider(e: CustomEvent<{ items: CategoryWithItems[] }>) {
 		board.columns = e.detail.items;
@@ -203,6 +204,7 @@
 				{matchingSubcategoryIds}
 				onitemsupdate={handleItemsUpdate}
 				onitemedit={onitemedit}
+				onitemrefresh={onitemrefresh}
 				onitemdelete={onitemdelete}
 				onadditem={onadditem}
 				oneditcategory={oneditcategory}

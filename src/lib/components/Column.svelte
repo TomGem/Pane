@@ -14,6 +14,7 @@
 		matchingSubcategoryIds?: Set<number>;
 		onitemsupdate?: (categoryId: number, items: Item[]) => void;
 		onitemedit?: (item: Item) => void;
+		onitemrefresh?: (item: Item) => void;
 		onitemdelete?: (item: Item) => void;
 		onadditem?: (categoryId: number) => void;
 		oneditcategory?: (category: CategoryWithItems) => void;
@@ -35,6 +36,7 @@
 		matchingSubcategoryIds = new Set(),
 		onitemsupdate,
 		onitemedit,
+		onitemrefresh,
 		onitemdelete,
 		onadditem,
 		oneditcategory,
@@ -211,7 +213,7 @@
 		{#if category.children && category.children.length > 0}
 			<div class="subcategory-list">
 				{#each category.children as child (child.id)}
-					<SubcategoryCard category={child} {allItems} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemedit} {onitemdelete} />
+					<SubcategoryCard category={child} {allItems} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemedit} {onitemrefresh} {onitemdelete} />
 				{/each}
 			</div>
 		{/if}
@@ -229,6 +231,7 @@
 						{item}
 						{spaceSlug}
 						onedit={onitemedit}
+						onrefresh={onitemrefresh}
 						ondelete={onitemdelete}
 					/>
 				</div>

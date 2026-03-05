@@ -128,6 +128,16 @@
 		showItemModal = true;
 	}
 
+	async function handleRefreshItem(item: Item) {
+		try {
+			await board.refreshLink(item.id);
+			toast('Link updated');
+		} catch (e) {
+			console.error('Failed to update link:', e);
+			toast('Failed to update link', 'error');
+		}
+	}
+
 	function handleDeleteItem(item: Item) {
 		deletingItem = item;
 		showDeleteConfirm = true;
@@ -444,6 +454,7 @@
 			searchQuery={app.searchQuery}
 			selectedTagIds={app.selectedTagIds}
 			onitemedit={handleEditItem}
+			onitemrefresh={handleRefreshItem}
 			onitemdelete={handleDeleteItem}
 			onadditem={handleAddItem}
 			oneditcategory={handleEditCategory}

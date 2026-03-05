@@ -13,10 +13,11 @@
 		searchMatch?: boolean;
 		ondrilldown: (id: number) => void;
 		onitemedit?: (item: Item) => void;
+		onitemrefresh?: (item: Item) => void;
 		onitemdelete?: (item: Item) => void;
 	}
 
-	let { category, allItems = [], spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemedit, onitemdelete }: Props = $props();
+	let { category, allItems = [], spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemedit, onitemrefresh, onitemdelete }: Props = $props();
 
 	let userExpanded = $state(false);
 	let expanded = $derived(userExpanded || searchMatch);
@@ -121,7 +122,7 @@
 		{#each displayItems as item (item.id)}
 			{@const visible = expanded && filteredItems.some((fi) => fi.id === item.id)}
 			<div class:hidden-item={!expanded} class:search-hidden={expanded && !visible}>
-				<Card {item} {spaceSlug} onedit={onitemedit} ondelete={onitemdelete} />
+				<Card {item} {spaceSlug} onedit={onitemedit} onrefresh={onitemrefresh} ondelete={onitemdelete} />
 			</div>
 		{/each}
 	</div>

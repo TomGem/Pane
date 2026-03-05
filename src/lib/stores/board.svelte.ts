@@ -140,6 +140,11 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		await refresh();
 	}
 
+	async function refreshLink(id: number) {
+		await api<Item>(withSpace(`/api/items/${id}/refresh`, spaceSlug), { method: 'POST' });
+		await Promise.all([refresh(), loadTags()]);
+	}
+
 	async function uploadFile(file: File, categoryId: number, title?: string, description?: string) {
 		const form = new FormData();
 		form.append('file', file);
@@ -338,6 +343,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		updateItem,
 		deleteItem,
 		reorderItems,
+		refreshLink,
 		uploadFile,
 		addLink,
 		moveCategoryToSpace,
