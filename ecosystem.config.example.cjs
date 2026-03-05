@@ -5,7 +5,7 @@ module.exports = {
     env: {
       PORT: 3000,
       HOST: '127.0.0.1',
-      BODY_SIZE_LIMIT: 0
+      BODY_SIZE_LIMIT: 'Infinity'
     }
   }]
 };
