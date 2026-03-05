@@ -91,7 +91,9 @@
 	function handleBoardDragEnter(e: DragEvent) {
 		if (e.dataTransfer?.types.includes('Files')) {
 			e.preventDefault();
-			boardDragOver = true;
+			// Only show the board overlay when dragging over the background, not over columns
+			const target = e.target as HTMLElement;
+			boardDragOver = !target.closest('.column');
 		}
 	}
 
