@@ -9,5 +9,6 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=3000
+      - BODY_SIZE_LIMIT=0
       # - ORIGIN=http://localhost:3000
     restart: unless-stopped

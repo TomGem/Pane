@@ -4,7 +4,8 @@ module.exports = {
     script: 'build/index.js',
     env: {
       PORT: 3000,
-      HOST: '127.0.0.1'
+      HOST: '127.0.0.1',
+      BODY_SIZE_LIMIT: 0
     }
   }]
 };

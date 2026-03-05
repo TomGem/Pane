@@ -40,13 +40,14 @@ No environment variables are required. Optional:
 | `PORT` | `3000` | Server port |
 | `HOST` | `0.0.0.0` | Server bind address |
 | `ORIGIN` | — | Set if running behind a reverse proxy (e.g. `https://pane.example.com`) |
+| `BODY_SIZE_LIMIT` | `524288` | Max request body in bytes. Set to `0` to disable (required for file uploads >512KB) |
 
 ## Running behind a reverse proxy
 
 If serving Pane behind nginx or similar, set the `ORIGIN` variable so SvelteKit generates correct URLs:
 
 ```bash
-ORIGIN=https://pane.example.com PORT=3000 node build
+ORIGIN=https://pane.example.com BODY_SIZE_LIMIT=0 PORT=3000 node build
 ```
 
 Example nginx config:
@@ -79,6 +80,8 @@ Example Apache config (requires `mod_proxy` and `mod_proxy_http`):
     RequestHeader set X-Forwarded-Proto "https"
 
     LimitRequestBody 115343360
+    ProxyTimeout 300
+    RequestReadTimeout header=20-40,MinRate=500 body=60,MinRate=500
 </VirtualHost>
 ```
 
