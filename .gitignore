@@ -25,6 +25,9 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# PM2
+ecosystem.config.cjs
+
 # App data
 /data/
 /storage/
