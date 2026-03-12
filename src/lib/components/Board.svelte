@@ -23,9 +23,10 @@
 		onfolderimported?: (stats: { categories: number; items: number }) => void;
 		onfoldererror?: (error: string) => void;
 		onprogress?: (current: number, total: number, fileName: string) => void;
+		onnotesave?: (item: Item, content: string) => void;
 	}
 
-	let { board, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], onitemedit, onitemrefresh, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, onmovecategory, ondrilldown, onfolderimported, onfoldererror, onprogress }: Props = $props();
+	let { board, spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], onitemedit, onitemrefresh, onitemdelete, onadditem, oneditcategory, ondeletecategory, onaddsubcategory, onmovecategory, ondrilldown, onfolderimported, onfoldererror, onprogress, onnotesave }: Props = $props();
 
 	function handleColumnConsider(e: CustomEvent<{ items: CategoryWithItems[] }>) {
 		board.columns = e.detail.items;
@@ -227,6 +228,7 @@
 				ondropfile={handleDropFile}
 				ondropfolder={handleDropFolder}
 				{ondrilldown}
+				{onnotesave}
 			/>
 		</div>
 	{/each}

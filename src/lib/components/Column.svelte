@@ -25,6 +25,7 @@
 		ondropfile?: (file: File, categoryId: number) => void;
 		ondropfolder?: (entries: FileSystemDirectoryEntry[]) => void;
 		ondrilldown?: (categoryId: number) => void;
+		onnotesave?: (item: Item, content: string) => void;
 	}
 
 	let {
@@ -46,7 +47,8 @@
 		ondropurl,
 		ondropfile,
 		ondropfolder,
-		ondrilldown
+		ondrilldown,
+		onnotesave
 	}: Props = $props();
 
 	let items = $derived(category.items);
@@ -213,7 +215,7 @@
 		{#if category.children && category.children.length > 0}
 			<div class="subcategory-list">
 				{#each category.children as child (child.id)}
-					<SubcategoryCard category={child} {allItems} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} />
+					<SubcategoryCard category={child} {allItems} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} {onnotesave} />
 				{/each}
 			</div>
 		{/if}
@@ -233,6 +235,7 @@
 						onedit={onitemedit}
 						onrefresh={onitemrefresh}
 						ondelete={onitemdelete}
+						{onnotesave}
 					/>
 				</div>
 			{/each}

@@ -11,9 +11,10 @@
 		onedit?: (item: Item) => void;
 		onrefresh?: (item: Item) => void;
 		ondelete?: (item: Item) => void;
+		onnotesave?: (item: Item, content: string) => void;
 	}
 
-	let { item, spaceSlug = 'desk', onedit, onrefresh, ondelete }: Props = $props();
+	let { item, spaceSlug = 'desk', onedit, onrefresh, ondelete, onnotesave }: Props = $props();
 
 	const app = getContext<{ toggleTag: (tagId: number) => void }>('app');
 
@@ -190,6 +191,7 @@
 		title={item.title}
 		content={item.content ?? ''}
 		onclose={() => showNoteOverlay = false}
+		onsave={onnotesave ? (content) => onnotesave(item, content) : undefined}
 	/>
 {/if}
 

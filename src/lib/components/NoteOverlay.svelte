@@ -7,13 +7,31 @@
 		title: string;
 		content: string;
 		onclose: () => void;
+		onsave?: (content: string) => void;
 	}
 
-	let { title, content, onclose }: Props = $props();
+	let { title, content, onclose, onsave }: Props = $props();
 
 	let copied = $state(false);
+	let editing = $state(false);
+	let editContent = $state('');
 
+	// svelte-ignore state_referenced_locally — html must use the live content prop for view mode
 	let html = $derived(DOMPurify.sanitize(marked.parse(content, { async: false }) as string));
+
+	function startEditing() {
+		editContent = content;
+		editing = true;
+	}
+
+	function cancelEditing() {
+		editing = false;
+	}
+
+	function saveEditing() {
+		onsave?.(editContent);
+		editing = false;
+	}
 
 	async function copyToClipboard() {
 		await navigator.clipboard.writeText(content);
@@ -32,7 +50,13 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') onclose();
+		if (e.key === 'Escape') {
+			if (editing) {
+				editing = false;
+			} else {
+				onclose();
+			}
+		}
 	}
 
 	import { trapFocus } from '$lib/actions/trapFocus';
@@ -47,6 +71,14 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div class="overlay" onclick={handleBackdropClick} onkeydown={handleKeydown} role="dialog" aria-modal="true" aria-label="Note: {title}" tabindex="-1" use:trapFocus>
 	<div class="controls">
+		{#if onsave && !editing}
+			<button class="ctrl-btn" onclick={startEditing} aria-label="Edit note" title="Edit note">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+					<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+				</svg>
+			</button>
+		{/if}
 		<button class="ctrl-btn" onclick={copyToClipboard} aria-label="Copy to clipboard" title={copied ? 'Copied!' : 'Copy to clipboard'}>
 			{#if copied}
 				<Icon name="check" size={20} />
@@ -64,9 +96,17 @@
 
 	<div class="note-panel">
 		<h2 class="note-title">{title}</h2>
-		<div class="note-content markdown">
-			{@html html}
-		</div>
+		{#if editing}
+			<textarea class="note-editor" bind:value={editContent}></textarea>
+			<div class="editor-actions">
+				<button class="btn btn-ghost" onclick={cancelEditing}>Cancel</button>
+				<button class="btn btn-primary" onclick={saveEditing}>Save</button>
+			</div>
+		{:else}
+			<div class="note-content markdown">
+				{@html html}
+			</div>
+		{/if}
 	</div>
 </div>
 
@@ -131,6 +171,32 @@
 		color: var(--text-secondary, #b0b0b0);
 		font-size: 15px;
 		line-height: 1.7;
+	}
+
+	.note-editor {
+		width: 100%;
+		min-height: 300px;
+		background: rgba(0, 0, 0, 0.2);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 8px;
+		padding: 16px;
+		color: var(--text-primary, #e0e0e0);
+		font-size: 15px;
+		line-height: 1.7;
+		font-family: 'SF Mono', 'Fira Code', monospace;
+		resize: vertical;
+	}
+
+	.note-editor:focus {
+		outline: none;
+		border-color: var(--accent, #6c63ff);
+	}
+
+	.editor-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 8px;
+		margin-top: 12px;
 	}
 
 	/* Markdown styles */

@@ -129,6 +129,16 @@
 		showItemModal = true;
 	}
 
+	async function handleNoteSave(item: Item, content: string) {
+		try {
+			await board.updateItem(item.id, { content });
+			toast('Note updated');
+		} catch (e) {
+			console.error('Failed to update note:', e);
+			toast('Failed to update note', 'error');
+		}
+	}
+
 	async function handleRefreshItem(item: Item) {
 		try {
 			await board.refreshLink(item.id);
@@ -466,6 +476,7 @@
 			onfolderimported={handleFolderImported}
 			onfoldererror={handleFolderError}
 			onprogress={handleFolderProgress}
+			onnotesave={handleNoteSave}
 		/>
 	{/if}
 </div>
