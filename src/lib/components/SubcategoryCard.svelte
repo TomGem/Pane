@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
-	import { api } from '$lib/utils/api';
 	import Card from './Card.svelte';
-	import type { Category, Item, ReorderMove } from '$lib/types';
+	import type { Category, Item } from '$lib/types';
 
 	interface Props {
 		category: Category;
@@ -12,12 +11,13 @@
 		selectedTagIds?: number[];
 		searchMatch?: boolean;
 		ondrilldown: (id: number) => void;
+		onitemsupdate?: (categoryId: number, items: Item[]) => void;
 		onitemedit?: (item: Item) => void;
 		onitemrefresh?: (item: Item) => void;
 		onitemdelete?: (item: Item) => void;
 	}
 
-	let { category, allItems = [], spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemedit, onitemrefresh, onitemdelete }: Props = $props();
+	let { category, allItems = [], spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemsupdate, onitemedit, onitemrefresh, onitemdelete }: Props = $props();
 
 	let userExpanded = $state(false);
 	let expanded = $derived(userExpanded || searchMatch);
@@ -72,24 +72,10 @@
 		dndItems = e.detail.items;
 	}
 
-	async function handleDndFinalize(e: CustomEvent<{ items: Item[] }>) {
+	function handleDndFinalize(e: CustomEvent<{ items: Item[] }>) {
 		dndItems = e.detail.items;
 		dragging = false;
-		const moves: ReorderMove[] = dndItems.map((item, i) => ({
-			id: item.id,
-			category_id: category.id,
-			sort_order: i
-		}));
-		if (moves.length > 0) {
-			try {
-				await api(`/api/items/reorder?space=${spaceSlug}`, {
-					method: 'PUT',
-					body: JSON.stringify({ moves })
-				});
-			} catch (e) {
-				console.error('Failed to reorder subcategory items:', e);
-			}
-		}
+		onitemsupdate?.(category.id, e.detail.items);
 	}
 </script>
 

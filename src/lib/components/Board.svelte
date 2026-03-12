@@ -37,14 +37,26 @@
 	}
 
 	function handleItemsUpdate(categoryId: number, items: Item[]) {
-		// Build moves array from current board state
+		// Build moves array from current board state (all columns + the updated category)
 		const moves = board.columns.flatMap((col) =>
-			col.items.map((item, index) => ({
+			(col.id === categoryId ? items : col.items).map((item, index) => ({
 				id: item.id,
-				category_id: col.id,
+				category_id: col.id === categoryId ? categoryId : col.id,
 				sort_order: index + 1
 			}))
 		);
+
+		// Include subcategory items that were updated (e.g. drag between subcategories)
+		const isSubcategory = !board.columns.some((col) => col.id === categoryId);
+		if (isSubcategory) {
+			const subMoves = items.map((item, index) => ({
+				id: item.id,
+				category_id: categoryId,
+				sort_order: index + 1
+			}));
+			moves.push(...subMoves);
+		}
+
 		board.reorderItems(moves).catch(() => board.refresh());
 	}
 

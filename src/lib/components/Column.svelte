@@ -213,7 +213,7 @@
 		{#if category.children && category.children.length > 0}
 			<div class="subcategory-list">
 				{#each category.children as child (child.id)}
-					<SubcategoryCard category={child} {allItems} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemedit} {onitemrefresh} {onitemdelete} />
+					<SubcategoryCard category={child} {allItems} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} />
 				{/each}
 			</div>
 		{/if}
@@ -272,7 +272,7 @@
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-glass);
 		border-radius: var(--radius-lg);
-		max-height: calc(100vh - 100px);
+		max-height: none;
 	}
 
 	@media (max-width: 767px) {
@@ -387,7 +387,6 @@
 		flex-direction: column;
 		gap: 8px;
 		padding: 0 10px 10px;
-		overflow-y: auto;
 		min-height: 60px;
 	}
 

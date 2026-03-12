@@ -14,6 +14,7 @@
 	let { data } = $props();
 
 	const spaceSlug = $derived($page.data.spaceSlug as string);
+	const spaceName = $derived($page.data.spaceName as string);
 
 	// svelte-ignore state_referenced_locally — intentionally capturing initial SSR data; store manages its own state after hydration
 	const board = createBoardStore(data.columns, data.allItems, spaceSlug);
@@ -405,7 +406,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="page">
-	<Breadcrumb segments={board.breadcrumb} onnavigate={handleBreadcrumbNavigate} />
+	<Breadcrumb segments={board.breadcrumb} {spaceName} onnavigate={handleBreadcrumbNavigate} />
 
 	{#if board.columns.length === 0}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
