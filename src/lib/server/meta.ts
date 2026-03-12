@@ -1,5 +1,22 @@
 const MAX_FETCH_SIZE = 1024 * 1024; // 1 MB — YouTube inlines ~600KB of JS before meta tags
 
+const HTML_ENTITIES: Record<string, string> = {
+	'&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'"
+};
+
+function decodeHtmlEntities(str: string): string {
+	let prev = '';
+	let result = str;
+	while (result !== prev) {
+		prev = result;
+		result = result
+			.replace(/&(?:amp|lt|gt|quot|apos);/g, (m) => HTML_ENTITIES[m])
+			.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+			.replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)));
+	}
+	return result;
+}
+
 export function isPrivateUrl(urlStr: string): boolean {
 	try {
 		const parsed = new URL(urlStr);
@@ -75,9 +92,9 @@ export async function fetchPageMeta(url: string): Promise<{ title: string | null
 				?? text.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
 			const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i);
 			if (ogTitleMatch?.[1]) {
-				title = ogTitleMatch[1].trim().replace(/\s+/g, ' ') || null;
+				title = decodeHtmlEntities(ogTitleMatch[1].trim().replace(/\s+/g, ' ')) || null;
 			} else if (titleMatch?.[1]) {
-				title = titleMatch[1].trim().replace(/\s+/g, ' ') || null;
+				title = decodeHtmlEntities(titleMatch[1].trim().replace(/\s+/g, ' ')) || null;
 			}
 			let description: string | null = null;
 			const ogDescMatch = text.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)
@@ -85,9 +102,9 @@ export async function fetchPageMeta(url: string): Promise<{ title: string | null
 			const descMatch = text.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)
 				?? text.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i);
 			if (ogDescMatch?.[1]) {
-				description = ogDescMatch[1].trim() || null;
+				description = decodeHtmlEntities(ogDescMatch[1].trim()) || null;
 			} else if (descMatch?.[1]) {
-				description = descMatch[1].trim() || null;
+				description = decodeHtmlEntities(descMatch[1].trim()) || null;
 			}
 
 			// Extract favicon
