@@ -300,6 +300,7 @@
 		line-height: 1.4;
 		color: var(--text-primary);
 		margin-bottom: 4px;
+		overflow-wrap: anywhere;
 	}
 
 	.card-url {
