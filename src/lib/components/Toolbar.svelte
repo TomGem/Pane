@@ -1,5 +1,4 @@
 <script lang="ts">
-	import ThemeToggle from './ThemeToggle.svelte';
 	import SettingsOverlay from './SettingsOverlay.svelte';
 	import ExportImportOverlay from './ExportImportOverlay.svelte';
 	import HelpPanel from './HelpPanel.svelte';
@@ -338,7 +337,6 @@
 		<button class="btn-toolbar-icon" onclick={() => onaddcategory?.()} aria-label="Add category" title="Add category">
 		<Icon name="folder-plus" size={18} />
 		</button>
-		<ThemeToggle mode={themeMode} onchange={onthemechange} />
 		<button class="btn-toolbar-icon" onclick={() => showSettings = true} aria-label="Settings" title="Settings">
 			<Icon name="settings" size={18} />
 		</button>
