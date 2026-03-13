@@ -42,6 +42,7 @@
 	});
 
 	import { trapFocus } from '$lib/actions/trapFocus';
+
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -121,15 +122,15 @@
 				<h3>Keyboard shortcuts</h3>
 				<div class="shortcut-list">
 					<div class="shortcut-row">
-						<span class="shortcut-keys"><kbd>/</kbd> or <kbd>Cmd</kbd><kbd>K</kbd></span>
+						<span class="shortcut-keys"><kbd>/</kbd> or <kbd>Ctrl</kbd><kbd>K</kbd></span>
 						<span>Focus search</span>
 					</div>
 					<div class="shortcut-row">
-						<span class="shortcut-keys"><kbd>Cmd</kbd><kbd>N</kbd></span>
+						<span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>N</kbd></span>
 						<span>New item</span>
 					</div>
 					<div class="shortcut-row">
-						<span class="shortcut-keys"><kbd>Cmd</kbd><kbd>Shift</kbd><kbd>N</kbd></span>
+						<span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>N</kbd></span>
 						<span>New category</span>
 					</div>
 					<div class="shortcut-row">
