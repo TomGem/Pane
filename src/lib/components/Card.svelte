@@ -211,6 +211,7 @@
 		border-radius: var(--radius);
 		cursor: grab;
 		transition: box-shadow var(--transition), transform var(--transition);
+		min-width: 0;
 	}
 
 	.card:hover {

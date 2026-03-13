@@ -561,6 +561,7 @@
 <style>
 	.page {
 		flex: 1;
+		min-width: 0;
 	}
 
 	.empty-board {

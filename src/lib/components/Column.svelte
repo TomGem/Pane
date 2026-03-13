@@ -282,6 +282,7 @@
 		.column {
 			flex: 1 1 100%;
 			max-width: 100%;
+			min-width: 0;
 			max-height: none;
 		}
 	}
@@ -305,13 +306,14 @@
 		font-weight: 700;
 		color: var(--text-primary);
 		flex: 1;
+		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
 	.column-title-clickable {
-		display: inline-flex;
+		display: flex;
 		align-items: center;
 		gap: 4px;
 		padding: 2px 4px;
@@ -391,6 +393,7 @@
 		gap: 8px;
 		padding: 0 10px 10px;
 		min-height: 60px;
+		min-width: 0;
 	}
 
 	.empty-state {
