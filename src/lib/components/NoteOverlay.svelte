@@ -165,12 +165,14 @@
 		color: var(--text-primary, #e0e0e0);
 		margin-bottom: 20px;
 		line-height: 1.3;
+		font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
 	}
 
 	.note-content {
 		color: var(--text-secondary, #b0b0b0);
-		font-size: 15px;
+		font-size: 14px;
 		line-height: 1.7;
+		font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
 	}
 
 	.note-editor {
