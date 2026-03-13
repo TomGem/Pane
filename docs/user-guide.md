@@ -14,7 +14,7 @@ Pane supports multiple **spaces** — isolated workspaces, each with its own cat
 
 Categories are the columns on your board.
 
-- Click **Add category** (or `Cmd+Shift+N`) to create a new column.
+- Click **Add category** (or `Ctrl+Shift+N`) to create a new column.
 - Drag columns left and right to reorder them.
 - Click the column menu (`...`) to edit or delete a category.
 - Click the column name to drill down into subcategories.
@@ -42,7 +42,7 @@ Upload files (images, PDFs, etc.) up to **100 MB** per file. Click a document ca
 
 ## Adding items
 
-- Click the **+** button on a column header, or use `Cmd+N`.
+- Click the **+** button on a column header, or use `Ctrl+N`.
 - Choose the item type (link, note, or document).
 - Assign a category, add tags, and fill in the details.
 - You can also **drop a URL** or **drag a file** directly onto a column to add it instantly.
@@ -59,13 +59,13 @@ Tags are **shared across all spaces**, so you can use a consistent set of labels
 
 ## Search
 
-Type in the search box (or press `/` or `Cmd+K`) to filter items across all columns. Search matches against titles, descriptions, and content. When matches are found inside subcategories, those subcategories are automatically expanded so you can see the results. Press `Esc` to clear.
+Type in the search box (or press `/` or `Ctrl+K`) to filter items across all columns. Search matches against titles, descriptions, and content. When matches are found inside subcategories, those subcategories are automatically expanded so you can see the results. Press `Esc` to clear.
 
 ## Appearance
 
 ### Theme
 
-Toggle between **light**, **dark**, and **system** themes using the icons in the toolbar, or from the Settings overlay.
+Toggle between **light**, **dark**, and **system** themes from the **Settings** overlay (gear icon).
 
 ### Accent palette
 
@@ -77,9 +77,9 @@ Both theme and palette preferences are saved to localStorage and persist across 
 
 | Shortcut | Action |
 |----------|--------|
-| `/` or `Cmd+K` | Focus search |
-| `Cmd+N` | New item |
-| `Cmd+Shift+N` | New category |
+| `/` or `Ctrl+K` | Focus search |
+| `Ctrl+N` | New item |
+| `Ctrl+Shift+N` | New category |
 | `Esc` | Close modal / overlay / clear search |
 
 ## Sample data

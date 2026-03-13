@@ -15,7 +15,7 @@ A local-only Kanban dashboard for organizing links, notes, and documents into dr
 - **Drag and drop** — Reorder items and columns, or drop URLs and files directly onto a column
 - **Markdown** — Notes render full markdown with syntax highlighting and sanitized HTML
 - **Theming** — Light, dark, and system-following themes with 8 accent colour palettes
-- **Keyboard shortcuts** — `/` or `Cmd+K` to search, `Cmd+N` for new item, `Cmd+Shift+N` for new category
+- **Keyboard shortcuts** — `/` or `Ctrl+K` to search, `Ctrl+N` for new item, `Ctrl+Shift+N` for new category
 - **Sample data** — One-click loading of curated content to explore the app instantly
 
 ## Quick start

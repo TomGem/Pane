@@ -138,9 +138,9 @@ In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/a
 
 ### Keyboard shortcuts
 
-- `/` or `Cmd+K` — Focus search
-- `Cmd+N` — New item
-- `Cmd+Shift+N` — New category
+- `/` or `Ctrl+K` — Focus search
+- `Ctrl+N` — New item
+- `Ctrl+Shift+N` — New category
 - `Escape` — Close modals/overlays
 
 ### Link meta-fetching
