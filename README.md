@@ -60,4 +60,4 @@ Open [http://localhost:3000](http://localhost:3000). Data persists in `./data/` 
 
 ## License
 
-This project was created as part of a coding bootcamp and is intended for educational use.
+MIT — see [LICENSE](LICENSE).
