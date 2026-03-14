@@ -57,6 +57,9 @@
 	let showMoveModal = $state(false);
 	let movingCategory = $state<CategoryWithItems | null>(null);
 	let moveTargetSpace = $state('');
+	let showDemoteModal = $state(false);
+	let demotingCategory = $state<CategoryWithItems | null>(null);
+	let demoteTargetId = $state<number | null>(null);
 
 	// Sample data loading
 	let loadingSampleData = $state(false);
@@ -227,6 +230,29 @@
 			console.error('Failed to promote category:', e);
 			toast('Failed to promote category', 'error');
 		}
+	}
+
+	function handleDemoteCategory(category: CategoryWithItems) {
+		const otherColumns = board.columns.filter((c) => c.id !== category.id && c.parent_id === null);
+		if (otherColumns.length === 0) return;
+		demotingCategory = category;
+		demoteTargetId = otherColumns[0].id;
+		showDemoteModal = true;
+	}
+
+	async function confirmDemoteCategory() {
+		if (!demotingCategory || demoteTargetId === null) return;
+		try {
+			await board.demoteCategory(demotingCategory.id, demotingCategory.name, demotingCategory.color, demoteTargetId);
+			const targetName = board.columns.find((c) => c.id === demoteTargetId)?.name ?? 'another category';
+			toast(`"${demotingCategory.name}" is now a subcategory of "${targetName}"`);
+		} catch (e) {
+			console.error('Failed to demote category:', e);
+			toast('Failed to demote category', 'error');
+		}
+		demotingCategory = null;
+		demoteTargetId = null;
+		showDemoteModal = false;
 	}
 
 	function handleMoveCategory(category: CategoryWithItems) {
@@ -484,6 +510,7 @@
 			onaddsubcategory={handleAddSubcategory}
 			onmovecategory={($page.data.spaces as Space[]).length > 1 ? handleMoveCategory : undefined}
 			onpromotecategory={handlePromoteCategory}
+			ondemotecategory={handleDemoteCategory}
 			ondrilldown={handleDrillDown}
 			onfolderimported={handleFolderImported}
 			onfoldererror={handleFolderError}
@@ -558,6 +585,27 @@
 			<div class="confirm-actions">
 				<button class="btn" onclick={() => { showMoveModal = false; movingCategory = null; }}>Cancel</button>
 				<button class="btn btn-primary" onclick={confirmMoveCategory}>Move</button>
+			</div>
+		</div>
+	</Modal>
+{/if}
+
+<!-- Demote Category Modal -->
+{#if showDemoteModal && demotingCategory}
+	<Modal title="Make Subcategory" onclose={() => { showDemoteModal = false; demotingCategory = null; }}>
+		<div class="confirm-dialog">
+			<p>Make <strong>{demotingCategory.name}</strong> a subcategory of:</p>
+			<select class="input move-select" bind:value={demoteTargetId}>
+				{#each board.columns.filter((c) => c.id !== demotingCategory?.id && c.parent_id === null) as cat}
+					<option value={cat.id}>{cat.name}</option>
+				{/each}
+			</select>
+			{#if demotingCategory.children_count > 0}
+				<p class="confirm-hint">Its {demotingCategory.children_count} {demotingCategory.children_count === 1 ? 'subcategory' : 'subcategories'} and all items will move with it.</p>
+			{/if}
+			<div class="confirm-actions">
+				<button class="btn" onclick={() => { showDemoteModal = false; demotingCategory = null; }}>Cancel</button>
+				<button class="btn btn-primary" onclick={confirmDemoteCategory}>Move</button>
 			</div>
 		</div>
 	</Modal>

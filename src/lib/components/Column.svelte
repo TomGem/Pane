@@ -22,6 +22,7 @@
 		onaddsubcategory?: (category: CategoryWithItems) => void;
 		onmovecategory?: (category: CategoryWithItems) => void;
 		onpromotecategory?: (category: CategoryWithItems) => void;
+		ondemotecategory?: (category: CategoryWithItems) => void;
 		ondropurl?: (url: string, categoryId: number) => void;
 		ondropfile?: (file: File, categoryId: number) => void;
 		ondropfolder?: (entries: FileSystemDirectoryEntry[]) => void;
@@ -46,6 +47,7 @@
 		onaddsubcategory,
 		onmovecategory,
 		onpromotecategory,
+		ondemotecategory,
 		ondropurl,
 		ondropfile,
 		ondropfolder,
@@ -205,6 +207,9 @@
 						<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; onaddsubcategory?.(category); }}>Add subcategory</button>
 						{#if onpromotecategory && category.parent_id !== null}
 							<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; onpromotecategory?.(category); }}>Make top-level category</button>
+						{/if}
+						{#if ondemotecategory && category.parent_id === null}
+							<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; ondemotecategory?.(category); }}>Make subcategory of...</button>
 						{/if}
 						{#if onmovecategory}
 							<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; onmovecategory?.(category); }}>Move to space...</button>
