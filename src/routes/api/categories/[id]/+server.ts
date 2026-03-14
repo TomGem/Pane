@@ -49,12 +49,14 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 
 		const spaceSlug = getSpaceSlug(url);
 		const db = getDb(spaceSlug);
-		const slug = slugify(name);
 
 		const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId) as Category | undefined;
 		if (!existing) {
 			return json({ error: 'Category not found' }, { status: 404 });
 		}
+
+		// Keep existing slug when the name hasn't changed (avoids collisions on parent_id-only updates)
+		const slug = name === existing.name ? existing.slug : slugify(name);
 
 		// parent_id: undefined means "not provided" (keep existing), null means "move to root"
 		const parentIdProvided = parent_id !== undefined;
