@@ -163,7 +163,7 @@
 				</ul>
 			</section>
 			<div class="help-clock">{clockText}</div>
-			<div class="help-version">Pane v1.6</div>
+			<div class="help-version">Pane v1.7</div>
 		</div>
 	</div>
 </div>
