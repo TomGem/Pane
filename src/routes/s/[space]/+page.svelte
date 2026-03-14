@@ -220,7 +220,7 @@
 
 	async function handlePromoteCategory(category: CategoryWithItems) {
 		try {
-			await board.promoteCategory(category.id);
+			await board.promoteCategory(category.id, category.name, category.color);
 			toast(`"${category.name}" is now a top-level category`);
 		} catch (e) {
 			console.error('Failed to promote category:', e);

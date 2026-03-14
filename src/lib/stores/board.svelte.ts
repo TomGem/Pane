@@ -75,12 +75,10 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		await refresh();
 	}
 
-	async function promoteCategory(id: number) {
-		const col = columns.find((c) => c.id === id);
-		if (!col) return;
+	async function promoteCategory(id: number, name: string, color: string) {
 		await api<Category>(withSpace(`/api/categories/${id}`, spaceSlug), {
 			method: 'PUT',
-			body: JSON.stringify({ name: col.name, color: col.color, parent_id: null })
+			body: JSON.stringify({ name, color, parent_id: null })
 		});
 		await refresh();
 	}
