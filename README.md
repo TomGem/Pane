@@ -34,6 +34,12 @@ Open [http://localhost:5173](http://localhost:5173). On first launch you'll see 
 No Node.js required — just Docker:
 
 ```bash
+docker run -d -p 3000:3000 -v ./data:/app/data -v ./storage:/app/storage ghcr.io/tomgem/pane:latest
+```
+
+Or clone and build locally:
+
+```bash
 git clone https://github.com/TomGem/Pane.git
 cd Pane
 docker compose up -d

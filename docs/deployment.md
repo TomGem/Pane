@@ -134,6 +134,16 @@ Follow the printed instructions, then run `pm2 save` to persist the process list
 
 A `Dockerfile` and `docker-compose.yml` are included. Docker is the easiest way to run Pane without installing Node.js or native build tools.
 
+### Pre-built image from GitHub Container Registry
+
+Tagged releases are automatically published to `ghcr.io`. No cloning or building required:
+
+```bash
+docker run -d -p 3000:3000 -v ./data:/app/data -v ./storage:/app/storage ghcr.io/tomgem/pane:latest
+```
+
+You can pin to a specific version: `ghcr.io/tomgem/pane:1.6`
+
 ### Using Docker Compose (recommended)
 
 ```bash
