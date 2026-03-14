@@ -73,6 +73,7 @@
 					<li>Each space has its own categories, items, and files</li>
 					<li>Create or delete spaces from the Spaces dashboard</li>
 					<li><strong>Move categories</strong> between spaces from the column menu</li>
+					<li><strong>Promote</strong> a subcategory to top-level, or <strong>demote</strong> a top-level category into another</li>
 				</ul>
 			</section>
 			<section class="help-section">

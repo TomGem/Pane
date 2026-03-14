@@ -23,6 +23,14 @@ Categories are the columns on your board.
 
 Categories can be nested. From the column menu, choose **Add subcategory** to create a child category. Click the subcategory card to drill down into it. A **breadcrumb trail** appears at the top of the board showing the path from root to the current level — click any segment to jump back up.
 
+### Promoting and demoting categories
+
+From the column menu:
+- **Make top-level category** — promotes a subcategory to root level (available when drilled into a subcategory).
+- **Make subcategory of...** — demotes a top-level category into another, with a picker to choose the new parent.
+
+All subcategories and items move with the category.
+
 ### Moving categories between spaces
 
 From the column menu, choose **Move to space** to move an entire category (including all subcategories, items, and files) to a different space. Slug collisions are resolved automatically.

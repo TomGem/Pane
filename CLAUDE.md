@@ -16,6 +16,11 @@ pnpm check:watch      # Continuous type-checking
 docker compose up -d  # Run via Docker (port 3000, mounts data/ and storage/)
 ```
 
+```bash
+# Pre-built image from GitHub Container Registry
+docker run -d -p 3000:3000 -v ./data:/app/data -v ./storage:/app/storage ghcr.io/tomgem/pane:latest
+```
+
 No test framework is configured. Use `pnpm check` to validate types before committing. No `.env` file is needed — the app has no external API dependencies.
 
 ## Architecture
@@ -69,6 +74,8 @@ Root layout (`+layout.svelte`) owns theme and palette stores. Space layout (`/s/
 
 Categories can be nested via `parent_id`. The board store tracks `currentParentId` and `breadcrumb` state. Key store methods: `drillDown(categoryId)` enters a subcategory, `navigateTo(parentId)` jumps to any level (null for root), `fetchBreadcrumb(categoryId)` loads the ancestor chain. Drilling re-fetches categories and items scoped to that parent. Search auto-expands subcategories when matches are found within them.
 
+Categories can be moved up and down the hierarchy: **promote** a subcategory to top-level (`parent_id: null`) via "Make top-level category", or **demote** a top-level category into another via "Make subcategory of...". Both use the existing `PUT /api/categories/[id]` endpoint with `parent_id`. When the name hasn't changed, the existing slug is preserved to avoid UNIQUE constraint collisions.
+
 ### Layout ↔ Page communication
 
 Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and theme. Page (`/s/[space]/+page.svelte`) registers callbacks via `setContext('app')` / `getContext('app')` so the Toolbar's Add/Search/Tag actions trigger the page's modals and filtering. The context object exposes reactive getters and setter functions — not plain values.
@@ -84,7 +91,7 @@ Documents stored at `storage/{space-slug}/{category-slug}/{uuid}.{ext}`. Origina
 
 ### Client stores
 
-- **`$lib/stores/board.svelte.ts`** — Board state (`BoardStore`). Tracks categories, items, tags, breadcrumb, and current parent. Space-scoped mutations (categories, items) call API routes with `?space={slug}`. Tag mutations (`loadTags`, `addTag`, `updateTag`) call `/api/tags` directly (no space param).
+- **`$lib/stores/board.svelte.ts`** — Board state (`BoardStore`). Tracks categories, items, tags, breadcrumb, and current parent. Space-scoped mutations (categories, items) call API routes with `?space={slug}`. Tag mutations (`loadTags`, `addTag`, `updateTag`) call `/api/tags` directly (no space param). Hierarchy mutations: `promoteCategory()`, `demoteCategory()`.
 - **`$lib/stores/theme.svelte.ts`** — `ThemeMode` (`'light'|'dark'|'system'`), persists to localStorage, respects `prefers-color-scheme`.
 - **`$lib/stores/palette.svelte.ts`** — Accent color palette (8 choices: indigo, blue, teal, green, orange, red, pink, grey). Sets `data-palette` attribute and persists to localStorage. Maps to CSS `--accent`, `--accent-hover`, `--accent-soft` variables.
 
@@ -150,6 +157,10 @@ When creating link items, the server fetches up to 100KB of HTML to extract `<ti
 ### Documentation
 
 User-facing docs in `docs/`: `getting-started.md`, `user-guide.md`, `architecture.md`, `deployment.md`.
+
+### CI/CD
+
+GitHub Actions workflow (`.github/workflows/docker-publish.yml`) builds and pushes a Docker image to `ghcr.io/tomgem/pane` on every tagged release (`v*`). Tags: `{version}`, `{major}.{minor}`, and `latest`.
 
 ## Conventions
 

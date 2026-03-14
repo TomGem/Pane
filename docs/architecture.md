@@ -69,7 +69,7 @@ Each space has its own SQLite database (`data/{slug}.db`) and storage directory 
 
 | Store | File | Purpose |
 |-------|------|---------|
-| `BoardStore` | `$lib/stores/board.svelte.ts` | Categories, items, tags, breadcrumb, current parent. Space-scoped mutations call API routes with `?space={slug}`. Tag mutations call `/api/tags` directly (no space param). |
+| `BoardStore` | `$lib/stores/board.svelte.ts` | Categories, items, tags, breadcrumb, current parent. Space-scoped mutations call API routes with `?space={slug}`. Tag mutations call `/api/tags` directly (no space param). Hierarchy mutations: `promoteCategory()`, `demoteCategory()`. |
 | `ThemeStore` | `$lib/stores/theme.svelte.ts` | `'light' \| 'dark' \| 'system'`, persists to localStorage, respects `prefers-color-scheme`. |
 | `PaletteStore` | `$lib/stores/palette.svelte.ts` | Accent colour palette (8 choices). Sets `data-palette` attribute, persists to localStorage. |
 
@@ -191,6 +191,10 @@ storage/                Uploaded files, one directory per space (gitignored)
 static/                 Static assets (favicon)
 docs/                   Documentation
 ```
+
+## CI/CD
+
+GitHub Actions workflow (`.github/workflows/docker-publish.yml`) builds and pushes a Docker image to `ghcr.io/tomgem/pane` on every tagged release (`v*`). Tags: `{version}`, `{major}.{minor}`, and `latest`. Uses `GITHUB_TOKEN` for authentication — no extra secrets required.
 
 ## Conventions
 
