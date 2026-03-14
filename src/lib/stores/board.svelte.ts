@@ -75,6 +75,16 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		await refresh();
 	}
 
+	async function promoteCategory(id: number) {
+		const col = columns.find((c) => c.id === id);
+		if (!col) return;
+		await api<Category>(withSpace(`/api/categories/${id}`, spaceSlug), {
+			method: 'PUT',
+			body: JSON.stringify({ name: col.name, color: col.color, parent_id: null })
+		});
+		await refresh();
+	}
+
 	async function deleteCategory(id: number) {
 		await api(withSpace(`/api/categories/${id}`, spaceSlug), { method: 'DELETE' });
 		await refresh();
@@ -336,6 +346,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		addSubcategory,
 		updateCategory,
 		deleteCategory,
+		promoteCategory,
 		reorderCategories,
 		drillDown,
 		navigateTo,

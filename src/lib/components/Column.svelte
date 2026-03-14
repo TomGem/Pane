@@ -21,6 +21,7 @@
 		ondeletecategory?: (category: CategoryWithItems) => void;
 		onaddsubcategory?: (category: CategoryWithItems) => void;
 		onmovecategory?: (category: CategoryWithItems) => void;
+		onpromotecategory?: (category: CategoryWithItems) => void;
 		ondropurl?: (url: string, categoryId: number) => void;
 		ondropfile?: (file: File, categoryId: number) => void;
 		ondropfolder?: (entries: FileSystemDirectoryEntry[]) => void;
@@ -44,6 +45,7 @@
 		ondeletecategory,
 		onaddsubcategory,
 		onmovecategory,
+		onpromotecategory,
 		ondropurl,
 		ondropfile,
 		ondropfolder,
@@ -201,6 +203,9 @@
 					<div class="menu glass" onclick={(e) => e.stopPropagation()} onkeydown={(e) => { if (e.key === 'Escape') showMenu = false; }} role="menu" tabindex="-1" use:menuKeyboard>
 						<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; oneditcategory?.(category); }}>Edit category</button>
 						<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; onaddsubcategory?.(category); }}>Add subcategory</button>
+						{#if onpromotecategory && category.parent_id !== null}
+							<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; onpromotecategory?.(category); }}>Make top-level category</button>
+						{/if}
 						{#if onmovecategory}
 							<button class="menu-item" role="menuitem" onclick={() => { showMenu = false; onmovecategory?.(category); }}>Move to space...</button>
 						{/if}

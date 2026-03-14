@@ -218,6 +218,16 @@
 		showDeleteConfirm = true;
 	}
 
+	async function handlePromoteCategory(category: CategoryWithItems) {
+		try {
+			await board.promoteCategory(category.id);
+			toast(`"${category.name}" is now a top-level category`);
+		} catch (e) {
+			console.error('Failed to promote category:', e);
+			toast('Failed to promote category', 'error');
+		}
+	}
+
 	function handleMoveCategory(category: CategoryWithItems) {
 		const otherSpaces = ($page.data.spaces as Space[]).filter((s) => s.slug !== spaceSlug);
 		if (otherSpaces.length === 0) return;
@@ -472,6 +482,7 @@
 			ondeletecategory={handleDeleteCategory}
 			onaddsubcategory={handleAddSubcategory}
 			onmovecategory={($page.data.spaces as Space[]).length > 1 ? handleMoveCategory : undefined}
+			onpromotecategory={handlePromoteCategory}
 			ondrilldown={handleDrillDown}
 			onfolderimported={handleFolderImported}
 			onfoldererror={handleFolderError}
