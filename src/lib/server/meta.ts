@@ -17,21 +17,67 @@ function decodeHtmlEntities(str: string): string {
 	return result;
 }
 
+function isPrivateIPv4(hostname: string): boolean {
+	// Normalize octal/hex notation by letting the URL parser resolve it,
+	// then check the decimal form. We parse "http://<hostname>" to get the
+	// browser-normalized hostname (e.g. 0177.0.0.1 → 127.0.0.1).
+	let normalized = hostname;
+	try {
+		normalized = new URL(`http://${hostname}`).hostname;
+	} catch { /* keep original */ }
+
+	const parts = normalized.split('.').map(Number);
+	if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) return false;
+
+	if (parts[0] === 0) return true;                                      // 0.0.0.0/8
+	if (parts[0] === 10) return true;                                      // 10.0.0.0/8
+	if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true; // 100.64.0.0/10 (CGNAT)
+	if (parts[0] === 127) return true;                                     // 127.0.0.0/8
+	if (parts[0] === 169 && parts[1] === 254) return true;                // 169.254.0.0/16
+	if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true; // 172.16.0.0/12
+	if (parts[0] === 192 && parts[1] === 168) return true;                // 192.168.0.0/16
+	if (parts[0] === 192 && parts[1] === 0 && parts[2] === 0) return true; // 192.0.0.0/24
+	if (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19)) return true; // 198.18.0.0/15
+	if (parts[0] >= 224) return true;                                      // multicast + reserved
+	return false;
+}
+
+function isPrivateIPv6(hostname: string): boolean {
+	// Strip brackets from IPv6 literals: [::1] → ::1
+	const raw = hostname.startsWith('[') ? hostname.slice(1, -1) : hostname;
+	const lower = raw.toLowerCase();
+
+	if (lower === '::1') return true;                  // loopback
+	if (lower === '::' || lower === '0:0:0:0:0:0:0:0') return true; // unspecified
+	if (lower.startsWith('fe80:') || lower.startsWith('fe80%')) return true; // link-local
+	if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // unique local (ULA)
+	if (lower.startsWith('::ffff:')) {
+		// IPv4-mapped IPv6 — extract the IPv4 part and check it
+		const v4 = lower.slice(7);
+		if (v4.includes('.')) return isPrivateIPv4(v4);
+	}
+	return false;
+}
+
 export function isPrivateUrl(urlStr: string): boolean {
 	try {
 		const parsed = new URL(urlStr);
 		if (!['http:', 'https:'].includes(parsed.protocol)) return true;
 		const hostname = parsed.hostname;
-		if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]') return true;
-		// Reject private IP ranges
-		const parts = hostname.split('.').map(Number);
-		if (parts.length === 4 && parts.every((p) => !isNaN(p))) {
-			if (parts[0] === 10) return true;
-			if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-			if (parts[0] === 192 && parts[1] === 168) return true;
-			if (parts[0] === 169 && parts[1] === 254) return true;
-			if (parts[0] === 0) return true;
+
+		if (hostname === 'localhost') return true;
+		if (hostname.endsWith('.local')) return true;
+		if (hostname.endsWith('.localhost')) return true;
+		if (hostname.endsWith('.internal')) return true;
+
+		// IPv6
+		if (hostname.startsWith('[') || hostname.includes(':')) {
+			return isPrivateIPv6(hostname);
 		}
+
+		// IPv4 (handles octal/hex via normalization)
+		if (isPrivateIPv4(hostname)) return true;
+
 		return false;
 	} catch {
 		return true;
