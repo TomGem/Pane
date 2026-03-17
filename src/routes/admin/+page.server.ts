@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	).all() as InviteCode[];
 
 	const users = authDb.prepare(
-		'SELECT id, email, email_verified, display_name, role, created_at, updated_at FROM users ORDER BY created_at DESC'
+		'SELECT id, email, email_verified, display_name, role, blocked, created_at, updated_at FROM users ORDER BY created_at DESC'
 	).all() as User[];
 
 	return { codes, users };

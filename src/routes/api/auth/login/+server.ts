@@ -29,6 +29,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			return json({ error: 'Invalid email or password' }, { status: 401 });
 		}
 
+		if (user.blocked) {
+			return json({ error: 'Your account has been blocked' }, { status: 403 });
+		}
+
 		// Create session
 		const { sessionId, expiresAt } = createSession(user.id);
 		cookies.set('pane_session', sessionId, getSessionCookieOptions(expiresAt));

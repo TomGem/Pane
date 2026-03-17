@@ -6,7 +6,7 @@ import { createSpace } from '$lib/server/user-schema';
 import { setAuthMeta, getAuthMeta } from '$lib/server/auth-schema';
 import { isRateLimited } from '$lib/server/rate-limit';
 import { needsMigration, runMigration } from '$lib/server/migration';
-import { validateSession, cleanExpiredSessions } from '$lib/server/session';
+import { validateSession, invalidateSession, cleanExpiredSessions } from '$lib/server/session';
 import fs from 'fs';
 
 const SINGLE_USER = env.SINGLE_USER === 'true';
@@ -92,13 +92,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (sessionId) {
 		const result = validateSession(sessionId);
 		if (result) {
-			event.locals.user = {
-				id: result.id,
-				email: result.email,
-				display_name: result.display_name,
-				role: result.role
-			};
-			event.locals.userId = result.id;
+			if (result.blocked) {
+				// Blocked user: destroy session and treat as unauthenticated
+				invalidateSession(sessionId);
+				event.cookies.delete('pane_session', { path: '/' });
+			} else {
+				event.locals.user = {
+					id: result.id,
+					email: result.email,
+					display_name: result.display_name,
+					role: result.role
+				};
+				event.locals.userId = result.id;
+			}
 		}
 	}
 

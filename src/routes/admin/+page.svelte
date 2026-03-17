@@ -1,18 +1,16 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { getContext } from 'svelte';
-	import type { ThemeStore } from '$lib/stores/theme.svelte';
-	import type { PaletteStore } from '$lib/stores/palette.svelte';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 	import type { InviteCode, User } from '$lib/types';
 
 	let { data } = $props();
 
-	const theme = getContext<ThemeStore>('theme');
-
 	let codes = $state<InviteCode[]>([]);
-	let users = $derived(data.users);
+	let users = $state<User[]>([]);
+
+	$effect(() => {
+		users = data.users;
+	});
 
 	$effect(() => {
 		codes = data.codes;
@@ -84,6 +82,22 @@
 	function isUsedUp(code: InviteCode): boolean {
 		return code.use_count >= code.max_uses;
 	}
+
+	async function toggleBlock(user: User) {
+		const newBlocked = !user.blocked;
+		try {
+			const res = await fetch(`/api/admin/users/${user.id}/block`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ blocked: newBlocked })
+			});
+			if (res.ok) {
+				users = users.map((u) =>
+					u.id === user.id ? { ...u, blocked: newBlocked ? 1 : 0 } : u
+				);
+			}
+		} catch { /* ignore */ }
+	}
 </script>
 
 <svelte:head>
@@ -96,7 +110,6 @@
 		<span class="toolbar-subtitle">Admin</span>
 	</div>
 	<div class="toolbar-right">
-		<ThemeToggle mode={theme.mode} onchange={(mode) => theme.setMode(mode)} />
 	</div>
 </header>
 
@@ -164,7 +177,7 @@
 
 		<div class="users-list">
 			{#each users as user (user.id)}
-				<div class="user-row">
+				<div class="user-row" class:user-blocked={user.blocked}>
 					<div class="user-info">
 						<span class="user-name">{user.display_name}</span>
 						<span class="user-email">{user.email}</span>
@@ -173,12 +186,22 @@
 						{#if user.role === 'admin'}
 							<span class="badge role-admin">Admin</span>
 						{/if}
-						{#if user.email_verified}
+						{#if user.blocked}
+							<span class="badge role-blocked">Blocked</span>
+						{:else if user.email_verified}
 							<span class="badge role-verified">Verified</span>
 						{:else}
 							<span class="badge role-unverified">Unverified</span>
 						{/if}
 						<span class="user-date">Joined {formatDate(user.created_at)}</span>
+						{#if user.role !== 'admin'}
+							<button
+								class="btn btn-sm {user.blocked ? 'btn-ghost' : 'btn-danger'}"
+								onclick={() => toggleBlock(user)}
+							>
+								{user.blocked ? 'Unblock' : 'Block'}
+							</button>
+						{/if}
 					</div>
 				</div>
 			{/each}
@@ -438,6 +461,15 @@
 	.role-unverified {
 		background-color: rgba(239, 68, 68, 0.1);
 		color: var(--danger);
+	}
+
+	.role-blocked {
+		background-color: rgba(239, 68, 68, 0.1);
+		color: var(--danger);
+	}
+
+	.user-blocked {
+		opacity: 0.6;
 	}
 
 	.user-date {

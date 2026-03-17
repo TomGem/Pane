@@ -72,6 +72,7 @@ export interface User {
 	email_verified: number;
 	display_name: string;
 	role: 'admin' | 'user';
+	blocked: number;
 	created_at: string;
 	updated_at: string;
 }
@@ -102,6 +103,7 @@ export interface SpaceShare {
 }
 
 export interface SharedSpaceInfo extends Space {
+	share_id: number;
 	owner_id: string;
 	owner_name: string;
 	permission: 'read' | 'write';

@@ -9,6 +9,7 @@ export function initAuthSchema(db: Database.Database) {
 			password_hash TEXT NOT NULL,
 			display_name TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin', 'user')),
+			blocked INTEGER NOT NULL DEFAULT 0,
 			created_at TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
@@ -66,6 +67,12 @@ export function initAuthSchema(db: Database.Database) {
 			value TEXT NOT NULL
 		);
 	`);
+
+	// Add blocked column if missing (migration for existing DBs)
+	const cols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+	if (!cols.some((c) => c.name === 'blocked')) {
+		db.exec("ALTER TABLE users ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0");
+	}
 }
 
 export function getAuthMeta(db: Database.Database, key: string): string | null {
