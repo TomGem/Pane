@@ -272,9 +272,7 @@
 									{/each}
 								</div>
 							{:else}
-								<button class="btn btn-sm btn-ghost" onclick={() => startEditQuota(user)} title="Change quota">
-									<Icon name="edit" size={12} />
-								</button>
+								<button class="btn btn-sm btn-primary" onclick={() => startEditQuota(user)}>Change quota</button>
 							{/if}
 						</div>
 						<div class="storage-bar">
