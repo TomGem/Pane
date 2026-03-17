@@ -1,15 +1,15 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb } from '$lib/server/space';
+import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
 import type { Category } from '$lib/types';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
 	try {
-		const db = getSpaceDb(url);
+		const { db, spaceSlug } = resolveSpaceAccess(locals, url);
 		const parentParam = url.searchParams.get('parent_id');
 
 		let categories;
@@ -17,8 +17,8 @@ export const GET: RequestHandler = async ({ url }) => {
 			if (parentParam === 'null' || parentParam === '') {
 				categories = db.prepare(
 					`SELECT c.*, (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id) AS children_count
-					 FROM categories c WHERE c.parent_id IS NULL ORDER BY c.sort_order`
-				).all();
+					 FROM categories c WHERE c.space_slug = ? AND c.parent_id IS NULL ORDER BY c.sort_order`
+				).all(spaceSlug);
 			} else {
 				const numParentId = Number(parentParam);
 				if (isNaN(numParentId)) {
@@ -26,15 +26,14 @@ export const GET: RequestHandler = async ({ url }) => {
 				}
 				categories = db.prepare(
 					`SELECT c.*, (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id) AS children_count
-					 FROM categories c WHERE c.parent_id = ? ORDER BY c.sort_order`
-				).all(numParentId);
+					 FROM categories c WHERE c.space_slug = ? AND c.parent_id = ? ORDER BY c.sort_order`
+				).all(spaceSlug, numParentId);
 			}
 		} else {
-			// No filter — return all (backward compat for refresh)
 			categories = db.prepare(
 				`SELECT c.*, (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id) AS children_count
-				 FROM categories c ORDER BY c.sort_order`
-			).all();
+				 FROM categories c WHERE c.space_slug = ? ORDER BY c.sort_order`
+			).all(spaceSlug);
 		}
 
 		return json(categories);
@@ -45,8 +44,12 @@ export const GET: RequestHandler = async ({ url }) => {
 	}
 };
 
-export const POST: RequestHandler = async ({ request, url }) => {
+export const POST: RequestHandler = async ({ request, url, locals }) => {
 	try {
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db, spaceSlug } = access;
+
 		const { name, color, parent_id } = await request.json();
 
 		if (!name || !color) {
@@ -60,24 +63,23 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			return json({ error: `Color exceeds maximum length of ${MAX_COLOR_LENGTH} characters` }, { status: 400 });
 		}
 
-		const db = getSpaceDb(url);
 		const slug = slugify(name);
 
 		const parentIdValue = parent_id ?? null;
 		if (parentIdValue !== null) {
-			const parent = db.prepare('SELECT id FROM categories WHERE id = ?').get(parentIdValue);
+			const parent = db.prepare('SELECT id FROM categories WHERE id = ? AND space_slug = ?').get(parentIdValue, spaceSlug);
 			if (!parent) {
 				return json({ error: 'Parent category not found' }, { status: 404 });
 			}
 		}
 		const maxOrder = parentIdValue === null
-			? db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM categories WHERE parent_id IS NULL').get() as { max_order: number }
-			: db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM categories WHERE parent_id = ?').get(parentIdValue) as { max_order: number };
+			? db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM categories WHERE space_slug = ? AND parent_id IS NULL').get(spaceSlug) as { max_order: number }
+			: db.prepare('SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM categories WHERE space_slug = ? AND parent_id = ?').get(spaceSlug, parentIdValue) as { max_order: number };
 		const sort_order = maxOrder.max_order + 1;
 
 		const result = db.prepare(
-			'INSERT INTO categories (name, slug, color, sort_order, parent_id) VALUES (?, ?, ?, ?, ?)'
-		).run(name, slug, color, sort_order, parentIdValue);
+			'INSERT INTO categories (space_slug, name, slug, color, sort_order, parent_id) VALUES (?, ?, ?, ?, ?, ?)'
+		).run(spaceSlug, name, slug, color, sort_order, parentIdValue);
 
 		const category = db.prepare(
 			`SELECT c.*, (SELECT COUNT(*) FROM categories ch WHERE ch.parent_id = c.id) AS children_count

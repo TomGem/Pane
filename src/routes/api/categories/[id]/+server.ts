@@ -1,7 +1,6 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceSlug } from '$lib/server/space';
-import { getDb } from '$lib/server/db';
+import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
 import { deleteCategoryDir, renameCategoryDir } from '$lib/server/storage';
 import type { Category, Item } from '$lib/types';
@@ -9,13 +8,13 @@ import type { Category, Item } from '$lib/types';
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, locals }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid category id' }, { status: 400 });
 
-		const db = getDb(getSpaceSlug(url));
-		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(numId) as Category | undefined;
+		const { db, spaceSlug } = resolveSpaceAccess(locals, url);
+		const category = db.prepare('SELECT * FROM categories WHERE id = ? AND space_slug = ?').get(numId, spaceSlug) as Category | undefined;
 
 		if (!category) {
 			return json({ error: 'Category not found' }, { status: 404 });
@@ -29,7 +28,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request, url }) => {
+export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 	try {
 		const categoryId = Number(params.id);
 		if (isNaN(categoryId)) return json({ error: 'Invalid category id' }, { status: 400 });
@@ -47,18 +46,17 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			return json({ error: `Color exceeds maximum length of ${MAX_COLOR_LENGTH} characters` }, { status: 400 });
 		}
 
-		const spaceSlug = getSpaceSlug(url);
-		const db = getDb(spaceSlug);
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db, spaceSlug, ownerId } = access;
 
-		const existing = db.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId) as Category | undefined;
+		const existing = db.prepare('SELECT * FROM categories WHERE id = ? AND space_slug = ?').get(categoryId, spaceSlug) as Category | undefined;
 		if (!existing) {
 			return json({ error: 'Category not found' }, { status: 404 });
 		}
 
-		// Keep existing slug when the name hasn't changed (avoids collisions on parent_id-only updates)
 		const slug = name === existing.name ? existing.slug : slugify(name);
 
-		// parent_id: undefined means "not provided" (keep existing), null means "move to root"
 		const parentIdProvided = parent_id !== undefined;
 		const newParentId = parent_id ?? null;
 
@@ -66,11 +64,10 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			if (newParentId === categoryId) {
 				return json({ error: 'A category cannot be its own parent' }, { status: 400 });
 			}
-			const parent = db.prepare('SELECT id FROM categories WHERE id = ?').get(newParentId);
+			const parent = db.prepare('SELECT id FROM categories WHERE id = ? AND space_slug = ?').get(newParentId, spaceSlug);
 			if (!parent) {
 				return json({ error: 'Parent category not found' }, { status: 404 });
 			}
-			// Walk up the ancestor chain from the proposed parent to detect cycles
 			let current: number | null = newParentId;
 			while (current !== null) {
 				const ancestor = db.prepare('SELECT parent_id FROM categories WHERE id = ?').get(current) as { parent_id: number | null } | undefined;
@@ -82,7 +79,6 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 			}
 		}
 
-		// Wrap DB update + file path updates in a transaction for atomicity
 		const updateCategory = db.transaction(() => {
 			if (parentIdProvided) {
 				db.prepare(
@@ -94,9 +90,8 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 				).run(name, slug, color, categoryId);
 			}
 
-			// If slug changed, move files and update item paths
 			if (slug !== existing.slug) {
-				renameCategoryDir(spaceSlug, existing.slug, slug);
+				renameCategoryDir(ownerId, spaceSlug, existing.slug, slug);
 				const items = db.prepare('SELECT id, file_path FROM items WHERE category_id = ? AND file_path IS NOT NULL').all(categoryId) as Pick<Item, 'id' | 'file_path'>[];
 				const updatePath = db.prepare('UPDATE items SET file_path = ? WHERE id = ?');
 				for (const item of items) {
@@ -126,20 +121,20 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params, url }) => {
+export const DELETE: RequestHandler = async ({ params, url, locals }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid category id' }, { status: 400 });
 
-		const spaceSlug = getSpaceSlug(url);
-		const db = getDb(spaceSlug);
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db, spaceSlug, ownerId } = access;
 
-		const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(numId) as Category | undefined;
+		const category = db.prepare('SELECT * FROM categories WHERE id = ? AND space_slug = ?').get(numId, spaceSlug) as Category | undefined;
 		if (!category) {
 			return json({ error: 'Category not found' }, { status: 404 });
 		}
 
-		// Find all descendant slugs via recursive CTE before deletion
 		const descendants = db.prepare(`
 			WITH RECURSIVE tree AS (
 				SELECT id, slug FROM categories WHERE id = ?
@@ -151,9 +146,8 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 
 		db.prepare('DELETE FROM categories WHERE id = ?').run(numId);
 
-		// Clean up storage dirs for this category and all descendants
 		for (const { slug } of descendants) {
-			deleteCategoryDir(spaceSlug, slug);
+			deleteCategoryDir(ownerId, spaceSlug, slug);
 		}
 
 		return json({ success: true });

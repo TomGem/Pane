@@ -1,13 +1,12 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb, closeDb, listSpaces, validateSpaceSlug, slugExists } from '$lib/server/db';
-import { setMeta } from '$lib/server/schema';
+import { getUserDb, validateSpaceSlug, listSpaces } from '$lib/server/db';
+import { spaceExists } from '$lib/server/user-schema';
 import { deleteSpaceDir } from '$lib/server/storage';
-import fs from 'fs';
-import path from 'path';
 
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	try {
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		const { name } = await request.json();
 
 		if (!name || typeof name !== 'string' || !name.trim()) {
@@ -15,12 +14,17 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 		}
 
 		const slug = params.slug;
-		if (!validateSpaceSlug(slug) || !slugExists(slug)) {
+		if (!validateSpaceSlug(slug)) {
 			return json({ error: 'Space not found' }, { status: 404 });
 		}
 
-		const db = getDb(slug);
-		setMeta(db, 'display_name', name.trim());
+		const db = getUserDb(locals.userId);
+		if (!spaceExists(db, slug)) {
+			return json({ error: 'Space not found' }, { status: 404 });
+		}
+
+		db.prepare('UPDATE spaces SET display_name = ?, updated_at = datetime(?) WHERE slug = ?')
+			.run(name.trim(), new Date().toISOString(), slug);
 
 		return json({ slug, name: name.trim() });
 	} catch (err) {
@@ -29,32 +33,30 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, locals }) => {
 	try {
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		const slug = params.slug;
-		if (!validateSpaceSlug(slug) || !slugExists(slug)) {
+		if (!validateSpaceSlug(slug)) {
+			return json({ error: 'Space not found' }, { status: 404 });
+		}
+
+		const db = getUserDb(locals.userId);
+		if (!spaceExists(db, slug)) {
 			return json({ error: 'Space not found' }, { status: 404 });
 		}
 
 		// Guard: cannot delete the last space
-		const spaces = listSpaces();
+		const spaces = listSpaces(locals.userId);
 		if (spaces.length <= 1) {
 			return json({ error: 'Cannot delete the last space' }, { status: 400 });
 		}
 
-		closeDb(slug);
-
-		// Remove DB files
-		const dataDir = path.resolve('data');
-		for (const ext of ['.db', '.db-wal', '.db-shm', '.db-journal']) {
-			const filePath = path.join(dataDir, `${slug}${ext}`);
-			if (fs.existsSync(filePath)) {
-				fs.unlinkSync(filePath);
-			}
-		}
+		// Delete space (CASCADE handles categories, items, item_tags)
+		db.prepare('DELETE FROM spaces WHERE slug = ?').run(slug);
 
 		// Remove storage dir
-		deleteSpaceDir(slug);
+		deleteSpaceDir(locals.userId, slug);
 
 		return json({ success: true });
 	} catch (err) {

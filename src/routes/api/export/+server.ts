@@ -3,7 +3,9 @@ import type { RequestHandler } from './$types';
 import { createExportZip } from '$lib/server/export';
 import { validateSpaceSlug, listSpaces } from '$lib/server/db';
 
-export const GET: RequestHandler = ({ url }) => {
+export const GET: RequestHandler = ({ url, locals }) => {
+	if (!locals.userId) throw error(401, 'Unauthorized');
+
 	const spacesParam = url.searchParams.get('spaces');
 	if (!spacesParam) {
 		throw error(400, 'Missing spaces parameter');
@@ -21,8 +23,7 @@ export const GET: RequestHandler = ({ url }) => {
 				throw error(400, `Invalid space slug: ${slug}`);
 			}
 		}
-		// Verify all spaces exist
-		const existing = new Set(listSpaces().map((s) => s.slug));
+		const existing = new Set(listSpaces(locals.userId).map((s) => s.slug));
 		for (const slug of spaceSlugs) {
 			if (!existing.has(slug)) {
 				throw error(404, `Space not found: ${slug}`);
@@ -30,7 +31,7 @@ export const GET: RequestHandler = ({ url }) => {
 		}
 	}
 
-	const { stream, filename } = createExportZip(spaceSlugs, includeFiles);
+	const { stream, filename } = createExportZip(locals.userId, spaceSlugs, includeFiles);
 
 	return new Response(stream as unknown as ReadableStream, {
 		headers: {

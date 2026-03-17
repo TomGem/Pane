@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { listSpaces, createDb, validateSpaceSlug, slugExists } from '$lib/server/db';
+import { getUserDb, validateSpaceSlug, listSpaces } from '$lib/server/db';
+import { createSpace, spaceExists } from '$lib/server/user-schema';
 import { ensureSpaceDir } from '$lib/server/storage';
 import { slugify } from '$lib/utils/slugify';
 
@@ -10,9 +11,10 @@ function generateSlug(name: string): string {
 	return slugify(name).slice(0, 64) || 'space';
 }
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ locals }) => {
 	try {
-		const spaces = listSpaces();
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
+		const spaces = listSpaces(locals.userId);
 		return json(spaces);
 	} catch (err) {
 		console.error('Failed to list spaces:', err);
@@ -20,8 +22,9 @@ export const GET: RequestHandler = async () => {
 	}
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		const { name } = await request.json();
 
 		if (!name || typeof name !== 'string' || !name.trim()) {
@@ -37,18 +40,20 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'Invalid name — use letters, numbers, and dashes' }, { status: 400 });
 		}
 
-		// Ensure unique slug (truncate base slug to leave room for suffix)
+		const db = getUserDb(locals.userId);
+
+		// Ensure unique slug within user's spaces
 		let finalSlug = slug;
 		let suffix = 2;
-		while (slugExists(finalSlug)) {
+		while (spaceExists(db, finalSlug)) {
 			const suffixStr = `-${suffix}`;
 			const maxBaseLen = 64 - suffixStr.length;
 			finalSlug = `${slug.slice(0, maxBaseLen)}${suffixStr}`;
 			suffix++;
 		}
 
-		createDb(finalSlug, name.trim());
-		ensureSpaceDir(finalSlug);
+		createSpace(db, finalSlug, name.trim());
+		ensureSpaceDir(locals.userId, finalSlug);
 
 		return json({ slug: finalSlug, name: name.trim() }, { status: 201 });
 	} catch (err) {

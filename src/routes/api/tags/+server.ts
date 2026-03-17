@@ -1,14 +1,15 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getGlobalDb } from '$lib/server/db';
+import { getUserDb } from '$lib/server/db';
 import type { Tag } from '$lib/types';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
 
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ locals }) => {
 	try {
-		const db = getGlobalDb();
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
+		const db = getUserDb(locals.userId);
 		const tags = db.prepare('SELECT * FROM tags ORDER BY name').all() as Tag[];
 		return json(tags);
 	} catch (err) {
@@ -17,8 +18,9 @@ export const GET: RequestHandler = async () => {
 	}
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		const { name, color } = await request.json();
 
 		if (!name || !color) {
@@ -32,7 +34,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: `Color exceeds maximum length of ${MAX_COLOR_LENGTH} characters` }, { status: 400 });
 		}
 
-		const db = getGlobalDb();
+		const db = getUserDb(locals.userId);
 
 		const result = db.prepare(
 			'INSERT INTO tags (name, color) VALUES (?, ?)'

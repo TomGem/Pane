@@ -5,7 +5,9 @@ import type { ConflictMode } from '$lib/types/export';
 
 const MAX_SIZE = 500 * 1024 * 1024; // 500MB
 
-export const POST: RequestHandler = async ({ url, request }) => {
+export const POST: RequestHandler = async ({ url, request, locals }) => {
+	if (!locals.userId) throw error(401, 'Unauthorized');
+
 	const action = url.searchParams.get('action');
 	if (!action || !['preview', 'execute'].includes(action)) {
 		throw error(400, 'Missing or invalid action parameter (preview or execute)');
@@ -30,7 +32,7 @@ export const POST: RequestHandler = async ({ url, request }) => {
 	const zipBuffer = Buffer.from(arrayBuffer);
 
 	if (action === 'preview') {
-		const preview = previewImport(zipBuffer);
+		const preview = previewImport(locals.userId, zipBuffer);
 		return json(preview);
 	}
 
@@ -40,6 +42,6 @@ export const POST: RequestHandler = async ({ url, request }) => {
 		throw error(400, 'Invalid conflict_mode (skip, rename, or replace)');
 	}
 
-	const result = executeImport(zipBuffer, { conflict_mode: conflictMode });
+	const result = executeImport(locals.userId, zipBuffer, { conflict_mode: conflictMode });
 	return json(result, { status: result.success ? 200 : 500 });
 };

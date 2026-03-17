@@ -1,18 +1,20 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceSlug } from '$lib/server/space';
-import { getDb, getGlobalDb } from '$lib/server/db';
+import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
+import { getUserDb } from '$lib/server/db';
 import { getTagsForItem } from '$lib/server/tags';
 import { fetchPageMeta } from '$lib/server/meta';
 import type { Item } from '$lib/types';
 
-export const POST: RequestHandler = async ({ params, url }) => {
+export const POST: RequestHandler = async ({ params, url, locals }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
 
-		const spaceSlug = getSpaceSlug(url);
-		const db = getDb(spaceSlug);
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db } = access;
 
 		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 		if (!item) {
@@ -39,18 +41,16 @@ export const POST: RequestHandler = async ({ params, url }) => {
 		}
 
 		// Handle 404 tag for unavailable links
+		const userDb = getUserDb(locals.userId);
 		if (meta.unavailable) {
-			const globalDb = getGlobalDb();
-			globalDb.prepare("INSERT OR IGNORE INTO tags (name, color) VALUES ('404', '#ef4444')").run();
-			const tag404 = globalDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number };
+			userDb.prepare("INSERT OR IGNORE INTO tags (name, color) VALUES ('404', '#ef4444')").run();
+			const tag404 = userDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number };
 			const existing = db.prepare('SELECT 1 FROM item_tags WHERE item_id = ? AND tag_id = ?').get(numId, tag404.id);
 			if (!existing) {
 				db.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(numId, tag404.id);
 			}
 		} else {
-			// Remove 404 tag if link is now available
-			const globalDb = getGlobalDb();
-			const tag404 = globalDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number } | undefined;
+			const tag404 = userDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number } | undefined;
 			if (tag404) {
 				db.prepare('DELETE FROM item_tags WHERE item_id = ? AND tag_id = ?').run(numId, tag404.id);
 			}

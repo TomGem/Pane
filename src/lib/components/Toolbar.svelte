@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SettingsOverlay from './SettingsOverlay.svelte';
 	import ExportImportOverlay from './ExportImportOverlay.svelte';
+	import SpaceSharingOverlay from './SpaceSharingOverlay.svelte';
 	import HelpPanel from './HelpPanel.svelte';
 	import Icon from './Icon.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
@@ -8,6 +9,7 @@
 	import type { Tag, Space } from '$lib/types';
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	interface Props {
 		searchQuery?: string;
@@ -29,6 +31,11 @@
 	}
 
 	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
+
+	let user = $derived($page.data.user);
+	let showUserMenu = $state(false);
+	let showSharing = $state(false);
+	let isOwner = $derived(!$page.data.ownerId);
 
 	const TAG_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
@@ -116,7 +123,9 @@
 	let spaceError = $state<string | null>(null);
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && showExportImport) {
+		if (e.key === 'Escape' && showSharing) {
+			showSharing = false;
+		} else if (e.key === 'Escape' && showExportImport) {
 			showExportImport = false;
 		} else if (e.key === 'Escape' && showSettings) {
 			showSettings = false;
@@ -127,11 +136,20 @@
 			creatingSpace = false;
 			newSpaceName = '';
 			confirmDeleteSlug = null;
+		} else if (e.key === 'Escape' && showUserMenu) {
+			showUserMenu = false;
 		} else if (e.key === 'Escape' && editingTagId !== null) {
 			editingTagId = null;
 		} else if (e.key === 'Escape' && showTagMenu) {
 			showTagMenu = false;
 		}
+	}
+
+	async function handleLogout() {
+		try {
+			await fetch('/api/auth/logout', { method: 'POST' });
+		} catch { /* ignore */ }
+		window.location.href = '/login';
 	}
 
 	function handleSearchKeydown(e: KeyboardEvent) {
@@ -331,18 +349,61 @@
 	</div>
 
 	<div class="toolbar-right">
-		<button class="btn-toolbar-icon" onclick={() => onadd?.()} aria-label="Add item" title="Add item">
-		<Icon name="file-plus" size={18} />
-		</button>
-		<button class="btn-toolbar-icon" onclick={() => onaddcategory?.()} aria-label="Add category" title="Add category">
-		<Icon name="folder-plus" size={18} />
-		</button>
+		{#if onadd}
+			<button class="btn-toolbar-icon" onclick={() => onadd?.()} aria-label="Add item" title="Add item">
+			<Icon name="file-plus" size={18} />
+			</button>
+		{/if}
+		{#if onaddcategory}
+			<button class="btn-toolbar-icon" onclick={() => onaddcategory?.()} aria-label="Add category" title="Add category">
+			<Icon name="folder-plus" size={18} />
+			</button>
+		{/if}
+		{#if isOwner}
+			<button class="btn-toolbar-icon" onclick={() => showSharing = true} aria-label="Share space" title="Share space">
+				<Icon name="users" size={18} />
+			</button>
+		{/if}
 		<button class="btn-toolbar-icon" onclick={() => showSettings = true} aria-label="Settings" title="Settings">
 			<Icon name="settings" size={18} />
 		</button>
 		<button class="btn-toolbar-icon" onclick={() => showHelp = true} aria-label="Help" title="Help">
 			<Icon name="help-circle" size={18} />
 		</button>
+		{#if user}
+			<div class="user-menu-wrapper">
+				<button
+					class="btn-toolbar-icon user-btn"
+					onclick={() => showUserMenu = !showUserMenu}
+					aria-label="User menu"
+					title={user.display_name}
+					aria-expanded={showUserMenu}
+					aria-haspopup="true"
+				>
+					<Icon name="user" size={18} />
+				</button>
+				{#if showUserMenu}
+					<div class="user-menu glass-strong">
+						<div class="user-menu-header">
+							<span class="user-menu-name">{user.display_name}</span>
+							<span class="user-menu-email">{user.email}</span>
+						</div>
+						<div class="user-menu-list">
+							{#if user.role === 'admin'}
+								<a class="user-menu-item" href="/admin" onclick={() => showUserMenu = false}>
+									<Icon name="shield" size={14} />
+									<span>Admin Panel</span>
+								</a>
+							{/if}
+							<button class="user-menu-item" onclick={handleLogout}>
+								<Icon name="log-out" size={14} />
+								<span>Sign out</span>
+							</button>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 </header>
 
@@ -352,6 +413,10 @@
 
 {#if showSpaceMenu}
 	<div class="space-menu-backdrop" onclick={() => { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; confirmDeleteSlug = null; }} aria-hidden="true"></div>
+{/if}
+
+{#if showUserMenu}
+	<div class="user-menu-backdrop" onclick={() => showUserMenu = false} aria-hidden="true"></div>
 {/if}
 
 {#if showSettings}
@@ -374,6 +439,14 @@
 
 {#if showHelp}
 	<HelpPanel onclose={() => showHelp = false} />
+{/if}
+
+{#if showSharing}
+	<SpaceSharingOverlay
+		{spaceSlug}
+		{spaceName}
+		onclose={() => showSharing = false}
+	/>
 {/if}
 
 <style>
@@ -912,6 +985,75 @@
 	.btn-toolbar-icon:hover {
 		background: var(--accent-soft);
 		color: var(--accent);
+	}
+
+	.user-menu-wrapper {
+		position: relative;
+	}
+
+	.user-menu {
+		position: absolute;
+		top: calc(100% + 10px);
+		right: 0;
+		z-index: 150;
+		min-width: 200px;
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-lg);
+		overflow: hidden;
+		background: var(--bg-primary);
+		border: 1px solid var(--border);
+	}
+
+	.user-menu-header {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 10px 14px;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.user-menu-name {
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.user-menu-email {
+		font-size: 12px;
+		color: var(--text-muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.user-menu-list {
+		padding: 4px;
+	}
+
+	.user-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 7px 10px;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font-size: 13px;
+		color: var(--text-primary);
+		text-decoration: none;
+		text-align: left;
+		transition: background-color var(--transition);
+	}
+
+	.user-menu-item:hover {
+		background: var(--accent-soft);
+		text-decoration: none;
+	}
+
+	.user-menu-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 99;
 	}
 
 </style>

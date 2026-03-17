@@ -1,11 +1,10 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceSlug } from '$lib/server/space';
-import { getDb } from '$lib/server/db';
+import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { moveFile } from '$lib/server/storage';
 import type { Item, Category, ReorderMove } from '$lib/types';
 
-export const PUT: RequestHandler = async ({ request, url }) => {
+export const PUT: RequestHandler = async ({ request, url, locals }) => {
 	try {
 		const { moves } = await request.json() as { moves: ReorderMove[] };
 
@@ -13,10 +12,10 @@ export const PUT: RequestHandler = async ({ request, url }) => {
 			return json({ error: 'moves must be a non-empty array' }, { status: 400 });
 		}
 
-		const spaceSlug = getSpaceSlug(url);
-		const db = getDb(spaceSlug);
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db, spaceSlug, ownerId } = access;
 
-		// Collect file moves to perform outside the transaction
 		const fileMoves: { item: Item; newCategorySlug: string; moveId: number }[] = [];
 
 		const reorder = db.transaction((movesToApply: ReorderMove[]) => {
@@ -30,7 +29,6 @@ export const PUT: RequestHandler = async ({ request, url }) => {
 				const item = getItem.get(move.id) as Item | undefined;
 				if (!item) continue;
 
-				// Track file moves to perform after transaction commits
 				if (move.category_id !== item.category_id && item.file_path) {
 					const newCategory = getCategory.get(move.category_id) as Category | undefined;
 					if (newCategory) {
@@ -44,12 +42,11 @@ export const PUT: RequestHandler = async ({ request, url }) => {
 
 		reorder(moves);
 
-		// Move files after transaction committed successfully, batch path updates in a transaction
 		if (fileMoves.length > 0) {
 			const updateFilePaths = db.transaction(() => {
 				const updateFilePath = db.prepare('UPDATE items SET file_path = ? WHERE id = ?');
 				for (const { item, newCategorySlug, moveId } of fileMoves) {
-					const newFilePath = moveFile(spaceSlug, item.file_path!, newCategorySlug);
+					const newFilePath = moveFile(ownerId, spaceSlug, item.file_path!, newCategorySlug);
 					updateFilePath.run(newFilePath, moveId);
 				}
 			});

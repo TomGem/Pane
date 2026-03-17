@@ -6,7 +6,7 @@
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
 
-	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[] }; children: Snippet } = $props();
+	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[]; ownerId?: string; permission: 'owner' | 'read' | 'write' }; children: Snippet } = $props();
 
 	const theme = getContext<ThemeStore>('theme');
 	const palette = getContext<PaletteStore>('palette');

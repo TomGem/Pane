@@ -3,20 +3,23 @@ import type { FolderStructure } from '$lib/utils/folder-drop';
 import { api } from '$lib/utils/api';
 import { extractWeblocUrl } from '$lib/utils/webloc';
 
-function spaceParam(spaceSlug: string): string {
-	return `space=${encodeURIComponent(spaceSlug)}`;
+function spaceParam(spaceSlug: string, ownerId?: string): string {
+	let p = `space=${encodeURIComponent(spaceSlug)}`;
+	if (ownerId) p += `&owner=${encodeURIComponent(ownerId)}`;
+	return p;
 }
 
-function withSpace(url: string, spaceSlug: string): string {
-	return url.includes('?') ? `${url}&${spaceParam(spaceSlug)}` : `${url}?${spaceParam(spaceSlug)}`;
+function withSpace(url: string, spaceSlug: string, ownerId?: string): string {
+	return url.includes('?') ? `${url}&${spaceParam(spaceSlug, ownerId)}` : `${url}?${spaceParam(spaceSlug, ownerId)}`;
 }
 
-export function createBoardStore(initial: CategoryWithItems[], initialAllItems?: Item[], spaceSlug: string = 'desk') {
+export function createBoardStore(initial: CategoryWithItems[], initialAllItems?: Item[], spaceSlug: string = 'desk', ownerId?: string) {
 	let columns = $state<CategoryWithItems[]>(initial);
 	let allItems = $state<Item[]>(initialAllItems ?? initial.flatMap((c) => c.items));
 	let allTags = $state<Tag[]>([]);
 	let currentParentId = $state<number | null>(null);
 	let breadcrumb = $state<BreadcrumbSegment[]>([]);
+	const readonly = !!ownerId;
 
 	async function loadTags() {
 		allTags = await api<Tag[]>('/api/tags');
@@ -25,11 +28,11 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	async function refresh() {
 		const parentParam = currentParentId === null ? 'null' : String(currentParentId);
 		const [cats, fetchedItems] = await Promise.all([
-			api<(Category & { children_count: number })[]>(withSpace(`/api/categories?parent_id=${parentParam}`, spaceSlug)),
-			api<Item[]>(withSpace('/api/items', spaceSlug))
+			api<(Category & { children_count: number })[]>(withSpace(`/api/categories?parent_id=${parentParam}`, spaceSlug, ownerId)),
+			api<Item[]>(withSpace('/api/items', spaceSlug, ownerId))
 		]);
 		allItems = fetchedItems;
-		const allCats = await api<Category[]>(withSpace('/api/categories', spaceSlug));
+		const allCats = await api<Category[]>(withSpace('/api/categories', spaceSlug, ownerId));
 
 		// When drilled into a category, include it as the first column so its direct items are visible
 		let displayCats = cats;
@@ -52,7 +55,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 
 	// Categories
 	async function addCategory(name: string, color: string) {
-		await api<Category>(withSpace('/api/categories', spaceSlug), {
+		await api<Category>(withSpace('/api/categories', spaceSlug, ownerId), {
 			method: 'POST',
 			body: JSON.stringify({ name, color, parent_id: currentParentId })
 		});
@@ -60,7 +63,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function addSubcategory(name: string, color: string, parentId: number) {
-		await api<Category>(withSpace('/api/categories', spaceSlug), {
+		await api<Category>(withSpace('/api/categories', spaceSlug, ownerId), {
 			method: 'POST',
 			body: JSON.stringify({ name, color, parent_id: parentId })
 		});
@@ -68,7 +71,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function updateCategory(id: number, name: string, color: string) {
-		await api<Category>(withSpace(`/api/categories/${id}`, spaceSlug), {
+		await api<Category>(withSpace(`/api/categories/${id}`, spaceSlug, ownerId), {
 			method: 'PUT',
 			body: JSON.stringify({ name, color })
 		});
@@ -76,7 +79,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function promoteCategory(id: number, name: string, color: string) {
-		await api<Category>(withSpace(`/api/categories/${id}`, spaceSlug), {
+		await api<Category>(withSpace(`/api/categories/${id}`, spaceSlug, ownerId), {
 			method: 'PUT',
 			body: JSON.stringify({ name, color, parent_id: null })
 		});
@@ -84,7 +87,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function demoteCategory(id: number, name: string, color: string, newParentId: number) {
-		await api<Category>(withSpace(`/api/categories/${id}`, spaceSlug), {
+		await api<Category>(withSpace(`/api/categories/${id}`, spaceSlug, ownerId), {
 			method: 'PUT',
 			body: JSON.stringify({ name, color, parent_id: newParentId })
 		});
@@ -92,12 +95,12 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function deleteCategory(id: number) {
-		await api(withSpace(`/api/categories/${id}`, spaceSlug), { method: 'DELETE' });
+		await api(withSpace(`/api/categories/${id}`, spaceSlug, ownerId), { method: 'DELETE' });
 		await refresh();
 	}
 
 	async function reorderCategories(orderedIds: number[]) {
-		await api(withSpace('/api/categories/reorder', spaceSlug), {
+		await api(withSpace('/api/categories/reorder', spaceSlug, ownerId), {
 			method: 'PUT',
 			body: JSON.stringify({ orderedIds })
 		});
@@ -123,12 +126,12 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function fetchBreadcrumb(categoryId: number) {
-		breadcrumb = await api<BreadcrumbSegment[]>(withSpace(`/api/categories/${categoryId}/breadcrumb`, spaceSlug));
+		breadcrumb = await api<BreadcrumbSegment[]>(withSpace(`/api/categories/${categoryId}/breadcrumb`, spaceSlug, ownerId));
 	}
 
 	// Items
 	async function addItem(data: { category_id: number; type: string; title: string; content?: string; description?: string; tags?: number[]; fetch_title?: boolean }) {
-		await api<Item>(withSpace('/api/items', spaceSlug), {
+		await api<Item>(withSpace('/api/items', spaceSlug, ownerId), {
 			method: 'POST',
 			body: JSON.stringify(data)
 		});
@@ -136,7 +139,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function updateItem(id: number, data: Partial<Omit<Item, 'tags'>> & { tags?: number[] }) {
-		await api<Item>(withSpace(`/api/items/${id}`, spaceSlug), {
+		await api<Item>(withSpace(`/api/items/${id}`, spaceSlug, ownerId), {
 			method: 'PUT',
 			body: JSON.stringify(data)
 		});
@@ -144,12 +147,12 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function deleteItem(id: number) {
-		await api(withSpace(`/api/items/${id}`, spaceSlug), { method: 'DELETE' });
+		await api(withSpace(`/api/items/${id}`, spaceSlug, ownerId), { method: 'DELETE' });
 		await refresh();
 	}
 
 	async function reorderItems(moves: ReorderMove[]) {
-		await api(withSpace('/api/items/reorder', spaceSlug), {
+		await api(withSpace('/api/items/reorder', spaceSlug, ownerId), {
 			method: 'PUT',
 			body: JSON.stringify({ moves })
 		});
@@ -157,7 +160,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function refreshLink(id: number) {
-		await api<Item>(withSpace(`/api/items/${id}/refresh`, spaceSlug), { method: 'POST' });
+		await api<Item>(withSpace(`/api/items/${id}/refresh`, spaceSlug, ownerId), { method: 'POST' });
 		await Promise.all([refresh(), loadTags()]);
 	}
 
@@ -168,7 +171,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		if (title) form.append('title', title);
 		if (description) form.append('description', description);
 
-		const res = await fetch(withSpace('/api/items/upload', spaceSlug), { method: 'POST', body: form });
+		const res = await fetch(withSpace('/api/items/upload', spaceSlug, ownerId), { method: 'POST', body: form });
 		if (!res.ok) {
 			const err = await res.json().catch(() => ({ error: 'Upload failed' }));
 			throw new Error(err.error ?? 'Upload failed');
@@ -188,7 +191,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 
 	// Move category to another space
 	async function moveCategoryToSpace(categoryId: number, targetSpace: string) {
-		await api(withSpace(`/api/categories/${categoryId}/move`, spaceSlug), {
+		await api(withSpace(`/api/categories/${categoryId}/move`, spaceSlug, ownerId), {
 			method: 'POST',
 			body: JSON.stringify({ targetSpace })
 		});
@@ -215,7 +218,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 					const u = new URL(url);
 					title = u.hostname + u.pathname;
 				} catch { /* keep raw url as title */ }
-				await api<Item>(withSpace('/api/items', spaceSlug), {
+				await api<Item>(withSpace('/api/items', spaceSlug, ownerId), {
 					method: 'POST',
 					body: JSON.stringify({ category_id: categoryId, type: 'link', title, content: url, fetch_title: true })
 				});
@@ -226,7 +229,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		if (name.endsWith('.md')) {
 			const content = await file.text();
 			const title = file.name.replace(/\.md$/i, '');
-			await api<Item>(withSpace('/api/items', spaceSlug), {
+			await api<Item>(withSpace('/api/items', spaceSlug, ownerId), {
 				method: 'POST',
 				body: JSON.stringify({ category_id: categoryId, type: 'note', title, content })
 			});
@@ -237,7 +240,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		const form = new FormData();
 		form.append('file', file);
 		form.append('category_id', String(categoryId));
-		const res = await fetch(withSpace('/api/items/upload', spaceSlug), { method: 'POST', body: form });
+		const res = await fetch(withSpace('/api/items/upload', spaceSlug, ownerId), { method: 'POST', body: form });
 		if (!res.ok) {
 			const err = await res.json().catch(() => ({ error: 'Upload failed' }));
 			throw new Error(err.error ?? 'Upload failed');
@@ -248,7 +251,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		let attempt = name;
 		for (let i = 2; i <= 10; i++) {
 			try {
-				return await api<Category>(withSpace('/api/categories', spaceSlug), {
+				return await api<Category>(withSpace('/api/categories', spaceSlug, ownerId), {
 					method: 'POST',
 					body: JSON.stringify({ name: attempt, color, parent_id: parentId })
 				});
@@ -346,6 +349,8 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		get currentParentId() { return currentParentId; },
 		get breadcrumb() { return breadcrumb; },
 		get spaceSlug() { return spaceSlug; },
+		get ownerId() { return ownerId; },
+		get readonly() { return readonly; },
 		refresh,
 		loadTags,
 		addCategory,

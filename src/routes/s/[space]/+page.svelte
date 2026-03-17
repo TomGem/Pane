@@ -5,6 +5,7 @@
 	import ItemForm from '$lib/components/ItemForm.svelte';
 	import CategoryForm from '$lib/components/CategoryForm.svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import { createBoardStore } from '$lib/stores/board.svelte';
 	import { getDirectoryEntries, traverseDirectory } from '$lib/utils/folder-drop';
 	import { getContext } from 'svelte';
@@ -15,9 +16,12 @@
 
 	const spaceSlug = $derived($page.data.spaceSlug as string);
 	const spaceName = $derived($page.data.spaceName as string);
+	const ownerId = $derived($page.data.ownerId as string | undefined);
+	const permission = $derived(($page.data.permission as string) ?? 'owner');
+	const isReadonly = $derived(permission === 'read');
 
 	// svelte-ignore state_referenced_locally — intentionally capturing initial SSR data; store manages its own state after hydration
-	const board = createBoardStore(data.columns, data.allItems, spaceSlug);
+	const board = createBoardStore(data.columns, data.allItems, spaceSlug, ownerId);
 	const app = getContext<{ searchQuery: string; setSearchQuery: (query: string) => void; selectedTagIds: number[]; toggleTag: (tagId: number) => void; focusSearch: () => void; setAddCallback: (fn: () => void) => void; setAddCategoryCallback: (fn: () => void) => void; setTags: (tags: Tag[]) => void; setUpdateTag: (fn: (id: number, name: string, color: string) => Promise<Tag>) => void }>('app');
 
 	let isNested = $derived(board.currentParentId !== null);
@@ -30,17 +34,19 @@
 	// Load tags on mount and register add callback
 	$effect(() => {
 		board.loadTags().catch((e: unknown) => console.error('Failed to load tags:', e));
-		app.setAddCallback(() => {
-			if (board.columns.length > 0) {
-				handleAddItem(board.columns[0].id);
-			} else {
+		if (!isReadonly) {
+			app.setAddCallback(() => {
+				if (board.columns.length > 0) {
+					handleAddItem(board.columns[0].id);
+				} else {
+					handleAddCategory();
+				}
+			});
+			app.setAddCategoryCallback(() => {
 				handleAddCategory();
-			}
-		});
-		app.setAddCategoryCallback(() => {
-			handleAddCategory();
-		});
-		app.setUpdateTag(board.updateTag);
+			});
+			app.setUpdateTag(board.updateTag);
+		}
 	});
 
 	// Modal state
@@ -455,15 +461,27 @@
 <div class="page">
 	<Breadcrumb segments={board.breadcrumb} {spaceName} onnavigate={handleBreadcrumbNavigate} />
 
+	{#if ownerId && isReadonly}
+		<div class="readonly-banner">
+			<Icon name="users" size={14} />
+			<span>Shared with you (view only)</span>
+		</div>
+	{:else if ownerId && !isReadonly}
+		<div class="shared-banner">
+			<Icon name="users" size={14} />
+			<span>Shared with you (can edit)</span>
+		</div>
+	{/if}
+
 	{#if board.columns.length === 0}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="empty-board"
 			class:empty-board-drag-over={emptyBoardDragOver}
-			ondragenter={handleEmptyDragEnter}
-			ondragover={handleEmptyDragOver}
-			ondragleave={handleEmptyDragLeave}
-			ondrop={handleEmptyDrop}
+			ondragenter={!isReadonly ? handleEmptyDragEnter : undefined}
+			ondragover={!isReadonly ? handleEmptyDragOver : undefined}
+			ondragleave={!isReadonly ? handleEmptyDragLeave : undefined}
+			ondrop={!isReadonly ? handleEmptyDrop : undefined}
 		>
 			<div class="empty-board-content glass">
 				{#if emptyBoardDragOver}
@@ -472,6 +490,15 @@
 					</svg>
 					<h2>Drop folder to create category</h2>
 					<p>Subfolders will become subcategories</p>
+				{:else if isReadonly}
+					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+						<rect x="3" y="3" width="7" height="7" />
+						<rect x="14" y="3" width="7" height="7" />
+						<rect x="3" y="14" width="7" height="7" />
+						<rect x="14" y="14" width="7" height="7" />
+					</svg>
+					<h2>This space is empty</h2>
+					<p>The owner hasn't added any categories yet.</p>
 				{:else}
 					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
 						<rect x="3" y="3" width="7" height="7" />
@@ -501,21 +528,21 @@
 			{spaceSlug}
 			searchQuery={app.searchQuery}
 			selectedTagIds={app.selectedTagIds}
-			onitemedit={handleEditItem}
-			onitemrefresh={handleRefreshItem}
-			onitemdelete={handleDeleteItem}
-			onadditem={handleAddItem}
-			oneditcategory={handleEditCategory}
-			ondeletecategory={handleDeleteCategory}
-			onaddsubcategory={handleAddSubcategory}
-			onmovecategory={($page.data.spaces as Space[]).length > 1 ? handleMoveCategory : undefined}
-			onpromotecategory={handlePromoteCategory}
-			ondemotecategory={handleDemoteCategory}
+			onitemedit={isReadonly ? undefined : handleEditItem}
+			onitemrefresh={isReadonly ? undefined : handleRefreshItem}
+			onitemdelete={isReadonly ? undefined : handleDeleteItem}
+			onadditem={isReadonly ? undefined : handleAddItem}
+			oneditcategory={isReadonly ? undefined : handleEditCategory}
+			ondeletecategory={isReadonly ? undefined : handleDeleteCategory}
+			onaddsubcategory={isReadonly ? undefined : handleAddSubcategory}
+			onmovecategory={isReadonly ? undefined : (($page.data.spaces as Space[]).length > 1 ? handleMoveCategory : undefined)}
+			onpromotecategory={isReadonly ? undefined : handlePromoteCategory}
+			ondemotecategory={isReadonly ? undefined : handleDemoteCategory}
 			ondrilldown={handleDrillDown}
-			onfolderimported={handleFolderImported}
-			onfoldererror={handleFolderError}
-			onprogress={handleFolderProgress}
-			onnotesave={handleNoteSave}
+			onfolderimported={isReadonly ? undefined : handleFolderImported}
+			onfoldererror={isReadonly ? undefined : handleFolderError}
+			onprogress={isReadonly ? undefined : handleFolderProgress}
+			onnotesave={isReadonly ? undefined : handleNoteSave}
 		/>
 	{/if}
 </div>
@@ -622,6 +649,20 @@
 	.page {
 		flex: 1;
 		min-width: 0;
+	}
+
+	.readonly-banner,
+	.shared-banner {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 12px;
+		margin-bottom: 12px;
+		border-radius: var(--radius);
+		background: var(--accent-soft);
+		color: var(--accent);
+		font-size: 13px;
+		font-weight: 500;
 	}
 
 	.empty-board {

@@ -1,18 +1,18 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceSlug } from '$lib/server/space';
+import { resolveSpaceAccess } from '$lib/server/space';
 import fs, { createReadStream } from 'fs';
 import { Readable } from 'stream';
 import path from 'path';
+import { getStorageRoot } from '$lib/server/storage';
 
-const STORAGE_ROOT = path.resolve('storage');
-
-export const GET: RequestHandler = async ({ params, url }) => {
-	const spaceSlug = getSpaceSlug(url);
-	const filePath = path.join(STORAGE_ROOT, spaceSlug, params.path);
+export const GET: RequestHandler = async ({ params, url, locals }) => {
+	const { spaceSlug, ownerId } = resolveSpaceAccess(locals, url);
+	const storageRoot = getStorageRoot();
+	const filePath = path.join(storageRoot, ownerId, spaceSlug, params.path);
 
 	// Prevent directory traversal
-	if (!filePath.startsWith(path.join(STORAGE_ROOT, spaceSlug) + path.sep)) {
+	if (!filePath.startsWith(path.join(storageRoot, ownerId, spaceSlug) + path.sep)) {
 		throw error(403, 'Forbidden');
 	}
 
@@ -45,7 +45,6 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		'.mp3': 'audio/mpeg'
 	};
 
-	// Serve potentially dangerous types as attachment to prevent XSS
 	const dangerousExts = new Set(['.svg', '.html', '.htm']);
 	const disposition = dangerousExts.has(ext) ? 'attachment' : 'inline';
 

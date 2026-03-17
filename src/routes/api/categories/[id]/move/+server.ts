@@ -2,8 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceSlug } from '$lib/server/space';
-import { getDb, slugExists } from '$lib/server/db';
+import { resolveSpaceAccess, requireWriteAccess, getSpaceSlug } from '$lib/server/space';
+import { getUserDb } from '$lib/server/db';
+import { spaceExists } from '$lib/server/user-schema';
 import { copyCategoryDirAcrossSpaces, deleteCategoryDir, ensureSpaceDir, getStorageRoot } from '$lib/server/storage';
 import type { Category, Item, ItemTag } from '$lib/types';
 
@@ -11,8 +12,10 @@ interface CategoryRow extends Category {
 	children_count?: number;
 }
 
-export const POST: RequestHandler = async ({ params, request, url }) => {
+export const POST: RequestHandler = async ({ params, request, url, locals }) => {
 	try {
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
+
 		const categoryId = Number(params.id);
 		if (isNaN(categoryId)) return json({ error: 'Invalid category id' }, { status: 400 });
 
@@ -21,27 +24,27 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
 			return json({ error: 'targetSpace is required' }, { status: 400 });
 		}
 
-		const sourceSpace = getSpaceSlug(url);
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db, spaceSlug: sourceSpace, ownerId } = access;
 
 		if (sourceSpace === targetSpace) {
 			return json({ error: 'Source and target space cannot be the same' }, { status: 400 });
 		}
 
-		if (!slugExists(targetSpace)) {
+		// Target space must exist in the same user's DB
+		if (!spaceExists(db, targetSpace)) {
 			return json({ error: 'Target space does not exist' }, { status: 404 });
 		}
 
-		const sourceDb = getDb(sourceSpace);
-		const targetDb = getDb(targetSpace);
-
-		// Verify category exists in source
-		const rootCategory = sourceDb.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId) as CategoryRow | undefined;
+		// Verify category exists in source space
+		const rootCategory = db.prepare('SELECT * FROM categories WHERE id = ? AND space_slug = ?').get(categoryId, sourceSpace) as CategoryRow | undefined;
 		if (!rootCategory) {
 			return json({ error: 'Category not found' }, { status: 404 });
 		}
 
 		// Fetch entire subtree via recursive CTE
-		const allCategories = sourceDb.prepare(`
+		const allCategories = db.prepare(`
 			WITH RECURSIVE tree AS (
 				SELECT * FROM categories WHERE id = ?
 				UNION ALL
@@ -54,7 +57,7 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
 
 		// Fetch all items for these categories
 		const placeholders = categoryIds.map(() => '?').join(',');
-		const allItems = sourceDb.prepare(
+		const allItems = db.prepare(
 			`SELECT * FROM items WHERE category_id IN (${placeholders})`
 		).all(...categoryIds) as Item[];
 
@@ -63,59 +66,58 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
 		let allItemTags: ItemTag[] = [];
 		if (itemIds.length > 0) {
 			const itemPlaceholders = itemIds.map(() => '?').join(',');
-			allItemTags = sourceDb.prepare(
+			allItemTags = db.prepare(
 				`SELECT * FROM item_tags WHERE item_id IN (${itemPlaceholders})`
 			).all(...itemIds) as ItemTag[];
 		}
 
-		// Resolve slug conflicts in target DB
-		const slugMap = new Map<string, string>(); // old slug -> new slug
+		// Resolve slug conflicts in target space
+		const slugMap = new Map<string, string>();
 		for (const cat of allCategories) {
 			let newSlug = cat.slug;
 			let suffix = 2;
-			while (targetDb.prepare('SELECT id FROM categories WHERE slug = ?').get(newSlug)) {
+			while (db.prepare('SELECT id FROM categories WHERE space_slug = ? AND slug = ?').get(targetSpace, newSlug)) {
 				newSlug = `${cat.slug}-${suffix}`;
 				suffix++;
 			}
 			slugMap.set(cat.slug, newSlug);
 		}
 
-		// Calculate max sort_order in target space at root level (for the root category)
-		const maxSort = targetDb.prepare(
-			'SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM categories WHERE parent_id IS NULL'
-		).get() as { max_sort: number };
+		// Calculate max sort_order in target space at root level
+		const maxSort = db.prepare(
+			'SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM categories WHERE space_slug = ? AND parent_id IS NULL'
+		).get(targetSpace) as { max_sort: number };
 
 		const oldToNewCatId = new Map<number, number>();
 		const oldToNewItemId = new Map<number, number>();
 		const copiedCategorySlugs: string[] = [];
 
 		// Phase 1: Copy files to target (non-destructive)
-		ensureSpaceDir(targetSpace);
+		ensureSpaceDir(ownerId, targetSpace);
 		try {
 			for (const cat of allCategories) {
-				copyCategoryDirAcrossSpaces(sourceSpace, targetSpace, cat.slug);
+				copyCategoryDirAcrossSpaces(ownerId, sourceSpace, ownerId, targetSpace, cat.slug);
 				copiedCategorySlugs.push(cat.slug);
 			}
 		} catch (copyErr) {
-			// Rollback: remove any copied dirs
 			for (const slug of copiedCategorySlugs) {
-				try { deleteCategoryDir(targetSpace, slug); } catch { /* best-effort */ }
+				try { deleteCategoryDir(ownerId, targetSpace, slug); } catch { /* best-effort */ }
 			}
 			throw copyErr;
 		}
 
-		// Phase 2: Insert into target DB (transaction, clean up copies on failure)
+		// Phase 2: Insert into target space within same DB (transaction)
 		try {
-			targetDb.transaction(() => {
-				const insertCat = targetDb.prepare(
-					`INSERT INTO categories (name, slug, color, sort_order, parent_id, created_at, updated_at)
-					 VALUES (?, ?, ?, ?, ?, ?, ?)`
+			db.transaction(() => {
+				const insertCat = db.prepare(
+					`INSERT INTO categories (space_slug, name, slug, color, sort_order, parent_id, created_at, updated_at)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 				);
-				const insertItem = targetDb.prepare(
+				const insertItem = db.prepare(
 					`INSERT INTO items (category_id, type, title, content, file_path, file_name, file_size, mime_type, description, favicon_url, sort_order, is_pinned, created_at, updated_at)
 					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 				);
-				const insertItemTag = targetDb.prepare(
+				const insertItemTag = db.prepare(
 					'INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)'
 				);
 
@@ -126,7 +128,7 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
 					const sortOrder = isRoot ? maxSort.max_sort + 1 : cat.sort_order;
 
 					const result = insertCat.run(
-						cat.name, newSlug, cat.color, sortOrder,
+						targetSpace, cat.name, newSlug, cat.color, sortOrder,
 						newParentId, cat.created_at, cat.updated_at
 					);
 					oldToNewCatId.set(cat.id, Number(result.lastInsertRowid));
@@ -162,34 +164,32 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
 				}
 			})();
 		} catch (insertErr) {
-			// Rollback: remove copied files since target DB insert failed
 			for (const slug of copiedCategorySlugs) {
-				try { deleteCategoryDir(targetSpace, slug); } catch { /* best-effort */ }
+				try { deleteCategoryDir(ownerId, targetSpace, slug); } catch { /* best-effort */ }
 			}
 			throw insertErr;
 		}
 
-		// Phase 3: Delete from source DB (CASCADE handles items + item_tags)
-		// After this point, data lives in target. If this fails, data exists in both (safe duplicate).
-		sourceDb.prepare('DELETE FROM categories WHERE id = ?').run(categoryId);
+		// Phase 3: Delete from source (CASCADE handles items + item_tags)
+		db.prepare('DELETE FROM categories WHERE id = ?').run(categoryId);
 
-		// Phase 4: Clean up source files (best-effort, individual try-catch)
+		// Phase 4: Clean up source files
 		for (const cat of allCategories) {
 			try {
-				deleteCategoryDir(sourceSpace, cat.slug);
+				deleteCategoryDir(ownerId, sourceSpace, cat.slug);
 			} catch (cleanupErr) {
 				console.warn(`Failed to clean up source directory for ${cat.slug}:`, cleanupErr);
 			}
 		}
 
-		// Phase 5: Rename dirs in target for slug collisions (best-effort)
+		// Phase 5: Rename dirs in target for slug collisions
 		for (const cat of allCategories) {
 			const newSlug = slugMap.get(cat.slug) ?? cat.slug;
 			if (newSlug !== cat.slug) {
 				try {
 					const storageRoot = getStorageRoot();
-					const oldDir = path.resolve(storageRoot, targetSpace, cat.slug);
-					const newDir = path.resolve(storageRoot, targetSpace, newSlug);
+					const oldDir = path.resolve(storageRoot, ownerId, targetSpace, cat.slug);
+					const newDir = path.resolve(storageRoot, ownerId, targetSpace, newSlug);
 					if (fs.existsSync(oldDir)) {
 						fs.renameSync(oldDir, newDir);
 					}

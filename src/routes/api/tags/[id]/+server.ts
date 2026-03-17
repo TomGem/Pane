@@ -1,13 +1,14 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getGlobalDb } from '$lib/server/db';
+import { getUserDb } from '$lib/server/db';
 import type { Tag } from '$lib/types';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
 
-export const PUT: RequestHandler = async ({ params, request }) => {
+export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	try {
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid tag id' }, { status: 400 });
 
@@ -24,7 +25,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 			return json({ error: `Color exceeds maximum length of ${MAX_COLOR_LENGTH} characters` }, { status: 400 });
 		}
 
-		const db = getGlobalDb();
+		const db = getUserDb(locals.userId);
 
 		const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag | undefined;
 		if (!existing) {
@@ -45,12 +46,13 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params }) => {
+export const DELETE: RequestHandler = async ({ params, locals }) => {
 	try {
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid tag id' }, { status: 400 });
 
-		const db = getGlobalDb();
+		const db = getUserDb(locals.userId);
 
 		const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag | undefined;
 		if (!existing) {

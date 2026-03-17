@@ -1,11 +1,11 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb } from '$lib/server/space';
+import { resolveSpaceAccess } from '$lib/server/space';
 import type { BreadcrumbSegment } from '$lib/types';
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, locals }) => {
 	try {
-		const db = getSpaceDb(url);
+		const { db } = resolveSpaceAccess(locals, url);
 
 		const numId = Number(params.id);
 		if (isNaN(numId)) {
@@ -21,7 +21,6 @@ export const GET: RequestHandler = async ({ params, url }) => {
 			SELECT id, name FROM chain
 		`).all(numId) as { id: number; name: string }[];
 
-		// CTE returns child-first (starts from target, walks up). Reverse for root-first.
 		const segments: BreadcrumbSegment[] = ancestors.reverse().map((a) => ({
 			id: a.id,
 			name: a.name

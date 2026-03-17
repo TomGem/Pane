@@ -1,7 +1,7 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb } from '$lib/server/space';
-import { getGlobalDb } from '$lib/server/db';
+import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
+import { getUserDb } from '$lib/server/db';
 import { getTagsForItem, attachTagsBatched } from '$lib/server/tags';
 import { fetchPageMeta } from '$lib/server/meta';
 import type { Item } from '$lib/types';
@@ -11,9 +11,9 @@ const MAX_TITLE_LENGTH = 1000;
 const MAX_CONTENT_LENGTH = 500_000;
 const MAX_DESCRIPTION_LENGTH = 5000;
 
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, locals }) => {
 	try {
-		const db = getSpaceDb(url);
+		const { db } = resolveSpaceAccess(locals, url);
 
 		const categoryId = url.searchParams.get('category_id');
 		const type = url.searchParams.get('type');
@@ -56,8 +56,9 @@ export const GET: RequestHandler = async ({ url }) => {
 	}
 };
 
-export const POST: RequestHandler = async ({ request, url }) => {
+export const POST: RequestHandler = async ({ request, url, locals }) => {
 	try {
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
 		const { category_id, type, title: rawTitle, content, description, tags, fetch_title } = await request.json();
 
 		if (!category_id || !type || !rawTitle) {
@@ -82,6 +83,9 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		let desc = description;
 		let faviconUrl: string | null = null;
 		let tagIds: number[] = Array.isArray(tags) ? [...tags] : [];
+
+		const userDb = getUserDb(locals.userId);
+
 		if (fetch_title && type === 'link' && content) {
 			const meta = await fetchPageMeta(content);
 			if (meta.title) title = meta.title;
@@ -89,21 +93,21 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			faviconUrl = meta.favicon;
 
 			if (meta.unavailable) {
-				const globalDb = getGlobalDb();
-				globalDb.prepare("INSERT OR IGNORE INTO tags (name, color) VALUES ('404', '#ef4444')").run();
-				const tag404 = globalDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number };
+				userDb.prepare("INSERT OR IGNORE INTO tags (name, color) VALUES ('404', '#ef4444')").run();
+				const tag404 = userDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number };
 				if (!tagIds.includes(tag404.id)) {
 					tagIds.push(tag404.id);
 				}
 			}
 		}
 
-		const db = getSpaceDb(url);
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db } = access;
 
-		// Validate tags against global DB before transaction
+		// Validate tags against user's tags
 		if (tagIds.length > 0) {
-			const globalDb = getGlobalDb();
-			const checkTag = globalDb.prepare('SELECT id FROM tags WHERE id = ?');
+			const checkTag = userDb.prepare('SELECT id FROM tags WHERE id = ?');
 			for (const tagId of tagIds) {
 				if (!checkTag.get(tagId)) {
 					return json({ error: `Tag with id ${tagId} not found` }, { status: 400 });

@@ -1,9 +1,9 @@
 import AdmZip from 'adm-zip';
 import path from 'path';
 import fs from 'fs';
-import { getDb, getGlobalDb, slugExists, createDb, closeDb, validateSpaceSlug } from './db';
-import { getMeta } from './schema';
-import { getStorageRoot, ensureCategoryDir } from './storage';
+import { getUserDb, validateSpaceSlug } from './db';
+import { spaceExists, createSpace } from './user-schema';
+import { getStorageRoot } from './storage';
 import type { Category, Item, ItemTag, Tag } from '$lib/types';
 import type {
 	ExportManifest,
@@ -13,8 +13,7 @@ import type {
 	ImportPreviewSpace,
 	ImportPreviewTag,
 	ImportOptions,
-	ImportResult,
-	ConflictMode
+	ImportResult
 } from '$lib/types/export';
 
 const MAX_DECOMPRESSED_SIZE = 1024 * 1024 * 1024; // 1 GB
@@ -58,7 +57,7 @@ function validateManifest(manifest: ExportManifest): string[] {
 	return errors;
 }
 
-export function previewImport(zipBuffer: Buffer): ImportPreview {
+export function previewImport(userId: string, zipBuffer: Buffer): ImportPreview {
 	const zip = new AdmZip(zipBuffer);
 	const errors: string[] = [];
 
@@ -86,7 +85,7 @@ export function previewImport(zipBuffer: Buffer): ImportPreview {
 
 	errors.push(...validateManifest(manifest));
 
-	// Check spaces
+	const db = getUserDb(userId);
 	const spaces: ImportPreviewSpace[] = [];
 	for (const slug of manifest.spaces) {
 		if (!validateSpaceSlug(slug)) {
@@ -103,16 +102,14 @@ export function previewImport(zipBuffer: Buffer): ImportPreview {
 			display_name: spaceData.display_name,
 			categories: spaceData.categories.length,
 			items: spaceData.items.length,
-			exists: slugExists(slug)
+			exists: spaceExists(db, slug)
 		});
 	}
 
-	// Check tags
 	const tags: ImportPreviewTag[] = [];
 	const tagsData = parseJsonEntry<ExportTags>(zip, 'global/tags.json');
 	if (tagsData?.tags) {
-		const globalDb = getGlobalDb();
-		const existingTag = globalDb.prepare('SELECT id FROM tags WHERE name = ?');
+		const existingTag = db.prepare('SELECT id FROM tags WHERE name = ?');
 		for (const tag of tagsData.tags) {
 			tags.push({
 				name: tag.name,
@@ -131,11 +128,11 @@ export function previewImport(zipBuffer: Buffer): ImportPreview {
 	};
 }
 
-function findAvailableSlug(baseSlug: string): string {
-	if (!slugExists(baseSlug)) return baseSlug;
+function findAvailableSlug(db: ReturnType<typeof getUserDb>, baseSlug: string): string {
+	if (!spaceExists(db, baseSlug)) return baseSlug;
 	for (let i = 2; i <= 100; i++) {
 		const candidate = `${baseSlug}-${i}`;
-		if (candidate.length <= 64 && !slugExists(candidate)) return candidate;
+		if (candidate.length <= 64 && !spaceExists(db, candidate)) return candidate;
 	}
 	throw new Error(`Could not find available slug for: ${baseSlug}`);
 }
@@ -160,13 +157,13 @@ function topologicalSortCategories(categories: Category[]): Category[] {
 	return sorted;
 }
 
-function importTags(tagsData: ExportTags | null): Map<number, number> {
+function importTags(userId: string, tagsData: ExportTags | null): Map<number, number> {
 	const idMap = new Map<number, number>();
 	if (!tagsData?.tags.length) return idMap;
 
-	const globalDb = getGlobalDb();
-	const insertTag = globalDb.prepare('INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)');
-	const getTag = globalDb.prepare('SELECT id FROM tags WHERE name = ?');
+	const db = getUserDb(userId);
+	const insertTag = db.prepare('INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)');
+	const getTag = db.prepare('SELECT id FROM tags WHERE name = ?');
 
 	for (const tag of tagsData.tags) {
 		insertTag.run(tag.name, tag.color);
@@ -177,67 +174,53 @@ function importTags(tagsData: ExportTags | null): Map<number, number> {
 	return idMap;
 }
 
-function deleteExistingSpace(slug: string) {
+function deleteExistingSpace(userId: string, slug: string) {
 	if (!validateSpaceSlug(slug)) {
 		throw new Error(`Invalid space slug: '${slug}'`);
 	}
-	// Close cached connection
-	closeDb(slug);
-	// Delete DB file
-	const dbPath = path.resolve('data', `${slug}.db`);
-	for (const suffix of ['', '-wal', '-shm', '-journal']) {
-		const f = dbPath + suffix;
-		if (fs.existsSync(f)) fs.unlinkSync(f);
-	}
-	// Delete storage
-	const storageDir = path.join(getStorageRoot(), slug);
+	const db = getUserDb(userId);
+	db.prepare('DELETE FROM spaces WHERE slug = ?').run(slug);
+
+	const storageDir = path.join(getStorageRoot(), userId, slug);
 	if (fs.existsSync(storageDir)) {
 		fs.rmSync(storageDir, { recursive: true, force: true });
 	}
 }
 
 function importSpace(
+	userId: string,
 	zip: AdmZip,
 	spaceData: ExportSpaceData,
 	finalSlug: string,
 	tagIdMap: Map<number, number>,
 	includeFiles: boolean
 ): void {
-	// Create the space DB
-	const db = createDb(finalSlug, spaceData.display_name);
+	const db = getUserDb(userId);
 
-	// Write any additional meta entries
-	const setMeta = db.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)');
-	for (const [key, value] of Object.entries(spaceData.meta)) {
-		if (key !== 'display_name') {
-			setMeta.run(key, value);
-		}
-	}
+	// Create the space in the user's DB
+	createSpace(db, finalSlug, spaceData.display_name);
 
-	// Sort categories so parents come before children
 	const sortedCategories = topologicalSortCategories(spaceData.categories);
 
 	const categoryIdMap = new Map<number, number>();
 	const itemIdMap = new Map<number, number>();
 
 	db.transaction(() => {
-		// Insert categories
 		const insertCat = db.prepare(
-			'INSERT INTO categories (name, slug, color, sort_order, parent_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+			'INSERT INTO categories (space_slug, name, slug, color, sort_order, parent_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
 		);
 		for (const cat of sortedCategories) {
 			const newParentId = cat.parent_id !== null ? (categoryIdMap.get(cat.parent_id) ?? null) : null;
-			const result = insertCat.run(cat.name, cat.slug, cat.color, cat.sort_order, newParentId, cat.created_at, cat.updated_at);
+			const result = insertCat.run(finalSlug, cat.name, cat.slug, cat.color, cat.sort_order, newParentId, cat.created_at, cat.updated_at);
 			categoryIdMap.set(cat.id, Number(result.lastInsertRowid));
 		}
 
-		// Insert items
 		const insertItem = db.prepare(
 			'INSERT INTO items (category_id, type, title, content, file_path, file_name, file_size, mime_type, description, favicon_url, sort_order, is_pinned, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
 		);
 		for (const item of spaceData.items) {
 			const newCategoryId = categoryIdMap.get(item.category_id);
-			if (newCategoryId === undefined) continue; // orphaned item
+			if (newCategoryId === undefined) continue;
 			const result = insertItem.run(
 				newCategoryId, item.type, item.title, item.content,
 				item.file_path, item.file_name, item.file_size, item.mime_type,
@@ -247,7 +230,6 @@ function importSpace(
 			itemIdMap.set(item.id, Number(result.lastInsertRowid));
 		}
 
-		// Insert item_tags with remapped IDs
 		const insertItemTag = db.prepare('INSERT OR IGNORE INTO item_tags (item_id, tag_id) VALUES (?, ?)');
 		for (const it of spaceData.item_tags) {
 			const newItemId = itemIdMap.get(it.item_id);
@@ -258,7 +240,6 @@ function importSpace(
 		}
 	})();
 
-	// Extract files
 	if (includeFiles) {
 		const prefix = `spaces/${spaceData.slug}/files/`;
 		const storageRoot = getStorageRoot();
@@ -274,9 +255,8 @@ function importSpace(
 				throw new Error('Decompressed file size exceeds safety limit');
 			}
 
-			const targetPath = path.resolve(storageRoot, finalSlug, relativePath);
-			// Safety: ensure target is within storage
-			const spaceStorageRoot = path.join(storageRoot, finalSlug);
+			const targetPath = path.resolve(storageRoot, userId, finalSlug, relativePath);
+			const spaceStorageRoot = path.join(storageRoot, userId, finalSlug);
 			if (!targetPath.startsWith(spaceStorageRoot + path.sep) && targetPath !== spaceStorageRoot) continue;
 
 			fs.mkdirSync(path.dirname(targetPath), { recursive: true });
@@ -285,7 +265,7 @@ function importSpace(
 	}
 }
 
-export function executeImport(zipBuffer: Buffer, options: ImportOptions): ImportResult {
+export function executeImport(userId: string, zipBuffer: Buffer, options: ImportOptions): ImportResult {
 	const zip = new AdmZip(zipBuffer);
 	const result: ImportResult = {
 		success: true,
@@ -310,12 +290,12 @@ export function executeImport(zipBuffer: Buffer, options: ImportOptions): Import
 		return { ...result, success: false, errors: validationErrors };
 	}
 
-	// Import tags first (global operation)
 	const tagsData = parseJsonEntry<ExportTags>(zip, 'global/tags.json');
-	const tagIdMap = importTags(tagsData);
+	const tagIdMap = importTags(userId, tagsData);
 	result.imported_tags = tagIdMap.size;
 
-	// Import each space
+	const db = getUserDb(userId);
+
 	for (const slug of manifest.spaces) {
 		if (!validateSpaceSlug(slug)) {
 			result.errors.push(`Invalid space slug in export: ${slug}`);
@@ -327,7 +307,7 @@ export function executeImport(zipBuffer: Buffer, options: ImportOptions): Import
 			continue;
 		}
 
-		const exists = slugExists(slug);
+		const exists = spaceExists(db, slug);
 		let finalSlug = slug;
 
 		if (exists) {
@@ -336,16 +316,16 @@ export function executeImport(zipBuffer: Buffer, options: ImportOptions): Import
 					result.skipped_spaces.push(slug);
 					continue;
 				case 'rename':
-					finalSlug = findAvailableSlug(slug);
+					finalSlug = findAvailableSlug(db, slug);
 					break;
 				case 'replace':
-					deleteExistingSpace(slug);
+					deleteExistingSpace(userId, slug);
 					break;
 			}
 		}
 
 		try {
-			importSpace(zip, spaceData, finalSlug, tagIdMap, manifest.include_files);
+			importSpace(userId, zip, spaceData, finalSlug, tagIdMap, manifest.include_files);
 			result.imported_spaces.push(finalSlug);
 		} catch (err) {
 			result.errors.push(`Failed to import space ${slug}: ${err instanceof Error ? err.message : String(err)}`);

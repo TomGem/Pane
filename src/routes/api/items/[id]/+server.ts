@@ -1,17 +1,17 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceSlug } from '$lib/server/space';
-import { getDb, getGlobalDb } from '$lib/server/db';
+import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
+import { getUserDb } from '$lib/server/db';
 import { moveFile, deleteFile } from '$lib/server/storage';
 import { getTagsForItem } from '$lib/server/tags';
 import type { Item, Category } from '$lib/types';
 
-export const GET: RequestHandler = async ({ params, url }) => {
+export const GET: RequestHandler = async ({ params, url, locals }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
 
-		const db = getDb(getSpaceSlug(url));
+		const { db } = resolveSpaceAccess(locals, url);
 		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 
 		if (!item) {
@@ -28,7 +28,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 	}
 };
 
-export const PUT: RequestHandler = async ({ params, request, url }) => {
+export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
@@ -36,18 +36,19 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 		const body = await request.json();
 		const { title, content, description, category_id, is_pinned, tags, favicon_url } = body;
 
-		const spaceSlug = getSpaceSlug(url);
-		const db = getDb(spaceSlug);
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db, spaceSlug, ownerId } = access;
 
 		const existing = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 		if (!existing) {
 			return json({ error: 'Item not found' }, { status: 404 });
 		}
 
-		// Validate tags against global DB before transaction
-		if (Array.isArray(tags)) {
-			const globalDb = getGlobalDb();
-			const checkTag = globalDb.prepare('SELECT id FROM tags WHERE id = ?');
+		// Validate tags against user's tags
+		if (Array.isArray(tags) && locals.userId) {
+			const userDb = getUserDb(locals.userId);
+			const checkTag = userDb.prepare('SELECT id FROM tags WHERE id = ?');
 			for (const tagId of tags) {
 				if (!checkTag.get(tagId)) {
 					return json({ error: `Tag with id ${tagId} not found` }, { status: 400 });
@@ -58,15 +59,13 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 		const updateItem = db.transaction(() => {
 			let newFilePath = existing.file_path;
 
-			// If category changed and item has a file, move it
 			if (category_id !== undefined && category_id !== existing.category_id && existing.file_path) {
 				const newCategory = db.prepare('SELECT * FROM categories WHERE id = ?').get(category_id) as Category;
 				if (newCategory) {
-					newFilePath = moveFile(spaceSlug, existing.file_path, newCategory.slug);
+					newFilePath = moveFile(ownerId, spaceSlug, existing.file_path, newCategory.slug);
 				}
 			}
 
-			// Build UPDATE dynamically so we can distinguish "not provided" from "explicitly null"
 			const fields: string[] = [];
 			const values: unknown[] = [];
 
@@ -84,7 +83,6 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 				db.prepare(`UPDATE items SET ${fields.join(', ')} WHERE id = ?`).run(...values);
 			}
 
-			// Update tags if provided
 			if (Array.isArray(tags)) {
 				db.prepare('DELETE FROM item_tags WHERE item_id = ?').run(numId);
 				const insertTag = db.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)');
@@ -107,13 +105,14 @@ export const PUT: RequestHandler = async ({ params, request, url }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params, url }) => {
+export const DELETE: RequestHandler = async ({ params, url, locals }) => {
 	try {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
 
-		const spaceSlug = getSpaceSlug(url);
-		const db = getDb(spaceSlug);
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db, spaceSlug, ownerId } = access;
 
 		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
 		if (!item) {
@@ -121,7 +120,7 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
 		}
 
 		if (item.file_path) {
-			deleteFile(spaceSlug, item.file_path);
+			deleteFile(ownerId, spaceSlug, item.file_path);
 		}
 
 		db.prepare('DELETE FROM items WHERE id = ?').run(numId);

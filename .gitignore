@@ -31,3 +31,6 @@ ecosystem.config.cjs
 # App data
 /data/
 /storage/
+
+# Various
+TASK.md

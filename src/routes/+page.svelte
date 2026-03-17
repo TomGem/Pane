@@ -15,10 +15,18 @@
 
 	let showSettings = $state(false);
 	let showHelp = $state(false);
+	let showUserMenu = $state(false);
 	let creatingSpace = $state(false);
 	let newSpaceName = $state('');
 	let newSpaceInputEl = $state<HTMLInputElement | null>(null);
 	let confirmDeleteSlug = $state<string | null>(null);
+
+	async function handleLogout() {
+		try {
+			await fetch('/api/auth/logout', { method: 'POST' });
+		} catch { /* ignore */ }
+		window.location.href = '/login';
+	}
 
 	async function handleCreateSpace() {
 		const name = newSpaceName.trim();
@@ -47,7 +55,9 @@
 	}
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && showHelp) {
+		if (e.key === 'Escape' && showUserMenu) {
+			showUserMenu = false;
+		} else if (e.key === 'Escape' && showHelp) {
 			showHelp = false;
 		} else if (e.key === 'Escape' && showSettings) {
 			showSettings = false;
@@ -77,6 +87,38 @@
 		<button class="btn-toolbar-icon" onclick={() => showHelp = true} aria-label="Help" title="Help">
 			<Icon name="help-circle" size={18} />
 		</button>
+		{#if data.user}
+			<div class="user-menu-wrapper">
+				<button
+					class="btn-toolbar-icon"
+					onclick={() => showUserMenu = !showUserMenu}
+					aria-label="User menu"
+					title={data.user.display_name}
+				>
+					<Icon name="user" size={18} />
+				</button>
+				{#if showUserMenu}
+					<div class="user-menu glass-strong">
+						<div class="user-menu-header">
+							<span class="user-menu-name">{data.user.display_name}</span>
+							<span class="user-menu-email">{data.user.email}</span>
+						</div>
+						<div class="user-menu-list">
+							{#if data.user.role === 'admin'}
+								<a class="user-menu-item" href="/admin" onclick={() => showUserMenu = false}>
+									<Icon name="shield" size={14} />
+									<span>Admin Panel</span>
+								</a>
+							{/if}
+							<button class="user-menu-item" onclick={handleLogout}>
+								<Icon name="log-out" size={14} />
+								<span>Sign out</span>
+							</button>
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 </header>
 
@@ -178,7 +220,42 @@
 			{/if}
 		</div>
 	</div>
+
+	{#if data.sharedSpaces && data.sharedSpaces.length > 0}
+		<h2 class="shared-heading">Shared with me</h2>
+		<div class="spaces-columns">
+			{#each data.sharedSpaces as shared (shared.owner_id + '/' + shared.slug)}
+				<a
+					class="space-column shared"
+					href="/s/{shared.slug}?owner={shared.owner_id}"
+				>
+					<div class="space-column-header">
+						<span class="space-column-name">{shared.name}</span>
+					</div>
+					<div class="space-column-body">
+						<div class="space-stat">
+							<Icon name="user" size={14} />
+							<span>{shared.owner_name}</span>
+						</div>
+						<div class="space-stat">
+							<span class="badge">{shared.permission === 'write' ? 'Can edit' : 'View only'}</span>
+						</div>
+					</div>
+					<div class="space-column-footer">
+						<span class="space-open-hint">Open board</span>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+							<polyline points="9 18 15 12 9 6" />
+						</svg>
+					</div>
+				</a>
+			{/each}
+		</div>
+	{/if}
 </main>
+
+{#if showUserMenu}
+	<div class="user-menu-backdrop" onclick={() => showUserMenu = false} aria-hidden="true"></div>
+{/if}
 
 {#if showHelp}
 	<HelpPanel onclose={() => showHelp = false} />
@@ -428,6 +505,87 @@
 		display: flex;
 		gap: 8px;
 		justify-content: flex-end;
+	}
+
+	.shared-heading {
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--text-secondary);
+		margin-top: 24px;
+		margin-bottom: 12px;
+	}
+
+	.space-column.shared {
+		border-style: dashed;
+	}
+
+	.user-menu-wrapper {
+		position: relative;
+	}
+
+	.user-menu {
+		position: absolute;
+		top: calc(100% + 10px);
+		right: 0;
+		z-index: 150;
+		min-width: 200px;
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-lg);
+		overflow: hidden;
+		background: var(--bg-primary);
+		border: 1px solid var(--border);
+	}
+
+	.user-menu-header {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 10px 14px;
+		border-bottom: 1px solid var(--border);
+	}
+
+	.user-menu-name {
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--text-primary);
+	}
+
+	.user-menu-email {
+		font-size: 12px;
+		color: var(--text-muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.user-menu-list {
+		padding: 4px;
+	}
+
+	.user-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 7px 10px;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font-size: 13px;
+		color: var(--text-primary);
+		text-decoration: none;
+		text-align: left;
+		transition: background-color var(--transition);
+	}
+
+	.user-menu-item:hover {
+		background: var(--accent-soft);
+		text-decoration: none;
+	}
+
+	.user-menu-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 99;
 	}
 
 	@media (max-width: 767px) {

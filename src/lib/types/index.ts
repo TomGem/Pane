@@ -65,3 +65,44 @@ export interface SpaceWithStats extends Space {
 	categoryCount: number;
 	itemCount: number;
 }
+
+export interface User {
+	id: string;
+	email: string;
+	email_verified: number;
+	display_name: string;
+	role: 'admin' | 'user';
+	created_at: string;
+	updated_at: string;
+}
+
+export interface Session {
+	id: string;
+	user_id: string;
+	expires_at: string;
+	created_at: string;
+}
+
+export interface InviteCode {
+	code: string;
+	created_by: string;
+	max_uses: number;
+	use_count: number;
+	expires_at: string | null;
+	created_at: string;
+}
+
+export interface SpaceShare {
+	id: number;
+	owner_id: string;
+	space_slug: string;
+	shared_with: string;
+	permission: 'read' | 'write';
+	created_at: string;
+}
+
+export interface SharedSpaceInfo extends Space {
+	owner_id: string;
+	owner_name: string;
+	permission: 'read' | 'write';
+}

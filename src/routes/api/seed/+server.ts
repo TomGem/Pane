@@ -1,23 +1,27 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSpaceDb } from '$lib/server/space';
-import { getGlobalDb } from '$lib/server/db';
+import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
+import { getUserDb } from '$lib/server/db';
 import { slugify } from '$lib/utils/slugify';
 
-export const POST: RequestHandler = async ({ url }) => {
+export const POST: RequestHandler = async ({ url, locals }) => {
 	try {
-		const db = getSpaceDb(url);
+		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
+
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db, spaceSlug } = access;
 
 		// Guard against duplicate seeding
-		const existing = db.prepare('SELECT COUNT(*) AS count FROM categories').get() as { count: number };
+		const existing = db.prepare('SELECT COUNT(*) AS count FROM categories WHERE space_slug = ?').get(spaceSlug) as { count: number };
 		if (existing.count > 0) {
 			return json({ error: 'Database already contains data' }, { status: 409 });
 		}
 
-		// --- Tags (global DB, idempotent) ---
-		const globalDb = getGlobalDb();
-		const insertTag = globalDb.prepare('INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)');
-		const getTagId = globalDb.prepare('SELECT id FROM tags WHERE name = ?');
+		// --- Tags (per-user, idempotent) ---
+		const userDb = getUserDb(locals.userId);
+		const insertTag = userDb.prepare('INSERT OR IGNORE INTO tags (name, color) VALUES (?, ?)');
+		const getTagId = userDb.prepare('SELECT id FROM tags WHERE name = ?');
 		const tagIds: Record<string, number> = {};
 
 		const tags: [string, string][] = [
@@ -39,18 +43,18 @@ export const POST: RequestHandler = async ({ url }) => {
 
 			// --- Categories ---
 			const insertCategory = db.prepare(
-				'INSERT INTO categories (name, slug, color, sort_order, parent_id) VALUES (?, ?, ?, ?, ?)'
+				'INSERT INTO categories (space_slug, name, slug, color, sort_order, parent_id) VALUES (?, ?, ?, ?, ?, ?)'
 			);
 
-			const cat1 = insertCategory.run('Getting Started', slugify('Getting Started'), '#22c55e', 1, null).lastInsertRowid as number;
-			const cat2 = insertCategory.run('Claude Code', slugify('Claude Code'), '#6366f1', 2, null).lastInsertRowid as number;
-			const cat3 = insertCategory.run('Prompting for Code', slugify('Prompting for Code'), '#f59e0b', 3, null).lastInsertRowid as number;
-			const cat4 = insertCategory.run('Tools & Ecosystem', slugify('Tools & Ecosystem'), '#ef4444', 4, null).lastInsertRowid as number;
+			const cat1 = insertCategory.run(spaceSlug, 'Getting Started', slugify('Getting Started'), '#22c55e', 1, null).lastInsertRowid as number;
+			const cat2 = insertCategory.run(spaceSlug, 'Claude Code', slugify('Claude Code'), '#6366f1', 2, null).lastInsertRowid as number;
+			const cat3 = insertCategory.run(spaceSlug, 'Prompting for Code', slugify('Prompting for Code'), '#f59e0b', 3, null).lastInsertRowid as number;
+			const cat4 = insertCategory.run(spaceSlug, 'Tools & Ecosystem', slugify('Tools & Ecosystem'), '#ef4444', 4, null).lastInsertRowid as number;
 
 			// Subcategories
-			const cat1Sub = insertCategory.run('Setup Guides', slugify('Setup Guides'), '#22c55e', 1, cat1).lastInsertRowid as number;
-			const cat2SubGS = insertCategory.run('Getting Started', slugify('Getting Started CC'), '#6366f1', 1, cat2).lastInsertRowid as number;
-			const cat2Sub = insertCategory.run('Advanced Features', slugify('Advanced Features'), '#6366f1', 2, cat2).lastInsertRowid as number;
+			const cat1Sub = insertCategory.run(spaceSlug, 'Setup Guides', slugify('Setup Guides'), '#22c55e', 1, cat1).lastInsertRowid as number;
+			const cat2SubGS = insertCategory.run(spaceSlug, 'Getting Started', slugify('Getting Started CC'), '#6366f1', 1, cat2).lastInsertRowid as number;
+			const cat2Sub = insertCategory.run(spaceSlug, 'Advanced Features', slugify('Advanced Features'), '#6366f1', 2, cat2).lastInsertRowid as number;
 
 			// --- Items ---
 			const insertItem = db.prepare(
