@@ -86,6 +86,26 @@ export function listSpaces(userId: string): Space[] {
 	return listUserSpaces(db);
 }
 
+// --- Storage quota ---
+
+const DEFAULT_QUOTA = 1073741824; // 1 GB
+
+export function getUserStorageUsage(userId: string): number {
+	const db = getUserDb(userId);
+	const row = db.prepare(
+		'SELECT COALESCE(SUM(file_size), 0) AS total FROM items WHERE file_size IS NOT NULL'
+	).get() as { total: number };
+	return row.total;
+}
+
+export function getUserQuota(userId: string): number {
+	const authDb = getAuthDb();
+	const row = authDb.prepare(
+		'SELECT storage_quota_bytes FROM users WHERE id = ?'
+	).get(userId) as { storage_quota_bytes: number } | undefined;
+	return row?.storage_quota_bytes ?? DEFAULT_QUOTA;
+}
+
 // --- Legacy DB access (used during migration only) ---
 
 export function slugExists(slug: string): boolean {

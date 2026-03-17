@@ -1,7 +1,7 @@
 import AdmZip from 'adm-zip';
 import path from 'path';
 import fs from 'fs';
-import { getUserDb, validateSpaceSlug } from './db';
+import { getUserDb, getUserStorageUsage, getUserQuota, validateSpaceSlug } from './db';
 import { spaceExists, createSpace } from './user-schema';
 import { getStorageRoot } from './storage';
 import type { Category, Item, ItemTag, Tag } from '$lib/types';
@@ -288,6 +288,21 @@ export function executeImport(userId: string, zipBuffer: Buffer, options: Import
 	const validationErrors = validateManifest(manifest);
 	if (validationErrors.length > 0) {
 		return { ...result, success: false, errors: validationErrors };
+	}
+
+	// Check storage quota (skip for single-user mode)
+	if (userId !== 'single-user' && manifest.include_files) {
+		const currentUsage = getUserStorageUsage(userId);
+		const quota = getUserQuota(userId);
+		let incomingFileSize = 0;
+		for (const entry of zip.getEntries()) {
+			if (!entry.isDirectory && entry.entryName.startsWith('spaces/') && entry.entryName.includes('/files/')) {
+				incomingFileSize += entry.header.size;
+			}
+		}
+		if (currentUsage + incomingFileSize > quota) {
+			return { ...result, success: false, errors: ['Storage quota exceeded. Free up space or ask an admin to increase your quota.'] };
+		}
 	}
 
 	const tagsData = parseJsonEntry<ExportTags>(zip, 'global/tags.json');

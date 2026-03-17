@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getAuthDb } from '$lib/server/db';
+import { getAuthDb, getUserStorageUsage } from '$lib/server/db';
 import type { InviteCode, User } from '$lib/types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -15,8 +15,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 	).all() as InviteCode[];
 
 	const users = authDb.prepare(
-		'SELECT id, email, email_verified, display_name, role, blocked, created_at, updated_at FROM users ORDER BY created_at DESC'
+		'SELECT id, email, email_verified, display_name, role, blocked, storage_quota_bytes, created_at, updated_at FROM users ORDER BY created_at DESC'
 	).all() as User[];
 
-	return { codes, users };
+	const storageUsage: Record<string, number> = {};
+	for (const user of users) {
+		try {
+			storageUsage[user.id] = getUserStorageUsage(user.id);
+		} catch {
+			storageUsage[user.id] = 0;
+		}
+	}
+
+	return { codes, users, storageUsage };
 };

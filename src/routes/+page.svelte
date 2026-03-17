@@ -16,12 +16,33 @@
 	let showSettings = $state(false);
 	let showHelp = $state(false);
 	let showUserMenu = $state(false);
+	let liveStorage = $state<{ used_bytes: number; quota_bytes: number } | null>(null);
+
+	async function fetchStorage() {
+		try {
+			const res = await fetch('/api/storage');
+			if (res.ok) liveStorage = await res.json();
+		} catch { /* ignore */ }
+	}
+
+	function toggleUserMenu() {
+		showUserMenu = !showUserMenu;
+		if (showUserMenu) fetchStorage();
+	}
 	let creatingSpace = $state(false);
 	let newSpaceName = $state('');
 	let newSpaceInputEl = $state<HTMLInputElement | null>(null);
 	let confirmDeleteSlug = $state<string | null>(null);
 	let sharingSpace = $state<{ slug: string; name: string } | null>(null);
 	let confirmLeaveShare = $state<{ share_id: number; slug: string; owner_id: string } | null>(null);
+
+	function formatBytes(bytes: number): string {
+		if (bytes === 0) return '0 B';
+		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(1024));
+		const val = bytes / Math.pow(1024, i);
+		return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
+	}
 
 	async function handleLeaveShare(shareId: number, slug: string, ownerId: string) {
 		try {
@@ -105,7 +126,7 @@
 			<div class="user-menu-wrapper">
 				<button
 					class="btn-toolbar-icon"
-					onclick={() => showUserMenu = !showUserMenu}
+					onclick={toggleUserMenu}
 					aria-label="User menu"
 					title={data.user.display_name}
 				>
@@ -116,6 +137,29 @@
 						<div class="user-menu-header">
 							<span class="user-menu-name">{data.user.display_name}</span>
 							<span class="user-menu-email">{data.user.email}</span>
+							{#if liveStorage}
+								{@const pct = liveStorage.quota_bytes > 0 ? Math.min(100, (liveStorage.used_bytes / liveStorage.quota_bytes) * 100) : 0}
+								<div class="user-menu-storage">
+									<div class="user-menu-storage-header">
+										<span>Storage</span>
+										<span>{formatBytes(liveStorage.used_bytes)} / {formatBytes(liveStorage.quota_bytes)}</span>
+									</div>
+									<div class="user-menu-storage-bar">
+										<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+									</div>
+								</div>
+							{:else if data.storage}
+								{@const pct = data.storage.quota_bytes > 0 ? Math.min(100, (data.storage.used_bytes / data.storage.quota_bytes) * 100) : 0}
+								<div class="user-menu-storage">
+									<div class="user-menu-storage-header">
+										<span>Storage</span>
+										<span>{formatBytes(data.storage.used_bytes)} / {formatBytes(data.storage.quota_bytes)}</span>
+									</div>
+									<div class="user-menu-storage-bar">
+										<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+									</div>
+								</div>
+							{/if}
 						</div>
 						<div class="user-menu-list">
 							{#if data.user.role === 'admin'}
@@ -302,6 +346,8 @@
 			{/each}
 		</div>
 	{/if}
+
+
 </main>
 
 {#if showUserMenu}
@@ -656,6 +702,39 @@
 		position: fixed;
 		inset: 0;
 		z-index: 99;
+	}
+
+	.user-menu-storage {
+		margin-top: 6px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.user-menu-storage-header {
+		display: flex;
+		justify-content: space-between;
+		font-size: 11px;
+		color: var(--text-muted);
+	}
+
+	.user-menu-storage-bar {
+		width: 100%;
+		height: 4px;
+		background: var(--border);
+		border-radius: 2px;
+		overflow: hidden;
+	}
+
+	.user-menu-storage-fill {
+		height: 100%;
+		background: var(--accent);
+		border-radius: 2px;
+		transition: width 0.3s ease;
+	}
+
+	.user-menu-storage-fill.storage-warning {
+		background: var(--danger);
 	}
 
 	@media (max-width: 767px) {

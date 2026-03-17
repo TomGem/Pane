@@ -73,8 +73,14 @@ export interface User {
 	display_name: string;
 	role: 'admin' | 'user';
 	blocked: number;
+	storage_quota_bytes: number;
 	created_at: string;
 	updated_at: string;
+}
+
+export interface StorageQuotaInfo {
+	used_bytes: number;
+	quota_bytes: number;
 }
 
 export interface Session {

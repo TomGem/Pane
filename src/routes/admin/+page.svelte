@@ -7,6 +7,7 @@
 
 	let codes = $state<InviteCode[]>([]);
 	let users = $state<User[]>([]);
+	let storageUsage = $state<Record<string, number>>({});
 
 	$effect(() => {
 		users = data.users;
@@ -15,11 +16,17 @@
 	$effect(() => {
 		codes = data.codes;
 	});
+
+	$effect(() => {
+		storageUsage = data.storageUsage;
+	});
 	let maxUses = $state(1);
 	let expiresIn = $state('');
 	let creating = $state(false);
 	let error = $state('');
 	let copiedCode = $state<string | null>(null);
+	let editingQuotaUser = $state<string | null>(null);
+	let quotaInput = $state('');
 
 	async function createCode() {
 		error = '';
@@ -81,6 +88,64 @@
 
 	function isUsedUp(code: InviteCode): boolean {
 		return code.use_count >= code.max_uses;
+	}
+
+	function formatBytes(bytes: number): string {
+		if (bytes === 0) return '0 B';
+		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(1024));
+		const val = bytes / Math.pow(1024, i);
+		return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
+	}
+
+	function quotaPresets(): { label: string; bytes: number }[] {
+		return [
+			{ label: '500 MB', bytes: 500 * 1024 * 1024 },
+			{ label: '1 GB', bytes: 1024 * 1024 * 1024 },
+			{ label: '2 GB', bytes: 2 * 1024 * 1024 * 1024 },
+			{ label: '5 GB', bytes: 5 * 1024 * 1024 * 1024 },
+			{ label: '10 GB', bytes: 10 * 1024 * 1024 * 1024 },
+		];
+	}
+
+	function startEditQuota(user: User) {
+		editingQuotaUser = user.id;
+		quotaInput = String(Math.round(user.storage_quota_bytes / (1024 * 1024)));
+	}
+
+	async function saveQuota(user: User) {
+		const mb = parseInt(quotaInput);
+		if (isNaN(mb) || mb < 0) return;
+		const bytes = mb * 1024 * 1024;
+		try {
+			const res = await fetch(`/api/admin/users/${user.id}/quota`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ quota_bytes: bytes })
+			});
+			if (res.ok) {
+				users = users.map((u) =>
+					u.id === user.id ? { ...u, storage_quota_bytes: bytes } : u
+				);
+			}
+		} catch { /* ignore */ }
+		editingQuotaUser = null;
+	}
+
+	async function setQuotaPreset(user: User, bytes: number) {
+		try {
+			const res = await fetch(`/api/admin/users/${user.id}/quota`, {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ quota_bytes: bytes })
+			});
+			if (res.ok) {
+				users = users.map((u) =>
+					u.id === user.id ? { ...u, storage_quota_bytes: bytes } : u
+				);
+			}
+		} catch { /* ignore */ }
+		editingQuotaUser = null;
 	}
 
 	async function toggleBlock(user: User) {
@@ -177,10 +242,44 @@
 
 		<div class="users-list">
 			{#each users as user (user.id)}
+				{@const used = storageUsage[user.id] ?? 0}
+				{@const quota = user.storage_quota_bytes}
+				{@const pct = quota > 0 ? Math.min(100, (used / quota) * 100) : 0}
 				<div class="user-row" class:user-blocked={user.blocked}>
 					<div class="user-info">
 						<span class="user-name">{user.display_name}</span>
 						<span class="user-email">{user.email}</span>
+					</div>
+					<div class="user-storage">
+						<div class="storage-bar-row">
+							<span class="storage-text">{formatBytes(used)} / {formatBytes(quota)}</span>
+							{#if editingQuotaUser === user.id}
+								<div class="quota-edit">
+									<input
+										class="input quota-input"
+										type="number"
+										bind:value={quotaInput}
+										min="0"
+										onkeydown={(e) => { if (e.key === 'Enter') saveQuota(user); if (e.key === 'Escape') editingQuotaUser = null; }}
+									/>
+									<span class="quota-edit-unit">MB</span>
+									<button class="btn btn-sm btn-primary" onclick={() => saveQuota(user)}>Save</button>
+									<button class="btn btn-sm btn-ghost" onclick={() => editingQuotaUser = null}>Cancel</button>
+								</div>
+								<div class="quota-presets">
+									{#each quotaPresets() as preset}
+										<button class="btn btn-sm btn-ghost" onclick={() => setQuotaPreset(user, preset.bytes)}>{preset.label}</button>
+									{/each}
+								</div>
+							{:else}
+								<button class="btn btn-sm btn-ghost" onclick={() => startEditQuota(user)} title="Change quota">
+									<Icon name="edit" size={12} />
+								</button>
+							{/if}
+						</div>
+						<div class="storage-bar">
+							<div class="storage-bar-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+						</div>
 					</div>
 					<div class="user-meta">
 						{#if user.role === 'admin'}
@@ -475,5 +574,67 @@
 	.user-date {
 		font-size: 12px;
 		color: var(--text-muted);
+	}
+
+	.user-storage {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		width: 100%;
+	}
+
+	.storage-bar-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+
+	.storage-text {
+		font-size: 12px;
+		color: var(--text-muted);
+		font-weight: 500;
+	}
+
+	.storage-bar {
+		width: 100%;
+		height: 4px;
+		background: var(--border);
+		border-radius: 2px;
+		overflow: hidden;
+	}
+
+	.storage-bar-fill {
+		height: 100%;
+		background: var(--accent);
+		border-radius: 2px;
+		transition: width 0.3s ease;
+	}
+
+	.storage-bar-fill.storage-warning {
+		background: var(--danger);
+	}
+
+	.quota-edit {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.quota-input {
+		width: 80px;
+		font-size: 12px;
+	}
+
+	.quota-edit-unit {
+		font-size: 12px;
+		color: var(--text-muted);
+		font-weight: 500;
+	}
+
+	.quota-presets {
+		display: flex;
+		gap: 4px;
+		flex-wrap: wrap;
 	}
 </style>

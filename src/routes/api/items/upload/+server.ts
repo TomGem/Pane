@@ -2,6 +2,7 @@ import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { saveFile, deleteFile } from '$lib/server/storage';
+import { getUserStorageUsage, getUserQuota } from '$lib/server/db';
 import type { Item, Category } from '$lib/types';
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
@@ -31,6 +32,19 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 		const access = resolveSpaceAccess(locals, url);
 		requireWriteAccess(access);
 		const { db, spaceSlug, ownerId } = access;
+
+		// Check storage quota (skip for single-user mode)
+		if (ownerId !== 'single-user') {
+			const currentUsage = getUserStorageUsage(ownerId);
+			const quota = getUserQuota(ownerId);
+			if (currentUsage + file.size > quota) {
+				return json({
+					error: 'Storage quota exceeded',
+					used: currentUsage,
+					quota: quota
+				}, { status: 413 });
+			}
+		}
 
 		const category = db.prepare('SELECT * FROM categories WHERE id = ? AND space_slug = ?').get(numCategoryId, spaceSlug) as Category | undefined;
 		if (!category) {

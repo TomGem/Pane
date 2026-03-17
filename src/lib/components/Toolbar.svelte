@@ -6,7 +6,7 @@
 	import Icon from './Icon.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
 	import type { PaletteId } from '$lib/stores/palette.svelte';
-	import type { Tag, Space } from '$lib/types';
+	import type { Tag, Space, StorageQuotaInfo } from '$lib/types';
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 
@@ -20,6 +20,7 @@
 		spaces?: Space[];
 		spaceSlug?: string;
 		user?: { id: string; email: string; display_name: string; role: string } | null;
+		storage?: StorageQuotaInfo | null;
 		isOwner?: boolean;
 		onsearch?: (query: string) => void;
 		ontagtoggle?: (tagId: number) => void;
@@ -31,10 +32,31 @@
 		onpalettechange?: (id: PaletteId) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, storage = null, isOwner = true, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
+
+	function formatBytes(bytes: number): string {
+		if (bytes === 0) return '0 B';
+		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(1024));
+		const val = bytes / Math.pow(1024, i);
+		return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
+	}
 
 	let showUserMenu = $state(false);
 	let showSharing = $state(false);
+	let liveStorage = $state<{ used_bytes: number; quota_bytes: number } | null>(null);
+
+	async function fetchStorage() {
+		try {
+			const res = await fetch('/api/storage');
+			if (res.ok) liveStorage = await res.json();
+		} catch { /* ignore */ }
+	}
+
+	function toggleUserMenu() {
+		showUserMenu = !showUserMenu;
+		if (showUserMenu) fetchStorage();
+	}
 
 	const TAG_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
@@ -373,7 +395,7 @@
 			<div class="user-menu-wrapper">
 				<button
 					class="btn-toolbar-icon user-btn"
-					onclick={() => showUserMenu = !showUserMenu}
+					onclick={toggleUserMenu}
 					aria-label="User menu"
 					title={user.display_name}
 					aria-expanded={showUserMenu}
@@ -386,6 +408,29 @@
 						<div class="user-menu-header">
 							<span class="user-menu-name">{user.display_name}</span>
 							<span class="user-menu-email">{user.email}</span>
+							{#if liveStorage}
+								{@const pct = liveStorage.quota_bytes > 0 ? Math.min(100, (liveStorage.used_bytes / liveStorage.quota_bytes) * 100) : 0}
+								<div class="user-menu-storage">
+									<div class="user-menu-storage-header">
+										<span>Storage</span>
+										<span>{formatBytes(liveStorage.used_bytes)} / {formatBytes(liveStorage.quota_bytes)}</span>
+									</div>
+									<div class="user-menu-storage-bar">
+										<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+									</div>
+								</div>
+							{:else if storage}
+								{@const pct = storage.quota_bytes > 0 ? Math.min(100, (storage.used_bytes / storage.quota_bytes) * 100) : 0}
+								<div class="user-menu-storage">
+									<div class="user-menu-storage-header">
+										<span>Storage</span>
+										<span>{formatBytes(storage.used_bytes)} / {formatBytes(storage.quota_bytes)}</span>
+									</div>
+									<div class="user-menu-storage-bar">
+										<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+									</div>
+								</div>
+							{/if}
 						</div>
 						<div class="user-menu-list">
 							{#if user.role === 'admin'}
@@ -1023,6 +1068,39 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.user-menu-storage {
+		margin-top: 6px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.user-menu-storage-header {
+		display: flex;
+		justify-content: space-between;
+		font-size: 11px;
+		color: var(--text-muted);
+	}
+
+	.user-menu-storage-bar {
+		width: 100%;
+		height: 4px;
+		background: var(--border);
+		border-radius: 2px;
+		overflow: hidden;
+	}
+
+	.user-menu-storage-fill {
+		height: 100%;
+		background: var(--accent);
+		border-radius: 2px;
+		transition: width 0.3s ease;
+	}
+
+	.user-menu-storage-fill.storage-warning {
+		background: var(--danger);
 	}
 
 	.user-menu-list {

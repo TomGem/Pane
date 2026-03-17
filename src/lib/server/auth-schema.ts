@@ -68,10 +68,13 @@ export function initAuthSchema(db: Database.Database) {
 		);
 	`);
 
-	// Add blocked column if missing (migration for existing DBs)
+	// Add missing columns (migration for existing DBs)
 	const cols = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
 	if (!cols.some((c) => c.name === 'blocked')) {
 		db.exec("ALTER TABLE users ADD COLUMN blocked INTEGER NOT NULL DEFAULT 0");
+	}
+	if (!cols.some((c) => c.name === 'storage_quota_bytes')) {
+		db.exec("ALTER TABLE users ADD COLUMN storage_quota_bytes INTEGER NOT NULL DEFAULT 1073741824");
 	}
 }
 

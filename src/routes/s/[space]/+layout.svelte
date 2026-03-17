@@ -2,11 +2,11 @@
 	import Toolbar from '$lib/components/Toolbar.svelte';
 	import { setContext, getContext } from 'svelte';
 	import type { Snippet } from 'svelte';
-	import type { Tag, Space } from '$lib/types';
+	import type { Tag, Space, StorageQuotaInfo } from '$lib/types';
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
 
-	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[]; ownerId?: string; permission: 'owner' | 'read' | 'write'; user?: { id: string; email: string; display_name: string; role: string } | null }; children: Snippet } = $props();
+	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[]; ownerId?: string; permission: 'owner' | 'read' | 'write'; user?: { id: string; email: string; display_name: string; role: string } | null; storage?: StorageQuotaInfo | null }; children: Snippet } = $props();
 
 	const theme = getContext<ThemeStore>('theme');
 	const palette = getContext<PaletteStore>('palette');
@@ -77,6 +77,7 @@
 	spaces={data.spaces}
 	spaceSlug={data.spaceSlug}
 	user={data.user}
+	storage={data.storage}
 	isOwner={!data.ownerId}
 	onsearch={handleSearch}
 	ontagtoggle={handleTagToggle}
