@@ -9,7 +9,6 @@
 	import type { Tag, Space } from '$lib/types';
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 
 	interface Props {
 		searchQuery?: string;
@@ -20,6 +19,8 @@
 		spaceName?: string;
 		spaces?: Space[];
 		spaceSlug?: string;
+		user?: { id: string; email: string; display_name: string; role: string } | null;
+		isOwner?: boolean;
 		onsearch?: (query: string) => void;
 		ontagtoggle?: (tagId: number) => void;
 		oncleartags?: () => void;
@@ -30,12 +31,10 @@
 		onpalettechange?: (id: PaletteId) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
 
-	let user = $derived($page.data.user);
 	let showUserMenu = $state(false);
 	let showSharing = $state(false);
-	let isOwner = $derived(!$page.data.ownerId);
 
 	const TAG_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 

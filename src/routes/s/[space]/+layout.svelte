@@ -6,7 +6,7 @@
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
 
-	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[]; ownerId?: string; permission: 'owner' | 'read' | 'write' }; children: Snippet } = $props();
+	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[]; ownerId?: string; permission: 'owner' | 'read' | 'write'; user?: { id: string; email: string; display_name: string; role: string } | null }; children: Snippet } = $props();
 
 	const theme = getContext<ThemeStore>('theme');
 	const palette = getContext<PaletteStore>('palette');
@@ -76,6 +76,8 @@
 	spaceName={data.spaceName}
 	spaces={data.spaces}
 	spaceSlug={data.spaceSlug}
+	user={data.user}
+	isOwner={!data.ownerId}
 	onsearch={handleSearch}
 	ontagtoggle={handleTagToggle}
 	oncleartags={handleClearTags}
