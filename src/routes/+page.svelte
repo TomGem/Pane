@@ -3,7 +3,6 @@
 	import { getContext } from 'svelte';
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
-	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import SettingsOverlay from '$lib/components/SettingsOverlay.svelte';
 	import HelpPanel from '$lib/components/HelpPanel.svelte';
 	import SpaceSharingOverlay from '$lib/components/SpaceSharingOverlay.svelte';
@@ -22,6 +21,16 @@
 	let newSpaceInputEl = $state<HTMLInputElement | null>(null);
 	let confirmDeleteSlug = $state<string | null>(null);
 	let sharingSpace = $state<{ slug: string; name: string } | null>(null);
+	let confirmLeaveShare = $state<{ share_id: number; slug: string; owner_id: string } | null>(null);
+
+	async function handleLeaveShare(shareId: number, slug: string, ownerId: string) {
+		try {
+			const res = await fetch(`/api/spaces/${slug}/shares/${shareId}`, { method: 'DELETE' });
+			if (!res.ok) return;
+			confirmLeaveShare = null;
+			await invalidateAll();
+		} catch { /* ignore */ }
+	}
 
 	async function handleLogout() {
 		try {
@@ -66,7 +75,9 @@
 		} else if (e.key === 'Escape' && showSettings) {
 			showSettings = false;
 		}
-		if (e.key === 'Escape' && creatingSpace) {
+		if (e.key === 'Escape' && confirmLeaveShare) {
+			confirmLeaveShare = null;
+		} else if (e.key === 'Escape' && creatingSpace) {
 			creatingSpace = false;
 			newSpaceName = '';
 		}
@@ -81,7 +92,6 @@
 		<span class="toolbar-subtitle">Spaces</span>
 	</div>
 	<div class="toolbar-right">
-		<ThemeToggle mode={theme.mode} onchange={(mode) => theme.setMode(mode)} />
 		<button class="btn-toolbar-icon" onclick={() => showSettings = true} aria-label="Settings" title="Settings">
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<circle cx="12" cy="12" r="3" />
@@ -241,29 +251,54 @@
 		<h2 class="shared-heading">Shared with me</h2>
 		<div class="spaces-columns">
 			{#each data.sharedSpaces as shared (shared.owner_id + '/' + shared.slug)}
-				<a
-					class="space-column shared"
-					href="/s/{shared.slug}?owner={shared.owner_id}"
-				>
-					<div class="space-column-header">
-						<span class="space-column-name">{shared.name}</span>
-					</div>
-					<div class="space-column-body">
-						<div class="space-stat">
-							<Icon name="user" size={14} />
-							<span>{shared.owner_name}</span>
+				{#if confirmLeaveShare?.share_id === shared.share_id}
+					<div class="space-column shared confirm">
+						<div class="space-column-header">
+							<span class="space-column-name">{shared.name}</span>
 						</div>
-						<div class="space-stat">
-							<span class="badge">{shared.permission === 'write' ? 'Can edit' : 'View only'}</span>
+						<div class="space-confirm-body">
+							<p class="space-confirm-text">Leave this shared space?</p>
+							<div class="space-confirm-actions">
+								<button class="btn btn-sm" onclick={() => confirmLeaveShare = null}>Cancel</button>
+								<button class="btn btn-sm btn-danger" onclick={() => handleLeaveShare(shared.share_id, shared.slug, shared.owner_id)}>Leave</button>
+							</div>
 						</div>
 					</div>
-					<div class="space-column-footer">
-						<span class="space-open-hint">Open board</span>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-							<polyline points="9 18 15 12 9 6" />
-						</svg>
-					</div>
-				</a>
+				{:else}
+					<a
+						class="space-column shared"
+						href="/s/{shared.slug}?owner={shared.owner_id}"
+					>
+						<div class="space-column-header">
+							<span class="space-column-name">{shared.name}</span>
+							<div class="space-column-actions">
+								<button
+									class="space-column-action space-column-action-danger"
+									onclick={(e) => { e.preventDefault(); e.stopPropagation(); confirmLeaveShare = { share_id: shared.share_id, slug: shared.slug, owner_id: shared.owner_id }; }}
+									title="Leave shared space"
+									aria-label="Leave {shared.name}"
+								>
+									<Icon name="log-out" size={14} />
+								</button>
+							</div>
+						</div>
+						<div class="space-column-body">
+							<div class="space-stat">
+								<Icon name="user" size={14} />
+								<span>{shared.owner_name}</span>
+							</div>
+							<div class="space-stat">
+								<span class="badge">{shared.permission === 'write' ? 'Can edit' : 'View only'}</span>
+							</div>
+						</div>
+						<div class="space-column-footer">
+							<span class="space-open-hint">Open board</span>
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<polyline points="9 18 15 12 9 6" />
+							</svg>
+						</div>
+					</a>
+				{/if}
 			{/each}
 		</div>
 	{/if}

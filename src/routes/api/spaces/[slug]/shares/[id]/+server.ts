@@ -38,9 +38,11 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 	if (!validateSpaceSlug(slug)) return json({ error: 'Invalid space slug' }, { status: 400 });
 
 	const authDb = getAuthDb();
+
+	// Allow both the owner and the recipient to delete a share
 	const result = authDb.prepare(
-		'DELETE FROM space_shares WHERE id = ? AND owner_id = ? AND space_slug = ?'
-	).run(params.id, locals.userId, slug);
+		'DELETE FROM space_shares WHERE id = ? AND space_slug = ? AND (owner_id = ? OR shared_with = ?)'
+	).run(params.id, slug, locals.userId, locals.userId);
 
 	if (result.changes === 0) {
 		return json({ error: 'Share not found' }, { status: 404 });

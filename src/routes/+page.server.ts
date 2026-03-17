@@ -32,11 +32,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Load shared spaces
 	const authDb = getAuthDb();
 	const shares = authDb.prepare(`
-		SELECT ss.owner_id, ss.space_slug, ss.permission, u.display_name AS owner_name
+		SELECT ss.id AS share_id, ss.owner_id, ss.space_slug, ss.permission, u.display_name AS owner_name
 		FROM space_shares ss
 		JOIN users u ON u.id = ss.owner_id
 		WHERE ss.shared_with = ?
-	`).all(locals.userId) as { owner_id: string; space_slug: string; permission: 'read' | 'write'; owner_name: string }[];
+	`).all(locals.userId) as { share_id: number; owner_id: string; space_slug: string; permission: 'read' | 'write'; owner_name: string }[];
 
 	const sharedSpaces: SharedSpaceInfo[] = [];
 	for (const share of shares) {
@@ -48,6 +48,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				sharedSpaces.push({
 					slug: share.space_slug,
 					name: row.display_name,
+					share_id: share.share_id,
 					owner_id: share.owner_id,
 					owner_name: share.owner_name,
 					permission: share.permission
