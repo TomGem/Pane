@@ -1,7 +1,6 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
-import { getUserDb } from '$lib/server/db';
 import { moveFile, deleteFile } from '$lib/server/storage';
 import { getTagsForItem } from '$lib/server/tags';
 import type { Item, Category } from '$lib/types';
@@ -45,10 +44,9 @@ export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 			return json({ error: 'Item not found' }, { status: 404 });
 		}
 
-		// Validate tags against user's tags
-		if (Array.isArray(tags) && locals.userId) {
-			const userDb = getUserDb(locals.userId);
-			const checkTag = userDb.prepare('SELECT id FROM tags WHERE id = ?');
+		// Validate tags against the space owner's tags
+		if (Array.isArray(tags)) {
+			const checkTag = db.prepare('SELECT id FROM tags WHERE id = ?');
 			for (const tagId of tags) {
 				if (!checkTag.get(tagId)) {
 					return json({ error: `Tag with id ${tagId} not found` }, { status: 400 });

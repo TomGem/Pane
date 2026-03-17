@@ -1,7 +1,6 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
-import { getUserDb } from '$lib/server/db';
 import { getTagsForItem, attachTagsBatched } from '$lib/server/tags';
 import { fetchPageMeta } from '$lib/server/meta';
 import type { Item } from '$lib/types';
@@ -84,7 +83,9 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 		let faviconUrl: string | null = null;
 		let tagIds: number[] = Array.isArray(tags) ? [...tags] : [];
 
-		const userDb = getUserDb(locals.userId);
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+		const { db } = access;
 
 		if (fetch_title && type === 'link' && content) {
 			const meta = await fetchPageMeta(content);
@@ -93,21 +94,17 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 			faviconUrl = meta.favicon;
 
 			if (meta.unavailable) {
-				userDb.prepare("INSERT OR IGNORE INTO tags (name, color) VALUES ('404', '#ef4444')").run();
-				const tag404 = userDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number };
+				db.prepare("INSERT OR IGNORE INTO tags (name, color) VALUES ('404', '#ef4444')").run();
+				const tag404 = db.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number };
 				if (!tagIds.includes(tag404.id)) {
 					tagIds.push(tag404.id);
 				}
 			}
 		}
 
-		const access = resolveSpaceAccess(locals, url);
-		requireWriteAccess(access);
-		const { db } = access;
-
-		// Validate tags against user's tags
+		// Validate tags against the space owner's tags
 		if (tagIds.length > 0) {
-			const checkTag = userDb.prepare('SELECT id FROM tags WHERE id = ?');
+			const checkTag = db.prepare('SELECT id FROM tags WHERE id = ?');
 			for (const tagId of tagIds) {
 				if (!checkTag.get(tagId)) {
 					return json({ error: `Tag with id ${tagId} not found` }, { status: 400 });

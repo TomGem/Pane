@@ -13,16 +13,16 @@ function withSpace(url: string, spaceSlug: string, ownerId?: string): string {
 	return url.includes('?') ? `${url}&${spaceParam(spaceSlug, ownerId)}` : `${url}?${spaceParam(spaceSlug, ownerId)}`;
 }
 
-export function createBoardStore(initial: CategoryWithItems[], initialAllItems?: Item[], spaceSlug: string = 'desk', ownerId?: string) {
+export function createBoardStore(initial: CategoryWithItems[], initialAllItems?: Item[], spaceSlug: string = 'desk', ownerId?: string, permission: 'owner' | 'read' | 'write' = 'owner') {
 	let columns = $state<CategoryWithItems[]>(initial);
 	let allItems = $state<Item[]>(initialAllItems ?? initial.flatMap((c) => c.items));
 	let allTags = $state<Tag[]>([]);
 	let currentParentId = $state<number | null>(null);
 	let breadcrumb = $state<BreadcrumbSegment[]>([]);
-	const readonly = !!ownerId;
+	const readonly = permission === 'read';
 
 	async function loadTags() {
-		allTags = await api<Tag[]>('/api/tags');
+		allTags = await api<Tag[]>(withSpace('/api/tags', spaceSlug, ownerId));
 	}
 
 	async function refresh() {
@@ -317,7 +317,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 
 	// Tags
 	async function addTag(name: string, color: string) {
-		const tag = await api<Tag>('/api/tags', {
+		const tag = await api<Tag>(withSpace('/api/tags', spaceSlug, ownerId), {
 			method: 'POST',
 			body: JSON.stringify({ name, color })
 		});
@@ -326,7 +326,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	async function updateTag(id: number, name: string, color: string) {
-		const tag = await api<Tag>(`/api/tags/${id}`, {
+		const tag = await api<Tag>(withSpace(`/api/tags/${id}`, spaceSlug, ownerId), {
 			method: 'PUT',
 			body: JSON.stringify({ name, color })
 		});

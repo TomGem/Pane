@@ -1,7 +1,6 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
-import { getUserDb } from '$lib/server/db';
 import { getTagsForItem } from '$lib/server/tags';
 import { fetchPageMeta } from '$lib/server/meta';
 import type { Item } from '$lib/types';
@@ -41,16 +40,15 @@ export const POST: RequestHandler = async ({ params, url, locals }) => {
 		}
 
 		// Handle 404 tag for unavailable links
-		const userDb = getUserDb(locals.userId);
 		if (meta.unavailable) {
-			userDb.prepare("INSERT OR IGNORE INTO tags (name, color) VALUES ('404', '#ef4444')").run();
-			const tag404 = userDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number };
+			db.prepare("INSERT OR IGNORE INTO tags (name, color) VALUES ('404', '#ef4444')").run();
+			const tag404 = db.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number };
 			const existing = db.prepare('SELECT 1 FROM item_tags WHERE item_id = ? AND tag_id = ?').get(numId, tag404.id);
 			if (!existing) {
 				db.prepare('INSERT INTO item_tags (item_id, tag_id) VALUES (?, ?)').run(numId, tag404.id);
 			}
 		} else {
-			const tag404 = userDb.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number } | undefined;
+			const tag404 = db.prepare("SELECT id FROM tags WHERE name = '404'").get() as { id: number } | undefined;
 			if (tag404) {
 				db.prepare('DELETE FROM item_tags WHERE item_id = ? AND tag_id = ?').run(numId, tag404.id);
 			}

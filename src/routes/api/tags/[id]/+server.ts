@@ -1,14 +1,16 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getUserDb } from '$lib/server/db';
+import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import type { Tag } from '$lib/types';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
 
-export const PUT: RequestHandler = async ({ params, request, locals }) => {
+export const PUT: RequestHandler = async ({ params, request, locals, url }) => {
 	try {
-		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid tag id' }, { status: 400 });
 
@@ -25,16 +27,14 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 			return json({ error: `Color exceeds maximum length of ${MAX_COLOR_LENGTH} characters` }, { status: 400 });
 		}
 
-		const db = getUserDb(locals.userId);
-
-		const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag | undefined;
+		const existing = access.db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag | undefined;
 		if (!existing) {
 			return json({ error: 'Tag not found' }, { status: 404 });
 		}
 
-		db.prepare('UPDATE tags SET name = ?, color = ? WHERE id = ?').run(name, color, numId);
+		access.db.prepare('UPDATE tags SET name = ?, color = ? WHERE id = ?').run(name, color, numId);
 
-		const tag = db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag;
+		const tag = access.db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag;
 
 		return json(tag);
 	} catch (err) {
@@ -46,20 +46,20 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	}
 };
 
-export const DELETE: RequestHandler = async ({ params, locals }) => {
+export const DELETE: RequestHandler = async ({ params, locals, url }) => {
 	try {
-		if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
+		const access = resolveSpaceAccess(locals, url);
+		requireWriteAccess(access);
+
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid tag id' }, { status: 400 });
 
-		const db = getUserDb(locals.userId);
-
-		const existing = db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag | undefined;
+		const existing = access.db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag | undefined;
 		if (!existing) {
 			return json({ error: 'Tag not found' }, { status: 404 });
 		}
 
-		db.prepare('DELETE FROM tags WHERE id = ?').run(numId);
+		access.db.prepare('DELETE FROM tags WHERE id = ?').run(numId);
 
 		return json({ success: true });
 	} catch (err) {

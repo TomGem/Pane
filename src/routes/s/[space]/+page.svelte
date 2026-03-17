@@ -21,7 +21,7 @@
 	const isReadonly = $derived(permission === 'read');
 
 	// svelte-ignore state_referenced_locally — intentionally capturing initial SSR data; store manages its own state after hydration
-	const board = createBoardStore(data.columns, data.allItems, spaceSlug, ownerId);
+	const board = createBoardStore(data.columns, data.allItems, spaceSlug, ownerId, permission as 'owner' | 'read' | 'write');
 	const app = getContext<{ searchQuery: string; setSearchQuery: (query: string) => void; selectedTagIds: number[]; toggleTag: (tagId: number) => void; focusSearch: () => void; setAddCallback: (fn: () => void) => void; setAddCategoryCallback: (fn: () => void) => void; setTags: (tags: Tag[]) => void; setUpdateTag: (fn: (id: number, name: string, color: string) => Promise<Tag>) => void }>('app');
 
 	let isNested = $derived(board.currentParentId !== null);

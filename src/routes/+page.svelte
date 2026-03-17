@@ -6,6 +6,7 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import SettingsOverlay from '$lib/components/SettingsOverlay.svelte';
 	import HelpPanel from '$lib/components/HelpPanel.svelte';
+	import SpaceSharingOverlay from '$lib/components/SpaceSharingOverlay.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 
 	let { data } = $props();
@@ -20,6 +21,7 @@
 	let newSpaceName = $state('');
 	let newSpaceInputEl = $state<HTMLInputElement | null>(null);
 	let confirmDeleteSlug = $state<string | null>(null);
+	let sharingSpace = $state<{ slug: string; name: string } | null>(null);
 
 	async function handleLogout() {
 		try {
@@ -59,6 +61,8 @@
 			showUserMenu = false;
 		} else if (e.key === 'Escape' && showHelp) {
 			showHelp = false;
+		} else if (e.key === 'Escape' && sharingSpace) {
+			sharingSpace = null;
 		} else if (e.key === 'Escape' && showSettings) {
 			showSettings = false;
 		}
@@ -145,9 +149,20 @@
 				>
 					<div class="space-column-header">
 						<span class="space-column-name">{space.name}</span>
+						<div class="space-column-actions">
+						{#if data.user}
+							<button
+								class="space-column-action"
+								onclick={(e) => { e.preventDefault(); e.stopPropagation(); sharingSpace = { slug: space.slug, name: space.name }; }}
+								title="Share space"
+								aria-label="Share {space.name}"
+							>
+								<Icon name="share" size={14} />
+							</button>
+						{/if}
 						{#if data.spaces.length > 1}
 							<button
-								class="space-column-delete"
+								class="space-column-action space-column-action-danger"
 								onclick={(e) => { e.preventDefault(); e.stopPropagation(); confirmDeleteSlug = space.slug; }}
 								title="Delete space"
 								aria-label="Delete {space.name}"
@@ -158,6 +173,7 @@
 								</svg>
 							</button>
 						{/if}
+					</div>
 					</div>
 					<div class="space-column-body">
 						<div class="space-stat">
@@ -271,6 +287,14 @@
 	/>
 {/if}
 
+{#if sharingSpace}
+	<SpaceSharingOverlay
+		spaceSlug={sharingSpace.slug}
+		spaceName={sharingSpace.name}
+		onclose={() => sharingSpace = null}
+	/>
+{/if}
+
 <style>
 	.toolbar {
 		position: sticky;
@@ -377,7 +401,13 @@
 		white-space: nowrap;
 	}
 
-	.space-column-delete {
+	.space-column-actions {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+	}
+
+	.space-column-action {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -389,11 +419,16 @@
 		transition: opacity var(--transition), background-color var(--transition), color var(--transition);
 	}
 
-	.space-column:hover .space-column-delete {
+	.space-column:hover .space-column-action {
 		opacity: 1;
 	}
 
-	.space-column-delete:hover {
+	.space-column-action:hover {
+		background: var(--accent-soft);
+		color: var(--accent);
+	}
+
+	.space-column-action-danger:hover {
 		background: rgba(239, 68, 68, 0.1);
 		color: var(--danger);
 	}
