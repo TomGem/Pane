@@ -78,7 +78,7 @@
 						placeholder="000000"
 						required
 						maxlength="6"
-						pattern="[0-9]{6}"
+
 						autocomplete="one-time-code"
 						inputmode="numeric"
 					/>
