@@ -1,12 +1,12 @@
 <script lang="ts">
-	import SettingsOverlay from './SettingsOverlay.svelte';
+	import UserOverlay from './UserOverlay.svelte';
 	import ExportImportOverlay from './ExportImportOverlay.svelte';
 	import SpaceSharingOverlay from './SpaceSharingOverlay.svelte';
 	import HelpPanel from './HelpPanel.svelte';
 	import Icon from './Icon.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
 	import type { PaletteId } from '$lib/stores/palette.svelte';
-	import type { Tag, Space, StorageQuotaInfo } from '$lib/types';
+	import type { Tag, Space } from '$lib/types';
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
 
@@ -20,7 +20,6 @@
 		spaces?: Space[];
 		spaceSlug?: string;
 		user?: { id: string; email: string; display_name: string; role: string } | null;
-		storage?: StorageQuotaInfo | null;
 		isOwner?: boolean;
 		singleUser?: boolean;
 		onsearch?: (query: string) => void;
@@ -33,31 +32,10 @@
 		onpalettechange?: (id: PaletteId) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, storage = null, isOwner = true, singleUser = false, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, singleUser = false, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
 
-	function formatBytes(bytes: number): string {
-		if (bytes === 0) return '0 B';
-		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(1024));
-		const val = bytes / Math.pow(1024, i);
-		return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
-	}
-
-	let showUserMenu = $state(false);
+	let showUserOverlay = $state(false);
 	let showSharing = $state(false);
-	let liveStorage = $state<{ used_bytes: number; quota_bytes: number } | null>(null);
-
-	async function fetchStorage() {
-		try {
-			const res = await fetch('/api/storage');
-			if (res.ok) liveStorage = await res.json();
-		} catch { /* ignore */ }
-	}
-
-	function toggleUserMenu() {
-		showUserMenu = !showUserMenu;
-		if (showUserMenu) fetchStorage();
-	}
 
 	const TAG_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
@@ -65,7 +43,6 @@
 	let showTagMenu = $state(false);
 	let editingTagId = $state<number | null>(null);
 	let showHelp = $state(false);
-	let showSettings = $state(false);
 	let showExportImport = $state(false);
 	let showSpaceMenu = $state(false);
 	let creatingSpace = $state(false);
@@ -149,8 +126,8 @@
 			showSharing = false;
 		} else if (e.key === 'Escape' && showExportImport) {
 			showExportImport = false;
-		} else if (e.key === 'Escape' && showSettings) {
-			showSettings = false;
+		} else if (e.key === 'Escape' && showUserOverlay) {
+			showUserOverlay = false;
 		} else if (e.key === 'Escape' && showHelp) {
 			showHelp = false;
 		} else if (e.key === 'Escape' && showSpaceMenu) {
@@ -158,8 +135,6 @@
 			creatingSpace = false;
 			newSpaceName = '';
 			confirmDeleteSlug = null;
-		} else if (e.key === 'Escape' && showUserMenu) {
-			showUserMenu = false;
 		} else if (e.key === 'Escape' && editingTagId !== null) {
 			editingTagId = null;
 		} else if (e.key === 'Escape' && showTagMenu) {
@@ -386,81 +361,17 @@
 				<Icon name="users" size={18} />
 			</button>
 		{/if}
-		<button class="btn-toolbar-icon" onclick={() => showSettings = true} aria-label="Settings" title="Settings">
-			<Icon name="settings" size={18} />
-		</button>
 		<button class="btn-toolbar-icon" onclick={() => showHelp = true} aria-label="Help" title="Help">
 			<Icon name="help-circle" size={18} />
 		</button>
-		{#if user}
-			<div class="user-menu-wrapper">
-				<button
-					class="btn-toolbar-icon user-btn"
-					onclick={toggleUserMenu}
-					aria-label="User menu"
-					title={user.display_name}
-					aria-expanded={showUserMenu}
-					aria-haspopup="true"
-				>
-					<Icon name="user" size={18} />
-				</button>
-				{#if showUserMenu}
-					<div class="user-menu glass-strong">
-						<div class="user-menu-header">
-							<span class="user-menu-name">{user.display_name}</span>
-							<span class="user-menu-email">{user.email}</span>
-							{#if liveStorage}
-								<div class="user-menu-storage">
-									<div class="user-menu-storage-header">
-										<span>Storage</span>
-										{#if singleUser}
-											<span>{formatBytes(liveStorage.used_bytes)}</span>
-										{:else}
-											<span>{formatBytes(liveStorage.used_bytes)} / {formatBytes(liveStorage.quota_bytes)}</span>
-										{/if}
-									</div>
-									{#if !singleUser}
-										{@const pct = liveStorage.quota_bytes > 0 ? Math.min(100, (liveStorage.used_bytes / liveStorage.quota_bytes) * 100) : 0}
-										<div class="user-menu-storage-bar">
-											<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
-										</div>
-									{/if}
-								</div>
-							{:else if storage}
-								<div class="user-menu-storage">
-									<div class="user-menu-storage-header">
-										<span>Storage</span>
-										{#if singleUser}
-											<span>{formatBytes(storage.used_bytes)}</span>
-										{:else}
-											<span>{formatBytes(storage.used_bytes)} / {formatBytes(storage.quota_bytes)}</span>
-										{/if}
-									</div>
-									{#if !singleUser}
-										{@const pct = storage.quota_bytes > 0 ? Math.min(100, (storage.used_bytes / storage.quota_bytes) * 100) : 0}
-										<div class="user-menu-storage-bar">
-											<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
-										</div>
-									{/if}
-								</div>
-							{/if}
-						</div>
-						<div class="user-menu-list">
-							{#if user.role === 'admin' && !singleUser}
-								<a class="user-menu-item" href="/admin" onclick={() => showUserMenu = false}>
-									<Icon name="shield" size={14} />
-									<span>Admin Panel</span>
-								</a>
-							{/if}
-							<button class="user-menu-item" onclick={handleLogout}>
-								<Icon name="log-out" size={14} />
-								<span>Sign out</span>
-							</button>
-						</div>
-					</div>
-				{/if}
-			</div>
-		{/if}
+		<button
+			class="btn-toolbar-icon"
+			onclick={() => showUserOverlay = true}
+			aria-label={user ? user.display_name : 'Settings'}
+			title={user ? user.display_name : 'Settings'}
+		>
+			<Icon name="user" size={18} />
+		</button>
 	</div>
 </header>
 
@@ -472,19 +383,17 @@
 	<div class="space-menu-backdrop" onclick={() => { showSpaceMenu = false; creatingSpace = false; newSpaceName = ''; confirmDeleteSlug = null; }} aria-hidden="true"></div>
 {/if}
 
-{#if showUserMenu}
-	<div class="user-menu-backdrop" onclick={() => showUserMenu = false} aria-hidden="true"></div>
-{/if}
-
-{#if showSettings}
-	<SettingsOverlay
+{#if showUserOverlay}
+	<UserOverlay
+		{user}
 		{themeMode}
 		{paletteId}
 		{singleUser}
-		onclose={() => showSettings = false}
+		onclose={() => showUserOverlay = false}
 		onthemechange={onthemechange}
 		onpalettechange={onpalettechange}
-		onexportimport={() => { showSettings = false; showExportImport = true; }}
+		onexportimport={() => { showUserOverlay = false; showExportImport = true; }}
+		onlogout={handleLogout}
 	/>
 {/if}
 
@@ -1045,106 +954,5 @@
 		color: var(--accent);
 	}
 
-	.user-menu-wrapper {
-		position: relative;
-	}
-
-	.user-menu {
-		position: absolute;
-		top: calc(100% + 10px);
-		right: 0;
-		z-index: 150;
-		min-width: 200px;
-		border-radius: var(--radius);
-		box-shadow: var(--shadow-lg);
-		overflow: hidden;
-		background: var(--bg-primary);
-		border: 1px solid var(--border);
-	}
-
-	.user-menu-header {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		padding: 10px 14px;
-		border-bottom: 1px solid var(--border);
-	}
-
-	.user-menu-name {
-		font-size: 13px;
-		font-weight: 600;
-		color: var(--text-primary);
-	}
-
-	.user-menu-email {
-		font-size: 12px;
-		color: var(--text-muted);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.user-menu-storage {
-		margin-top: 6px;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.user-menu-storage-header {
-		display: flex;
-		justify-content: space-between;
-		font-size: 11px;
-		color: var(--text-muted);
-	}
-
-	.user-menu-storage-bar {
-		width: 100%;
-		height: 4px;
-		background: var(--border);
-		border-radius: 2px;
-		overflow: hidden;
-	}
-
-	.user-menu-storage-fill {
-		height: 100%;
-		background: var(--accent);
-		border-radius: 2px;
-		transition: width 0.3s ease;
-	}
-
-	.user-menu-storage-fill.storage-warning {
-		background: var(--danger);
-	}
-
-	.user-menu-list {
-		padding: 4px;
-	}
-
-	.user-menu-item {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		width: 100%;
-		padding: 7px 10px;
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		font-size: 13px;
-		color: var(--text-primary);
-		text-decoration: none;
-		text-align: left;
-		transition: background-color var(--transition);
-	}
-
-	.user-menu-item:hover {
-		background: var(--accent-soft);
-		text-decoration: none;
-	}
-
-	.user-menu-backdrop {
-		position: fixed;
-		inset: 0;
-		z-index: 99;
-	}
 
 </style>

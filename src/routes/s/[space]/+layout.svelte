@@ -77,7 +77,6 @@
 	spaces={data.spaces}
 	spaceSlug={data.spaceSlug}
 	user={data.user}
-	storage={data.storage}
 	isOwner={!data.ownerId}
 	singleUser={data.singleUser ?? false}
 	onsearch={handleSearch}

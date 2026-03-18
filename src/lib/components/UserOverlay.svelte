@@ -5,6 +5,7 @@
 	import { PALETTES, type PaletteId } from '$lib/stores/palette.svelte';
 
 	interface Props {
+		user?: { id: string; email: string; display_name: string; role: string } | null;
 		themeMode: ThemeMode;
 		paletteId: PaletteId;
 		singleUser?: boolean;
@@ -12,10 +13,34 @@
 		onthemechange?: (mode: ThemeMode) => void;
 		onpalettechange?: (id: PaletteId) => void;
 		onexportimport?: () => void;
+		onlogout: () => void;
 	}
 
-	let { themeMode, paletteId, singleUser = false, onclose, onthemechange, onpalettechange, onexportimport }: Props = $props();
+	let { user = null, themeMode, paletteId, singleUser = false, onclose, onthemechange, onpalettechange, onexportimport, onlogout }: Props = $props();
 
+	// Storage
+	let liveStorage = $state<{ used_bytes: number; quota_bytes: number } | null>(null);
+
+	function formatBytes(bytes: number): string {
+		if (bytes === 0) return '0 B';
+		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(1024));
+		const val = bytes / Math.pow(1024, i);
+		return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
+	}
+
+	async function fetchStorage() {
+		try {
+			const res = await fetch('/api/storage');
+			if (res.ok) liveStorage = await res.json();
+		} catch { /* ignore */ }
+	}
+
+	$effect(() => {
+		fetchStorage();
+	});
+
+	// Password change
 	let currentPassword = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');
@@ -78,24 +103,46 @@
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-<div class="settings-overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose(); }} role="dialog" aria-modal="true" aria-label="Settings" tabindex="-1" use:trapFocus>
-	<div class="settings-panel glass-strong">
-		<div class="settings-header">
-			<h2 class="settings-title">Settings</h2>
-			<button class="settings-close" onclick={onclose} aria-label="Close" title="Close">
+<div class="overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose(); }} role="dialog" aria-modal="true" aria-label="User settings" tabindex="-1" use:trapFocus>
+	<div class="panel glass-strong">
+		<div class="panel-header">
+			<h2 class="panel-title">{singleUser ? 'Settings' : user?.display_name ?? 'Settings'}</h2>
+			<button class="panel-close" onclick={onclose} aria-label="Close" title="Close">
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<line x1="18" y1="6" x2="6" y2="18" />
 					<line x1="6" y1="6" x2="18" y2="18" />
 				</svg>
 			</button>
 		</div>
-		<div class="settings-body">
-			<section class="settings-section">
-				<h3 class="settings-section-title">Theme</h3>
+		<div class="panel-body">
+			{#if !singleUser && user}
+				<section class="section">
+					<h3 class="section-title">Account</h3>
+					<div class="account-info">
+						<span class="account-email">{user.email}</span>
+						{#if liveStorage}
+							{@const pct = liveStorage.quota_bytes > 0 ? Math.min(100, (liveStorage.used_bytes / liveStorage.quota_bytes) * 100) : 0}
+							<div class="storage-row">
+								<div class="storage-header">
+									<span>Storage</span>
+									<span>{formatBytes(liveStorage.used_bytes)} / {formatBytes(liveStorage.quota_bytes)}</span>
+								</div>
+								<div class="storage-bar">
+									<div class="storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+								</div>
+							</div>
+						{/if}
+					</div>
+				</section>
+			{/if}
+
+			<section class="section">
+				<h3 class="section-title">Theme</h3>
 				<ThemeToggle mode={themeMode} onchange={onthemechange} />
 			</section>
-			<section class="settings-section">
-				<h3 class="settings-section-title">Accent colour</h3>
+
+			<section class="section">
+				<h3 class="section-title">Accent colour</h3>
 				<div class="palette-grid">
 					{#each PALETTES as p (p.id)}
 						<button
@@ -120,9 +167,10 @@
 					{/each}
 				</div>
 			</section>
+
 			{#if !singleUser}
-				<section class="settings-section">
-					<h3 class="settings-section-title">Password</h3>
+				<section class="section">
+					<h3 class="section-title">Password</h3>
 					<form class="password-form" onsubmit={(e) => { e.preventDefault(); handleChangePassword(); }}>
 						{#if passwordError}
 							<div class="password-msg password-error">{passwordError}</div>
@@ -156,26 +204,42 @@
 							minlength="8"
 							autocomplete="new-password"
 						/>
-						<button class="data-btn" type="submit" disabled={passwordLoading}>
+						<button class="action-btn" type="submit" disabled={passwordLoading}>
 							<Icon name="lock" size={16} />
 							<span>{passwordLoading ? 'Changing...' : 'Change password'}</span>
 						</button>
 					</form>
 				</section>
 			{/if}
-			<section class="settings-section">
-				<h3 class="settings-section-title">Data</h3>
-				<button class="data-btn" onclick={() => onexportimport?.()}>
+
+			<section class="section">
+				<h3 class="section-title">Data</h3>
+				<button class="action-btn" onclick={() => onexportimport?.()}>
 					<Icon name="download" size={16} />
 					<span>Export & Import</span>
 				</button>
 			</section>
 		</div>
+
+		{#if !singleUser}
+			<div class="panel-footer">
+				{#if user?.role === 'admin'}
+					<a class="footer-link" href="/admin" onclick={onclose}>
+						<Icon name="shield" size={14} />
+						<span>Admin Panel</span>
+					</a>
+				{/if}
+				<button class="footer-link logout" onclick={onlogout}>
+					<Icon name="log-out" size={14} />
+					<span>Sign out</span>
+				</button>
+			</div>
+		{/if}
 	</div>
 </div>
 
 <style>
-	.settings-overlay {
+	.overlay {
 		position: fixed;
 		inset: 0;
 		z-index: 9999;
@@ -186,7 +250,7 @@
 		backdrop-filter: blur(4px);
 	}
 
-	.settings-panel {
+	.panel {
 		width: 90vw;
 		max-width: 420px;
 		max-height: 85vh;
@@ -197,7 +261,7 @@
 		flex-direction: column;
 	}
 
-	.settings-header {
+	.panel-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -205,13 +269,13 @@
 		border-bottom: 1px solid var(--border);
 	}
 
-	.settings-title {
+	.panel-title {
 		font-size: 16px;
 		font-weight: 700;
 		color: var(--text-primary);
 	}
 
-	.settings-close {
+	.panel-close {
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -222,24 +286,24 @@
 		transition: background-color var(--transition), color var(--transition);
 	}
 
-	.settings-close:hover {
+	.panel-close:hover {
 		background: var(--accent-soft);
 		color: var(--text-primary);
 	}
 
-	.settings-body {
+	.panel-body {
 		padding: 16px 20px 20px;
 	}
 
-	.settings-section {
+	.section {
 		margin-bottom: 20px;
 	}
 
-	.settings-section:last-child {
+	.section:last-child {
 		margin-bottom: 0;
 	}
 
-	.settings-section-title {
+	.section-title {
 		font-size: 12px;
 		font-weight: 600;
 		color: var(--text-muted);
@@ -248,6 +312,51 @@
 		margin-bottom: 10px;
 	}
 
+	/* Account */
+	.account-info {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.account-email {
+		font-size: 13px;
+		color: var(--text-secondary);
+	}
+
+	.storage-row {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.storage-header {
+		display: flex;
+		justify-content: space-between;
+		font-size: 11px;
+		color: var(--text-muted);
+	}
+
+	.storage-bar {
+		width: 100%;
+		height: 4px;
+		background: var(--border);
+		border-radius: 2px;
+		overflow: hidden;
+	}
+
+	.storage-fill {
+		height: 100%;
+		background: var(--accent);
+		border-radius: 2px;
+		transition: width 0.3s ease;
+	}
+
+	.storage-fill.storage-warning {
+		background: var(--danger);
+	}
+
+	/* Palette */
 	.palette-grid {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
@@ -297,7 +406,8 @@
 		color: var(--text-secondary);
 	}
 
-	.data-btn {
+	/* Action buttons */
+	.action-btn {
 		display: flex;
 		align-items: center;
 		gap: 8px;
@@ -312,11 +422,12 @@
 		transition: background-color var(--transition);
 	}
 
-	.data-btn:hover {
+	.action-btn:hover {
 		background: var(--accent-soft);
 		color: var(--accent);
 	}
 
+	/* Password */
 	.password-form {
 		display: flex;
 		flex-direction: column;
@@ -337,5 +448,38 @@
 	.password-success {
 		background: rgba(34, 197, 94, 0.1);
 		color: var(--success, #22c55e);
+	}
+
+	/* Footer */
+	.panel-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 12px 20px;
+		border-top: 1px solid var(--border);
+	}
+
+	.footer-link {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		color: var(--text-secondary);
+		text-decoration: none;
+		padding: 4px 8px;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		transition: background-color var(--transition), color var(--transition);
+	}
+
+	.footer-link:hover {
+		background: var(--accent-soft);
+		color: var(--accent);
+		text-decoration: none;
+	}
+
+	.footer-link.logout:hover {
+		color: var(--danger);
+		background: rgba(239, 68, 68, 0.1);
 	}
 </style>

@@ -3,7 +3,7 @@
 	import { getContext } from 'svelte';
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
-	import SettingsOverlay from '$lib/components/SettingsOverlay.svelte';
+	import UserOverlay from '$lib/components/UserOverlay.svelte';
 	import HelpPanel from '$lib/components/HelpPanel.svelte';
 	import SpaceSharingOverlay from '$lib/components/SpaceSharingOverlay.svelte';
 	import ExportImportOverlay from '$lib/components/ExportImportOverlay.svelte';
@@ -14,37 +14,15 @@
 	const theme = getContext<ThemeStore>('theme');
 	const palette = getContext<PaletteStore>('palette');
 
-	let showSettings = $state(false);
+	let showUserOverlay = $state(false);
 	let showExportImport = $state(false);
 	let showHelp = $state(false);
-	let showUserMenu = $state(false);
-	let liveStorage = $state<{ used_bytes: number; quota_bytes: number } | null>(null);
-
-	async function fetchStorage() {
-		try {
-			const res = await fetch('/api/storage');
-			if (res.ok) liveStorage = await res.json();
-		} catch { /* ignore */ }
-	}
-
-	function toggleUserMenu() {
-		showUserMenu = !showUserMenu;
-		if (showUserMenu) fetchStorage();
-	}
 	let creatingSpace = $state(false);
 	let newSpaceName = $state('');
 	let newSpaceInputEl = $state<HTMLInputElement | null>(null);
 	let confirmDeleteSlug = $state<string | null>(null);
 	let sharingSpace = $state<{ slug: string; name: string } | null>(null);
 	let confirmLeaveShare = $state<{ share_id: number; slug: string; owner_id: string } | null>(null);
-
-	function formatBytes(bytes: number): string {
-		if (bytes === 0) return '0 B';
-		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(1024));
-		const val = bytes / Math.pow(1024, i);
-		return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
-	}
 
 	async function handleLeaveShare(shareId: number, slug: string, ownerId: string) {
 		try {
@@ -89,14 +67,12 @@
 	}
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && showUserMenu) {
-			showUserMenu = false;
+		if (e.key === 'Escape' && showUserOverlay) {
+			showUserOverlay = false;
 		} else if (e.key === 'Escape' && showHelp) {
 			showHelp = false;
 		} else if (e.key === 'Escape' && sharingSpace) {
 			sharingSpace = null;
-		} else if (e.key === 'Escape' && showSettings) {
-			showSettings = false;
 		}
 		if (e.key === 'Escape' && confirmLeaveShare) {
 			confirmLeaveShare = null;
@@ -115,82 +91,17 @@
 		<span class="toolbar-subtitle">Spaces</span>
 	</div>
 	<div class="toolbar-right">
-		<button class="btn-toolbar-icon" onclick={() => showSettings = true} aria-label="Settings" title="Settings">
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-				<circle cx="12" cy="12" r="3" />
-				<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-			</svg>
-		</button>
 		<button class="btn-toolbar-icon" onclick={() => showHelp = true} aria-label="Help" title="Help">
 			<Icon name="help-circle" size={18} />
 		</button>
-		{#if data.user}
-			<div class="user-menu-wrapper">
-				<button
-					class="btn-toolbar-icon"
-					onclick={toggleUserMenu}
-					aria-label="User menu"
-					title={data.user.display_name}
-				>
-					<Icon name="user" size={18} />
-				</button>
-				{#if showUserMenu}
-					<div class="user-menu glass-strong">
-						<div class="user-menu-header">
-							<span class="user-menu-name">{data.user.display_name}</span>
-							<span class="user-menu-email">{data.user.email}</span>
-							{#if liveStorage}
-								<div class="user-menu-storage">
-									<div class="user-menu-storage-header">
-										<span>Storage</span>
-										{#if data.singleUser}
-											<span>{formatBytes(liveStorage.used_bytes)}</span>
-										{:else}
-											<span>{formatBytes(liveStorage.used_bytes)} / {formatBytes(liveStorage.quota_bytes)}</span>
-										{/if}
-									</div>
-									{#if !data.singleUser}
-										{@const pct = liveStorage.quota_bytes > 0 ? Math.min(100, (liveStorage.used_bytes / liveStorage.quota_bytes) * 100) : 0}
-										<div class="user-menu-storage-bar">
-											<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
-										</div>
-									{/if}
-								</div>
-							{:else if data.storage}
-								<div class="user-menu-storage">
-									<div class="user-menu-storage-header">
-										<span>Storage</span>
-										{#if data.singleUser}
-											<span>{formatBytes(data.storage.used_bytes)}</span>
-										{:else}
-											<span>{formatBytes(data.storage.used_bytes)} / {formatBytes(data.storage.quota_bytes)}</span>
-										{/if}
-									</div>
-									{#if !data.singleUser}
-										{@const pct = data.storage.quota_bytes > 0 ? Math.min(100, (data.storage.used_bytes / data.storage.quota_bytes) * 100) : 0}
-										<div class="user-menu-storage-bar">
-											<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
-										</div>
-									{/if}
-								</div>
-							{/if}
-						</div>
-						<div class="user-menu-list">
-							{#if data.user.role === 'admin' && !data.singleUser}
-								<a class="user-menu-item" href="/admin" onclick={() => showUserMenu = false}>
-									<Icon name="shield" size={14} />
-									<span>Admin Panel</span>
-								</a>
-							{/if}
-							<button class="user-menu-item" onclick={handleLogout}>
-								<Icon name="log-out" size={14} />
-								<span>Sign out</span>
-							</button>
-						</div>
-					</div>
-				{/if}
-			</div>
-		{/if}
+		<button
+			class="btn-toolbar-icon"
+			onclick={() => showUserOverlay = true}
+			aria-label={data.user ? data.user.display_name : 'Settings'}
+			title={data.user ? data.user.display_name : 'Settings'}
+		>
+			<Icon name="user" size={18} />
+		</button>
 	</div>
 </header>
 
@@ -364,23 +275,21 @@
 
 </main>
 
-{#if showUserMenu}
-	<div class="user-menu-backdrop" onclick={() => showUserMenu = false} aria-hidden="true"></div>
-{/if}
-
 {#if showHelp}
 	<HelpPanel onclose={() => showHelp = false} />
 {/if}
 
-{#if showSettings}
-	<SettingsOverlay
+{#if showUserOverlay}
+	<UserOverlay
+		user={data.user}
 		themeMode={theme.mode}
 		paletteId={palette.palette}
 		singleUser={data.singleUser}
-		onclose={() => showSettings = false}
+		onclose={() => showUserOverlay = false}
 		onthemechange={(mode) => theme.setMode(mode)}
 		onpalettechange={(id) => palette.setPalette(id)}
-		onexportimport={() => { showSettings = false; showExportImport = true; }}
+		onexportimport={() => { showUserOverlay = false; showExportImport = true; }}
+		onlogout={handleLogout}
 	/>
 {/if}
 
@@ -656,108 +565,6 @@
 
 	.space-column.shared {
 		border-style: dashed;
-	}
-
-	.user-menu-wrapper {
-		position: relative;
-	}
-
-	.user-menu {
-		position: absolute;
-		top: calc(100% + 10px);
-		right: 0;
-		z-index: 150;
-		min-width: 200px;
-		border-radius: var(--radius);
-		box-shadow: var(--shadow-lg);
-		overflow: hidden;
-		background: var(--bg-primary);
-		border: 1px solid var(--border);
-	}
-
-	.user-menu-header {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		padding: 10px 14px;
-		border-bottom: 1px solid var(--border);
-	}
-
-	.user-menu-name {
-		font-size: 13px;
-		font-weight: 600;
-		color: var(--text-primary);
-	}
-
-	.user-menu-email {
-		font-size: 12px;
-		color: var(--text-muted);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.user-menu-list {
-		padding: 4px;
-	}
-
-	.user-menu-item {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		width: 100%;
-		padding: 7px 10px;
-		border-radius: var(--radius-sm);
-		cursor: pointer;
-		font-size: 13px;
-		color: var(--text-primary);
-		text-decoration: none;
-		text-align: left;
-		transition: background-color var(--transition);
-	}
-
-	.user-menu-item:hover {
-		background: var(--accent-soft);
-		text-decoration: none;
-	}
-
-	.user-menu-backdrop {
-		position: fixed;
-		inset: 0;
-		z-index: 99;
-	}
-
-	.user-menu-storage {
-		margin-top: 6px;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.user-menu-storage-header {
-		display: flex;
-		justify-content: space-between;
-		font-size: 11px;
-		color: var(--text-muted);
-	}
-
-	.user-menu-storage-bar {
-		width: 100%;
-		height: 4px;
-		background: var(--border);
-		border-radius: 2px;
-		overflow: hidden;
-	}
-
-	.user-menu-storage-fill {
-		height: 100%;
-		background: var(--accent);
-		border-radius: 2px;
-		transition: width 0.3s ease;
-	}
-
-	.user-menu-storage-fill.storage-warning {
-		background: var(--danger);
 	}
 
 	@media (max-width: 767px) {
