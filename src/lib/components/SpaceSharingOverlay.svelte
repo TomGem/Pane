@@ -9,6 +9,12 @@
 		permission: 'read' | 'write';
 	}
 
+	interface Suggestion {
+		id: string;
+		display_name: string;
+		email: string;
+	}
+
 	interface Props {
 		spaceSlug: string;
 		spaceName: string;
@@ -18,14 +24,23 @@
 	let { spaceSlug, spaceName, onclose }: Props = $props();
 
 	let shares = $state<Share[]>([]);
-	let email = $state('');
+	let identifier = $state('');
+	let selectedUserId = $state<string | null>(null);
 	let permission = $state<'read' | 'write'>('read');
 	let loading = $state(true);
 	let error = $state('');
 	let adding = $state(false);
 
+	// Autocomplete state
+	let suggestions = $state<Suggestion[]>([]);
+	let showSuggestions = $state(false);
+	let highlightedIndex = $state(-1);
+	let searchTimeout: ReturnType<typeof setTimeout>;
+	let inputEl = $state<HTMLInputElement | null>(null);
+
 	$effect(() => {
 		loadShares();
+		return () => clearTimeout(searchTimeout);
 	});
 
 	async function loadShares() {
@@ -40,21 +55,81 @@
 		loading = false;
 	}
 
+	function handleIdentifierInput() {
+		selectedUserId = null;
+		clearTimeout(searchTimeout);
+		const q = identifier.trim();
+		// Only autocomplete usernames, not emails
+		if (q.length < 1 || q.includes('@')) {
+			suggestions = [];
+			showSuggestions = false;
+			return;
+		}
+		searchTimeout = setTimeout(() => searchUsers(q), 200);
+	}
+
+	async function searchUsers(q: string) {
+		try {
+			const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
+			if (res.ok) {
+				const data = await res.json();
+				suggestions = data.users;
+				showSuggestions = suggestions.length > 0;
+				highlightedIndex = -1;
+			}
+		} catch { /* ignore */ }
+	}
+
+	function selectSuggestion(s: Suggestion) {
+		identifier = s.display_name;
+		selectedUserId = s.id;
+		suggestions = [];
+		showSuggestions = false;
+	}
+
+	function handleInputKeydown(e: KeyboardEvent) {
+		if (!showSuggestions) return;
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			highlightedIndex = Math.min(highlightedIndex + 1, suggestions.length - 1);
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			highlightedIndex = Math.max(highlightedIndex - 1, 0);
+		} else if (e.key === 'Enter' && highlightedIndex >= 0) {
+			e.preventDefault();
+			selectSuggestion(suggestions[highlightedIndex]);
+		} else if (e.key === 'Escape') {
+			showSuggestions = false;
+		}
+	}
+
+	function handleInputBlur() {
+		// Delay to allow click on suggestion
+		setTimeout(() => { showSuggestions = false; }, 150);
+	}
+
 	async function addShare() {
 		error = '';
 		adding = true;
 		try {
+			const body: Record<string, string> = { permission };
+			if (selectedUserId) {
+				body.user_id = selectedUserId;
+			} else {
+				body.identifier = identifier;
+			}
 			const res = await fetch(`/api/spaces/${spaceSlug}/shares`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email, permission })
+				body: JSON.stringify(body)
 			});
 			const data = await res.json();
 			if (!res.ok) {
 				error = data.error || 'Failed to share';
 			} else {
 				shares = [data.share, ...shares];
-				email = '';
+				identifier = '';
+				selectedUserId = null;
 			}
 		} catch {
 			error = 'Failed to share';
@@ -102,18 +177,41 @@
 
 	<div class="overlay-body">
 		<form class="share-form" onsubmit={(e) => { e.preventDefault(); addShare(); }}>
-			<input
-				class="input share-email"
-				type="email"
-				bind:value={email}
-				placeholder="Email address"
-				required
-			/>
+			<div class="share-input-wrapper">
+				<input
+					bind:this={inputEl}
+					class="input share-identifier"
+					type="text"
+					bind:value={identifier}
+					oninput={handleIdentifierInput}
+					onkeydown={handleInputKeydown}
+					onblur={handleInputBlur}
+					onfocus={() => { if (suggestions.length > 0 && !selectedUserId) showSuggestions = true; }}
+					placeholder="Username or email"
+					required
+					autocomplete="off"
+				/>
+				{#if showSuggestions}
+					<div class="suggestions glass-strong">
+						{#each suggestions as s, i (s.id)}
+							<button
+								class="suggestion-item"
+								class:highlighted={i === highlightedIndex}
+								type="button"
+								onmousedown={() => selectSuggestion(s)}
+							>
+								<span class="suggestion-name">{s.display_name}</span>
+								<span class="suggestion-email">{s.email}</span>
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
 			<select class="input share-permission" bind:value={permission}>
 				<option value="read">View only</option>
 				<option value="write">Can edit</option>
 			</select>
-			<button class="btn btn-primary" type="submit" disabled={adding || !email.trim()}>
+			<button class="btn btn-primary" type="submit" disabled={adding || !identifier.trim()}>
 				{adding ? 'Sharing...' : 'Share'}
 			</button>
 		</form>
@@ -228,9 +326,54 @@
 		align-items: center;
 	}
 
-	.share-email {
+	.share-input-wrapper {
+		position: relative;
 		flex: 1;
 		min-width: 0;
+	}
+
+	.share-identifier {
+		width: 100%;
+	}
+
+	.suggestions {
+		position: absolute;
+		top: calc(100% + 4px);
+		left: 0;
+		right: 0;
+		z-index: 210;
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-lg);
+		overflow: hidden;
+		background: var(--bg-primary);
+		border: 1px solid var(--border);
+	}
+
+	.suggestion-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 8px 12px;
+		font-size: 13px;
+		color: var(--text-primary);
+		text-align: left;
+		cursor: pointer;
+		transition: background-color var(--transition);
+	}
+
+	.suggestion-item:hover,
+	.suggestion-item.highlighted {
+		background: var(--accent-soft);
+	}
+
+	.suggestion-name {
+		font-weight: 600;
+	}
+
+	.suggestion-email {
+		font-size: 11px;
+		color: var(--text-muted);
 	}
 
 	.share-permission {

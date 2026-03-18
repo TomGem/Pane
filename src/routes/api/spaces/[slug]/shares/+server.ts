@@ -37,31 +37,60 @@ export const POST: RequestHandler = async ({ params, request, locals, url }) => 
 	if (!spaceExists(db, slug)) return json({ error: 'Space not found' }, { status: 404 });
 
 	try {
-		const { email, permission } = await request.json();
+		const body = await request.json();
+		const { permission, user_id } = body;
+		const identifier: string | undefined = body.identifier ?? body.email;
 
-		if (!email || typeof email !== 'string' || !email.includes('@')) {
-			return json({ error: 'Valid email is required' }, { status: 400 });
+		if ((!identifier || typeof identifier !== 'string') && !user_id) {
+			return json({ error: 'A username or email is required' }, { status: 400 });
 		}
 
 		if (!permission || !['read', 'write'].includes(permission)) {
 			return json({ error: 'Permission must be "read" or "write"' }, { status: 400 });
 		}
 
-		const normalizedEmail = email.toLowerCase().trim();
 		const authDb = getAuthDb();
 
 		// Cannot share with yourself
+		if (user_id && user_id === locals.userId) {
+			return json({ error: 'Cannot share a space with yourself' }, { status: 400 });
+		}
 		const self = authDb.prepare('SELECT email FROM users WHERE id = ?').get(locals.userId) as { email: string } | undefined;
-		if (self && self.email === normalizedEmail) {
+
+		// Find the target user by user_id, email, or display_name
+		let targetUser: Pick<User, 'id' | 'email' | 'display_name'> | undefined;
+
+		if (user_id) {
+			targetUser = authDb.prepare('SELECT id, email, display_name FROM users WHERE id = ?')
+				.get(user_id) as Pick<User, 'id' | 'email' | 'display_name'> | undefined;
+		} else {
+			const trimmed = identifier!.trim();
+			if (trimmed.includes('@')) {
+				const normalizedEmail = trimmed.toLowerCase();
+				if (self && self.email === normalizedEmail) {
+					return json({ error: 'Cannot share a space with yourself' }, { status: 400 });
+				}
+				targetUser = authDb.prepare('SELECT id, email, display_name FROM users WHERE email = ?')
+					.get(normalizedEmail) as Pick<User, 'id' | 'email' | 'display_name'> | undefined;
+			} else {
+				// Search by display_name (exact match, case-insensitive)
+				const matches = authDb.prepare(
+					'SELECT id, email, display_name FROM users WHERE display_name = ? COLLATE NOCASE AND id != ?'
+				).all(trimmed, locals.userId) as Pick<User, 'id' | 'email' | 'display_name'>[];
+				if (matches.length === 1) {
+					targetUser = matches[0];
+				} else if (matches.length > 1) {
+					return json({ error: 'Multiple users have that name. Please use their email address instead.' }, { status: 400 });
+				}
+			}
+		}
+
+		if (targetUser && targetUser.id === locals.userId) {
 			return json({ error: 'Cannot share a space with yourself' }, { status: 400 });
 		}
 
-		// Find the target user
-		const targetUser = authDb.prepare('SELECT id, email, display_name FROM users WHERE email = ?')
-			.get(normalizedEmail) as Pick<User, 'id' | 'email' | 'display_name'> | undefined;
-
 		if (!targetUser) {
-			return json({ error: 'No user found with that email. They need to register first.' }, { status: 404 });
+			return json({ error: 'No user found. They may need to register first.' }, { status: 404 });
 		}
 
 		// Check if share already exists
