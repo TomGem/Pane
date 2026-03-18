@@ -75,6 +75,26 @@ export async function sendSpaceInvitationEmail(
 	});
 }
 
+export async function sendPasswordResetEmail(to: string, code: string, displayName: string): Promise<void> {
+	if (!isSmtpConfigured()) {
+		console.log(`[EMAIL] Password reset code for ${to}: ${code}`);
+		return;
+	}
+
+	await getTransporter().sendMail({
+		from: getFromAddress(),
+		to,
+		subject: 'Reset your Pane password',
+		html: `
+			<p>Hi ${escapeHtml(displayName)},</p>
+			<p>Your password reset code is:</p>
+			<p style="font-size: 24px; font-weight: bold; letter-spacing: 4px; font-family: monospace;">${escapeHtml(code)}</p>
+			<p>This code expires in 15 minutes.</p>
+			<p>If you didn't request a password reset, you can safely ignore this email.</p>
+		`
+	});
+}
+
 function escapeHtml(str: string): string {
 	return str
 		.replace(/&/g, '&amp;')

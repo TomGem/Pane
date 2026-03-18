@@ -376,6 +376,7 @@
 	<SettingsOverlay
 		themeMode={theme.mode}
 		paletteId={palette.palette}
+		singleUser={data.singleUser}
 		onclose={() => showSettings = false}
 		onthemechange={(mode) => theme.setMode(mode)}
 		onpalettechange={(id) => palette.setPalette(id)}

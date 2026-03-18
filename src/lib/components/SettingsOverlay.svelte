@@ -7,13 +7,53 @@
 	interface Props {
 		themeMode: ThemeMode;
 		paletteId: PaletteId;
+		singleUser?: boolean;
 		onclose: () => void;
 		onthemechange?: (mode: ThemeMode) => void;
 		onpalettechange?: (id: PaletteId) => void;
 		onexportimport?: () => void;
 	}
 
-	let { themeMode, paletteId, onclose, onthemechange, onpalettechange, onexportimport }: Props = $props();
+	let { themeMode, paletteId, singleUser = false, onclose, onthemechange, onpalettechange, onexportimport }: Props = $props();
+
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmPassword = $state('');
+	let passwordError = $state('');
+	let passwordSuccess = $state('');
+	let passwordLoading = $state(false);
+
+	async function handleChangePassword() {
+		passwordError = '';
+		passwordSuccess = '';
+
+		if (newPassword !== confirmPassword) {
+			passwordError = 'Passwords do not match';
+			return;
+		}
+
+		passwordLoading = true;
+		try {
+			const res = await fetch('/api/auth/change-password', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+			});
+			const data = await res.json();
+			if (!res.ok) {
+				passwordError = data.error || 'Failed to change password';
+				return;
+			}
+			passwordSuccess = 'Password changed successfully';
+			currentPassword = '';
+			newPassword = '';
+			confirmPassword = '';
+		} catch {
+			passwordError = 'Failed to change password';
+		} finally {
+			passwordLoading = false;
+		}
+	}
 
 	let isDark = $derived(themeMode === 'dark' || (themeMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches));
 
@@ -80,6 +120,49 @@
 					{/each}
 				</div>
 			</section>
+			{#if !singleUser}
+				<section class="settings-section">
+					<h3 class="settings-section-title">Password</h3>
+					<form class="password-form" onsubmit={(e) => { e.preventDefault(); handleChangePassword(); }}>
+						{#if passwordError}
+							<div class="password-msg password-error">{passwordError}</div>
+						{/if}
+						{#if passwordSuccess}
+							<div class="password-msg password-success">{passwordSuccess}</div>
+						{/if}
+						<input
+							class="input"
+							type="password"
+							bind:value={currentPassword}
+							placeholder="Current password"
+							required
+							autocomplete="current-password"
+						/>
+						<input
+							class="input"
+							type="password"
+							bind:value={newPassword}
+							placeholder="New password (min 8 chars)"
+							required
+							minlength="8"
+							autocomplete="new-password"
+						/>
+						<input
+							class="input"
+							type="password"
+							bind:value={confirmPassword}
+							placeholder="Confirm new password"
+							required
+							minlength="8"
+							autocomplete="new-password"
+						/>
+						<button class="data-btn" type="submit" disabled={passwordLoading}>
+							<Icon name="lock" size={16} />
+							<span>{passwordLoading ? 'Changing...' : 'Change password'}</span>
+						</button>
+					</form>
+				</section>
+			{/if}
 			<section class="settings-section">
 				<h3 class="settings-section-title">Data</h3>
 				<button class="data-btn" onclick={() => onexportimport?.()}>
@@ -232,5 +315,27 @@
 	.data-btn:hover {
 		background: var(--accent-soft);
 		color: var(--accent);
+	}
+
+	.password-form {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.password-msg {
+		padding: 8px 10px;
+		border-radius: var(--radius);
+		font-size: 12px;
+	}
+
+	.password-error {
+		background: rgba(239, 68, 68, 0.1);
+		color: var(--danger);
+	}
+
+	.password-success {
+		background: rgba(34, 197, 94, 0.1);
+		color: var(--success, #22c55e);
 	}
 </style>

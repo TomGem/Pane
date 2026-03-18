@@ -62,6 +62,15 @@ export function initAuthSchema(db: Database.Database) {
 		);
 		CREATE INDEX IF NOT EXISTS idx_oauth_user ON oauth_accounts(user_id);
 
+		CREATE TABLE IF NOT EXISTS password_resets (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			code TEXT NOT NULL,
+			expires_at TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+		CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);
+
 		CREATE TABLE IF NOT EXISTS meta (
 			key TEXT PRIMARY KEY,
 			value TEXT NOT NULL

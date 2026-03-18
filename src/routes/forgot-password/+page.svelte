@@ -2,31 +2,27 @@
 	import { goto } from '$app/navigation';
 
 	let email = $state('');
-	let password = $state('');
 	let error = $state('');
+	let success = $state(false);
 	let loading = $state(false);
 
 	async function handleSubmit() {
 		error = '';
 		loading = true;
 		try {
-			const res = await fetch('/api/auth/login', {
+			const res = await fetch('/api/auth/forgot-password', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ email, password })
+				body: JSON.stringify({ email })
 			});
 			const data = await res.json();
 			if (!res.ok) {
-				error = data.error || 'Login failed';
+				error = data.error || 'Failed to send reset code';
 				return;
 			}
-			if (!data.email_verified) {
-				goto('/verify-email');
-			} else {
-				goto('/');
-			}
+			success = true;
 		} catch {
-			error = 'Login failed';
+			error = 'Failed to send reset code';
 		} finally {
 			loading = false;
 		}
@@ -34,53 +30,47 @@
 </script>
 
 <svelte:head>
-	<title>Login - Pane</title>
+	<title>Forgot Password - Pane</title>
 </svelte:head>
 
 <div class="auth-page">
 	<div class="auth-card glass-strong">
 		<h1 class="auth-title">Pane</h1>
-		<p class="auth-subtitle">Sign in to your account</p>
+		<p class="auth-subtitle">Reset your password</p>
 
-		<form class="auth-form" onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-			{#if error}
-				<div class="auth-error">{error}</div>
-			{/if}
-
-			<label class="auth-label">
-				<span>Email</span>
-				<input
-					class="input"
-					type="email"
-					bind:value={email}
-					placeholder="you@example.com"
-					required
-					autocomplete="email"
-				/>
-			</label>
-
-			<label class="auth-label">
-				<span>Password</span>
-				<input
-					class="input"
-					type="password"
-					bind:value={password}
-					placeholder="Your password"
-					required
-					autocomplete="current-password"
-				/>
-			</label>
-
-			<button class="btn btn-primary auth-submit" type="submit" disabled={loading}>
-				{loading ? 'Signing in...' : 'Sign in'}
+		{#if success}
+			<div class="auth-success">
+				If an account exists for <strong>{email}</strong>, a reset code has been sent.
+			</div>
+			<button class="btn btn-primary auth-submit" onclick={() => goto(`/reset-password?email=${encodeURIComponent(email)}`)}>
+				Enter reset code
 			</button>
-		</form>
+		{:else}
+			<form class="auth-form" onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
+				{#if error}
+					<div class="auth-error">{error}</div>
+				{/if}
+
+				<label class="auth-label">
+					<span>Email</span>
+					<input
+						class="input"
+						type="email"
+						bind:value={email}
+						placeholder="you@example.com"
+						required
+						autocomplete="email"
+					/>
+				</label>
+
+				<button class="btn btn-primary auth-submit" type="submit" disabled={loading}>
+					{loading ? 'Sending...' : 'Send reset code'}
+				</button>
+			</form>
+		{/if}
 
 		<p class="auth-footer">
-			<a href="/forgot-password">Forgot password?</a>
-		</p>
-		<p class="auth-footer" style="margin-top: 8px;">
-			Don't have an account? <a href="/register">Register</a>
+			<a href="/login">Back to login</a>
 		</p>
 	</div>
 </div>
@@ -138,6 +128,15 @@
 		background: rgba(239, 68, 68, 0.1);
 		color: var(--danger);
 		font-size: 13px;
+	}
+
+	.auth-success {
+		padding: 10px 12px;
+		border-radius: var(--radius);
+		background: rgba(34, 197, 94, 0.1);
+		color: var(--success, #22c55e);
+		font-size: 13px;
+		margin-bottom: 16px;
 	}
 
 	.auth-submit {

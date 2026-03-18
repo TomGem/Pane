@@ -480,6 +480,7 @@
 	<SettingsOverlay
 		{themeMode}
 		{paletteId}
+		{singleUser}
 		onclose={() => showSettings = false}
 		onthemechange={onthemechange}
 		onpalettechange={onpalettechange}
