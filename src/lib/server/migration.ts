@@ -32,10 +32,6 @@ export function needsMigration(): boolean {
 	return files.length > 0;
 }
 
-export function needsFreshSetup(): boolean {
-	return !authDbExists();
-}
-
 export function runMigration(): string {
 	const authDb = getAuthDb();
 

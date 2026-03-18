@@ -36,11 +36,15 @@
 	let showSuggestions = $state(false);
 	let highlightedIndex = $state(-1);
 	let searchTimeout: ReturnType<typeof setTimeout>;
+	let blurTimeout: ReturnType<typeof setTimeout>;
 	let inputEl = $state<HTMLInputElement | null>(null);
 
 	$effect(() => {
 		loadShares();
-		return () => clearTimeout(searchTimeout);
+		return () => {
+			clearTimeout(searchTimeout);
+			clearTimeout(blurTimeout);
+		};
 	});
 
 	async function loadShares() {
@@ -105,7 +109,7 @@
 
 	function handleInputBlur() {
 		// Delay to allow click on suggestion
-		setTimeout(() => { showSuggestions = false; }, 150);
+		blurTimeout = setTimeout(() => { showSuggestions = false; }, 150);
 	}
 
 	async function addShare() {

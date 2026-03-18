@@ -1,4 +1,5 @@
 import { json } from '@sveltejs/kit';
+import { randomInt } from 'crypto';
 import type { RequestHandler } from './$types';
 import { getAuthDb } from '$lib/server/db';
 import { sendPasswordResetEmail } from '$lib/server/email';
@@ -39,7 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		// Delete old codes and create new one
 		authDb.prepare('DELETE FROM password_resets WHERE user_id = ?').run(user.id);
 
-		const code = String(Math.floor(100000 + Math.random() * 900000));
+		const code = String(randomInt(100000, 999999));
 		const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
 		authDb.prepare(

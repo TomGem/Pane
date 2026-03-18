@@ -108,11 +108,6 @@ export function getUserQuota(userId: string): number {
 
 // --- Legacy DB access (used during migration only) ---
 
-export function slugExists(slug: string): boolean {
-	if (!SLUG_RE.test(slug)) return false;
-	return fs.existsSync(path.join(DATA_DIR, `${slug}.db`));
-}
-
 function openLegacyDb(slug: string): Database.Database {
 	const dbPath = path.join(DATA_DIR, `${slug}.db`);
 	const db = new Database(dbPath);
@@ -143,12 +138,12 @@ export function closeLegacyDb(slug: string) {
 	}
 }
 
-export function getLegacyGlobalDb(): Database.Database {
+export function getLegacyGlobalDb(): Database.Database | null {
 	const cacheKey = '_legacy_global';
 	let db = cache.get(cacheKey);
 	if (!db) {
 		const dbPath = path.join(DATA_DIR, '_global.db');
-		if (!fs.existsSync(dbPath)) return null as unknown as Database.Database;
+		if (!fs.existsSync(dbPath)) return null;
 		db = openDbAt(dbPath);
 		cache.set(cacheKey, db);
 	}
