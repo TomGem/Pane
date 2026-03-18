@@ -140,31 +140,43 @@
 							<span class="user-menu-name">{data.user.display_name}</span>
 							<span class="user-menu-email">{data.user.email}</span>
 							{#if liveStorage}
-								{@const pct = liveStorage.quota_bytes > 0 ? Math.min(100, (liveStorage.used_bytes / liveStorage.quota_bytes) * 100) : 0}
 								<div class="user-menu-storage">
 									<div class="user-menu-storage-header">
 										<span>Storage</span>
-										<span>{formatBytes(liveStorage.used_bytes)} / {formatBytes(liveStorage.quota_bytes)}</span>
+										{#if data.singleUser}
+											<span>{formatBytes(liveStorage.used_bytes)}</span>
+										{:else}
+											<span>{formatBytes(liveStorage.used_bytes)} / {formatBytes(liveStorage.quota_bytes)}</span>
+										{/if}
 									</div>
-									<div class="user-menu-storage-bar">
-										<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
-									</div>
+									{#if !data.singleUser}
+										{@const pct = liveStorage.quota_bytes > 0 ? Math.min(100, (liveStorage.used_bytes / liveStorage.quota_bytes) * 100) : 0}
+										<div class="user-menu-storage-bar">
+											<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+										</div>
+									{/if}
 								</div>
 							{:else if data.storage}
-								{@const pct = data.storage.quota_bytes > 0 ? Math.min(100, (data.storage.used_bytes / data.storage.quota_bytes) * 100) : 0}
 								<div class="user-menu-storage">
 									<div class="user-menu-storage-header">
 										<span>Storage</span>
-										<span>{formatBytes(data.storage.used_bytes)} / {formatBytes(data.storage.quota_bytes)}</span>
+										{#if data.singleUser}
+											<span>{formatBytes(data.storage.used_bytes)}</span>
+										{:else}
+											<span>{formatBytes(data.storage.used_bytes)} / {formatBytes(data.storage.quota_bytes)}</span>
+										{/if}
 									</div>
-									<div class="user-menu-storage-bar">
-										<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
-									</div>
+									{#if !data.singleUser}
+										{@const pct = data.storage.quota_bytes > 0 ? Math.min(100, (data.storage.used_bytes / data.storage.quota_bytes) * 100) : 0}
+										<div class="user-menu-storage-bar">
+											<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+										</div>
+									{/if}
 								</div>
 							{/if}
 						</div>
 						<div class="user-menu-list">
-							{#if data.user.role === 'admin'}
+							{#if data.user.role === 'admin' && !data.singleUser}
 								<a class="user-menu-item" href="/admin" onclick={() => showUserMenu = false}>
 									<Icon name="shield" size={14} />
 									<span>Admin Panel</span>
@@ -206,7 +218,7 @@
 					<div class="space-column-header">
 						<span class="space-column-name">{space.name}</span>
 						<div class="space-column-actions">
-						{#if data.user}
+						{#if data.user && !data.singleUser}
 							<button
 								class="space-column-action"
 								onclick={(e) => { e.preventDefault(); e.stopPropagation(); sharingSpace = { slug: space.slug, name: space.name }; }}
@@ -293,7 +305,7 @@
 		</div>
 	</div>
 
-	{#if data.sharedSpaces && data.sharedSpaces.length > 0}
+	{#if !data.singleUser && data.sharedSpaces && data.sharedSpaces.length > 0}
 		<h2 class="shared-heading">Shared with me</h2>
 		<div class="spaces-columns">
 			{#each data.sharedSpaces as shared (shared.owner_id + '/' + shared.slug)}
