@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
-	import { getContext } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
 	import UserOverlay from '$lib/components/UserOverlay.svelte';
@@ -10,6 +10,24 @@
 	import Icon from '$lib/components/Icon.svelte';
 
 	let { data } = $props();
+
+	// Subscribe to user-level SSE for real-time shared space updates
+	onMount(() => {
+		if (data.singleUser) return;
+
+		const es = new EventSource('/api/events/user');
+		let debounceTimer: ReturnType<typeof setTimeout>;
+
+		es.onmessage = () => {
+			clearTimeout(debounceTimer);
+			debounceTimer = setTimeout(() => invalidateAll(), 300);
+		};
+
+		return () => {
+			clearTimeout(debounceTimer);
+			es.close();
+		};
+	});
 
 	const theme = getContext<ThemeStore>('theme');
 	const palette = getContext<PaletteStore>('palette');
@@ -168,6 +186,12 @@
 							</svg>
 							<span>{space.itemCount} {space.itemCount === 1 ? 'item' : 'items'}</span>
 						</div>
+						{#if space.shareCount > 0}
+							<div class="space-stat">
+								<Icon name="users" size={14} />
+								<span>Shared with {space.shareCount}</span>
+							</div>
+						{/if}
 					</div>
 					<div class="space-column-footer">
 						<span class="space-open-hint">Open board</span>

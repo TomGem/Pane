@@ -64,6 +64,7 @@ export interface Space {
 export interface SpaceWithStats extends Space {
 	categoryCount: number;
 	itemCount: number;
+	shareCount: number;
 }
 
 export interface User {
@@ -120,7 +121,8 @@ export type SpaceEventType =
 	| 'item:created' | 'item:updated' | 'item:deleted' | 'item:reordered'
 	| 'category:created' | 'category:updated' | 'category:deleted' | 'category:reordered' | 'category:moved'
 	| 'tag:created' | 'tag:updated' | 'tag:deleted'
-	| 'space:seeded' | 'space:imported';
+	| 'space:seeded' | 'space:imported'
+	| 'share:created' | 'share:removed';
 
 export interface SpaceEvent {
 	type: SpaceEventType;

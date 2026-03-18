@@ -15,6 +15,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	const db = getUserDb(locals.userId);
+	const authDb = getAuthDb();
+
+	// Query share counts for all owned spaces in one go
+	const shareCounts = authDb.prepare(
+		'SELECT space_slug, COUNT(*) as count FROM space_shares WHERE owner_id = ? GROUP BY space_slug'
+	).all(locals.userId) as { space_slug: string; count: number }[];
+	const shareCountMap = new Map(shareCounts.map((r) => [r.space_slug, r.count]));
+
 	const spacesWithStats: SpaceWithStats[] = spaces.map((s) => {
 		const catRow = db.prepare('SELECT COUNT(*) as count FROM categories WHERE space_slug = ?').get(s.slug) as { count: number };
 		const itemRow = db.prepare(`
@@ -25,12 +33,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		return {
 			...s,
 			categoryCount: catRow.count,
-			itemCount: itemRow.count
+			itemCount: itemRow.count,
+			shareCount: shareCountMap.get(s.slug) ?? 0
 		};
 	});
-
-	// Load shared spaces
-	const authDb = getAuthDb();
 	const shares = authDb.prepare(`
 		SELECT ss.id AS share_id, ss.owner_id, ss.space_slug, ss.permission, u.display_name AS owner_name
 		FROM space_shares ss
