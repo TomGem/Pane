@@ -21,9 +21,11 @@ Root `/` is a **spaces dashboard** showing the user's own spaces (with category/
 
 ```
 /                           → spaces dashboard (own spaces + shared with me)
-/login                      → login page
+/login                      → login page (with "Forgot password?" link)
 /register                   → registration page (with invite code)
 /verify-email               → email verification (6-digit code)
+/forgot-password            → request password reset code via email
+/reset-password             → enter reset code + new password
 /admin                      → admin panel (invite codes, user list, quotas)
 /s/[space]/                 → space layout (toolbar + context) + page (board)
 /s/[space]?owner={id}       → shared space view
@@ -47,6 +49,7 @@ SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. All DB
 | `users` | User accounts: email, password hash, display name, role (admin/user), blocked status, storage quota |
 | `sessions` | Server-side sessions with 30-day expiry |
 | `email_verifications` | 6-digit verification codes (15-min expiry) |
+| `password_resets` | 6-digit password reset codes (15-min expiry) |
 | `invite_codes` | Admin-generated registration codes with optional max uses and expiration |
 | `space_shares` | Sharing records: owner, space slug, shared-with user, permission (read/write) |
 | `oauth_accounts` | Prepared for OAuth providers (not yet active) |
@@ -71,7 +74,7 @@ SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. All DB
 - **`$lib/server/storage.ts`** — All functions take `userId` as first parameter: `saveFile(userId, spaceSlug, ...)`, `deleteFile(userId, spaceSlug, ...)`, etc. Storage path: `storage/{userId}/{spaceSlug}/{categorySlug}/{uuid}.{ext}`. Path traversal defense via `assertWithinStorage`.
 - **`$lib/server/auth.ts`** — Password hashing via Node's `crypto.scrypt` (no native dependency).
 - **`$lib/server/session.ts`** — Server-side sessions stored in auth DB. `createSession()`, `validateSession()`, `invalidateSession()`, `cleanExpiredSessions()`. 30-day expiry. Cookie: `pane_session`, HttpOnly, SameSite=Lax, Secure in production.
-- **`$lib/server/email.ts`** — SMTP email via `nodemailer`. `sendVerificationEmail()` (6-digit code), `sendSpaceInvitationEmail()`. Falls back to console.log when SMTP not configured.
+- **`$lib/server/email.ts`** — SMTP email via `nodemailer`. `sendVerificationEmail()` (6-digit code), `sendPasswordResetEmail()` (6-digit code), `sendSpaceInvitationEmail()`. Falls back to console.log when SMTP not configured.
 - **`$lib/server/migration.ts`** — One-time migration from old one-DB-per-space layout to one-DB-per-user. Archives old DBs to `data/_migrated/`.
 - **`$lib/server/export.ts`** — Creates ZIP archives with JSON manifest, space data, and optional files.
 - **`$lib/server/import.ts`** — Validates and imports ZIP archives with preview mode, conflict resolution, and rollback.
@@ -85,7 +88,7 @@ SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. All DB
 3. Read session cookie → `validateSession()` → set `locals.user`/`locals.userId`
 4. If no user and not public path: redirect to `/login` (pages) or 401 (API)
 
-Public paths: `/login`, `/register`, `/verify-email`, `/api/auth/*`
+Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/api/auth/*`
 
 **Auth API routes**:
 - `POST /api/auth/register` — Validate invite code (first user skips), create user+DB, send verification email
@@ -93,8 +96,11 @@ Public paths: `/login`, `/register`, `/verify-email`, `/api/auth/*`
 - `POST /api/auth/logout` — Invalidate session, clear cookie
 - `POST /api/auth/verify-email` — Check 6-digit code, mark `email_verified=1`
 - `POST /api/auth/resend-verification` — Rate-limited (60s), new code
+- `POST /api/auth/change-password` — Authenticated. Verify current password, set new one, invalidate all sessions (creates fresh session)
+- `POST /api/auth/forgot-password` — Send 6-digit reset code via email (15-min TTL, rate-limited 60s). Always returns success to prevent email enumeration
+- `POST /api/auth/reset-password` — Validate reset code, set new password, invalidate all sessions
 
-**Auth UI pages**: `/login`, `/register`, `/verify-email` — centered card layout using existing CSS classes.
+**Auth UI pages**: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` — centered card layout using existing CSS classes.
 
 ## Spaces & access control
 
@@ -144,6 +150,9 @@ Errors return `{ error: string }` with appropriate status codes (201, 400, 401, 
 | `/api/auth/logout` | POST | Logout, clear session |
 | `/api/auth/verify-email` | POST | Verify email with 6-digit code |
 | `/api/auth/resend-verification` | POST | Resend verification code |
+| `/api/auth/change-password` | POST | Change password (authenticated) |
+| `/api/auth/forgot-password` | POST | Request password reset code |
+| `/api/auth/reset-password` | POST | Reset password with code |
 | `/api/admin/invite-codes` | GET, POST | List / create invite codes |
 | `/api/admin/invite-codes/[code]` | DELETE | Revoke an invite code |
 | `/api/admin/users/[id]/block` | PUT | Block / unblock a user |
@@ -258,6 +267,8 @@ src/
     login/                Login page
     register/             Registration page (with invite code)
     verify-email/         Email verification page
+    forgot-password/      Request password reset
+    reset-password/       Enter reset code + new password
     admin/                Admin panel (invite codes, users, quotas)
     s/[space]/
       +layout.server.ts   Validate space ownership or shared access

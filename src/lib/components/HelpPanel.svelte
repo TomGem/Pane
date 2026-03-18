@@ -169,6 +169,8 @@
 				<h3>Account &amp; storage</h3>
 				<ul>
 					<li>Click the <strong>user icon</strong> to see your account info and storage usage</li>
+					<li><strong>Change your password</strong> from <strong>Settings</strong> (gear icon)</li>
+					<li><strong>Forgot your password?</strong> Use the link on the login page to reset it via email</li>
 					<li>Each user has a <strong>storage quota</strong> — check your usage in the user menu</li>
 					<li>Admins can manage users, invite codes, and quotas from the <strong>Admin Panel</strong></li>
 				</ul>
@@ -180,7 +182,7 @@
 				</ul>
 			</section>
 			<div class="help-clock">{clockText}</div>
-			<div class="help-version">Pane v2.0</div>
+			<div class="help-version">Pane v2.1</div>
 		</div>
 	</div>
 </div>

@@ -47,7 +47,7 @@ Both are created automatically on first run. Back these up to preserve your data
 | `SMTP_FROM` | `Pane <SMTP_USER>` | From address for emails |
 | `SMTP_SECURE` | `false` | Set to `true` for port 465 |
 
-When SMTP is not configured, verification codes and sharing notifications are logged to the server console.
+When SMTP is not configured, verification codes, password reset codes, and sharing notifications are logged to the server console.
 
 ## Running behind a reverse proxy
 
