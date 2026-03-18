@@ -5,71 +5,125 @@ Technical overview for developers working on or extending Pane.
 ## Data flow
 
 ```
-hooks.server.ts (migration + default space + global DB init + rate limiting)
-  → /+page.server.ts (spaces dashboard: load all spaces with stats)
-  → /s/[space]/+layout.server.ts (validate space, load spaces list)
-  → /s/[space]/+page.server.ts (SSR load categories + items from space DB, tags from global DB)
-  → BoardStore (client state, space-aware API calls + space-independent tag calls)
-  → API routes (mutations with ?space= param; tag routes use global DB directly)
-  → SQLite (per-space DB + data/_global.db for tags)
+hooks.server.ts (migration + auth middleware + session cleanup + rate limiting)
+  → +layout.server.ts (pass user to all pages)
+  → /+page.server.ts (spaces dashboard: own spaces + shared with me)
+  → /s/[space]/+layout.server.ts (validate space ownership or shared access)
+  → /s/[space]/+page.server.ts (SSR load categories + items + tags from user DB)
+  → BoardStore (client state, space+owner-aware API calls)
+  → API routes (mutations with ?space=&owner= params via resolveSpaceAccess)
+  → SQLite (per-user DB + central auth DB)
 ```
 
-Root `/` is a **spaces dashboard** showing all spaces as cards with category and item counts (creating a default `desk` space if none exist). If a space slug doesn't exist, the layout redirects back to `/`.
+Root `/` is a **spaces dashboard** showing the user's own spaces (with category/item counts, create/delete) and a **"Shared with me"** section. If a space slug doesn't exist, the layout redirects back to `/`.
 
 ## Route structure
 
 ```
-/                           → spaces dashboard (grid of all spaces, create/delete)
+/                           → spaces dashboard (own spaces + shared with me)
+/login                      → login page
+/register                   → registration page (with invite code)
+/verify-email               → email verification (6-digit code)
+/admin                      → admin panel (invite codes, user list, quotas)
 /s/[space]/                 → space layout (toolbar + context) + page (board)
+/s/[space]?owner={id}       → shared space view
 /s/[space]/+error.svelte    → error page (unknown slugs redirect to /)
 ```
 
-The root layout (`+layout.svelte`) owns theme and palette stores. The space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and app context bridge.
+The root layout (`+layout.svelte`) owns theme and palette stores. Root `+layout.server.ts` passes `user` from `event.locals` to all pages. The space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and app context bridge.
 
 ## Database
 
-SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. DB files: `data/{slug}.db` per space + `data/_global.db` for shared data (all gitignored, auto-created).
+SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. All DB files are in `data/` (gitignored, auto-created).
 
-### Global database
+### Multi-user database architecture
 
-`data/_global.db` stores the `tags` table, shared across all spaces. The underscore prefix prevents collision with space slugs. On startup, `hooks.server.ts` runs an idempotent migration (`migrateTagsToGlobal`) that moves any per-space tags into the global DB.
+**One SQLite DB per user** (`data/{userId}.db`) containing all their spaces, tags, categories, and items. **Central auth DB** (`data/_auth.db`) for users, sessions, invite codes, space shares, and OAuth accounts (prepared but not active).
 
-### Per-space schema
-
-Four tables per space:
+### Auth database schema (`auth-schema.ts`)
 
 | Table | Purpose |
 |-------|---------|
-| `categories` | Columns on the board, with optional `parent_id` for hierarchy |
-| `items` | Single table with `type` discriminator: `link`, `note`, `document`. Includes `favicon_url` for links. |
-| `item_tags` | Junction table linking items to tags (`tag_id` references global DB, no FK constraint) |
-| `meta` | Key-value pairs for space metadata (e.g. `display_name`) |
+| `users` | User accounts: email, password hash, display name, role (admin/user), blocked status, storage quota |
+| `sessions` | Server-side sessions with 30-day expiry |
+| `email_verifications` | 6-digit verification codes (15-min expiry) |
+| `invite_codes` | Admin-generated registration codes with optional max uses and expiration |
+| `space_shares` | Sharing records: owner, space slug, shared-with user, permission (read/write) |
+| `oauth_accounts` | Prepared for OAuth providers (not yet active) |
+| `meta` | Key-value metadata store |
 
-Items share a sort space per category to simplify cross-column drag-and-drop reordering.
+### Per-user database schema (`user-schema.ts`)
+
+| Table | Purpose |
+|-------|---------|
+| `spaces` | Space slugs and display names |
+| `tags` | User's tags (shared across all their spaces) |
+| `categories` | Columns on the board, with optional `parent_id` for hierarchy and `space_slug` FK |
+| `items` | Single table with `type` discriminator: `link`, `note`, `document`. Includes `favicon_url` for links and `file_size` for documents. |
+| `item_tags` | Junction table linking items to tags |
 
 ### Key modules
 
-- **`$lib/server/db.ts`** — Connection cache (`Map<string, Database>`), `getDb(slug)`, `createDb(slug, name)`, `closeDb(slug)`, `getGlobalDb()`, `listSpaces()`, `slugExists(slug)`, `validateSpaceSlug(slug)`. `listSpaces()` filters out `_global.db`. Slug regex: `/^[a-z0-9-]{1,64}$/`.
-- **`$lib/server/schema.ts`** — Table creation and `meta` table helpers
-- **`$lib/server/space.ts`** — `getSpaceSlug(url)` and `getSpaceDb(url)` helpers that read `?space=` from the URL
-- **`$lib/server/storage.ts`** — File storage with path traversal defense (`assertWithinStorage`). UUID-based filenames on disk, original filename in DB.
+- **`$lib/server/db.ts`** — `getAuthDb()`, `getUserDb(userId)`, `createUserDb(userId)`, `listSpaces(userId)`, `validateSpaceSlug(slug)`. Connection cache keyed by `auth` or `user:{userId}`. Slug regex: `/^[a-z0-9-]{1,64}$/`.
+- **`$lib/server/auth-schema.ts`** — Auth DB table creation
+- **`$lib/server/user-schema.ts`** — Per-user DB table creation
+- **`$lib/server/space.ts`** — `resolveSpaceAccess(locals, url)`: central function for all API routes. Returns `{ db, spaceSlug, permission, ownerId }`. Checks own space first, then `space_shares` for shared access via `?owner=` param. `requireWriteAccess(access)` throws 403 if read-only.
+- **`$lib/server/storage.ts`** — All functions take `userId` as first parameter: `saveFile(userId, spaceSlug, ...)`, `deleteFile(userId, spaceSlug, ...)`, etc. Storage path: `storage/{userId}/{spaceSlug}/{categorySlug}/{uuid}.{ext}`. Path traversal defense via `assertWithinStorage`.
+- **`$lib/server/auth.ts`** — Password hashing via Node's `crypto.scrypt` (no native dependency).
+- **`$lib/server/session.ts`** — Server-side sessions stored in auth DB. `createSession()`, `validateSession()`, `invalidateSession()`, `cleanExpiredSessions()`. 30-day expiry. Cookie: `pane_session`, HttpOnly, SameSite=Lax, Secure in production.
+- **`$lib/server/email.ts`** — SMTP email via `nodemailer`. `sendVerificationEmail()` (6-digit code), `sendSpaceInvitationEmail()`. Falls back to console.log when SMTP not configured.
+- **`$lib/server/migration.ts`** — One-time migration from old one-DB-per-space layout to one-DB-per-user. Archives old DBs to `data/_migrated/`.
 - **`$lib/server/export.ts`** — Creates ZIP archives with JSON manifest, space data, and optional files.
 - **`$lib/server/import.ts`** — Validates and imports ZIP archives with preview mode, conflict resolution, and rollback.
 - **`$lib/server/rate-limit.ts`** — In-memory per-IP rate limiter (100 requests per 60-second window).
 
-## Spaces (multi-database)
+## Authentication & sessions
 
-Each space has its own SQLite database (`data/{slug}.db`) and storage directory (`storage/{slug}/`). Spaces are discovered by scanning `data/*.db` files and reading the `display_name` from each DB's `meta` table.
+**Auth middleware** in `hooks.server.ts`:
+1. If `SINGLE_USER=true`: inject synthetic user, skip auth
+2. Rate limiting for `/api/*`
+3. Read session cookie → `validateSession()` → set `locals.user`/`locals.userId`
+4. If no user and not public path: redirect to `/login` (pages) or 401 (API)
 
-- **Space API** — `GET/POST /api/spaces`, `PUT/DELETE /api/spaces/[slug]`
+Public paths: `/login`, `/register`, `/verify-email`, `/api/auth/*`
+
+**Auth API routes**:
+- `POST /api/auth/register` — Validate invite code (first user skips), create user+DB, send verification email
+- `POST /api/auth/login` — Verify password, create session
+- `POST /api/auth/logout` — Invalidate session, clear cookie
+- `POST /api/auth/verify-email` — Check 6-digit code, mark `email_verified=1`
+- `POST /api/auth/resend-verification` — Rate-limited (60s), new code
+
+**Auth UI pages**: `/login`, `/register`, `/verify-email` — centered card layout using existing CSS classes.
+
+## Spaces & access control
+
+Each space lives within a user's database. Storage directory: `storage/{userId}/{spaceSlug}/`.
+
+- **Space API** — `GET/POST /api/spaces`, `GET/PUT/DELETE /api/spaces/[slug]`
 - Deleting the last space is prevented by the API.
-- `hooks.server.ts` creates the default `desk` space on first run.
+- A default `desk` space is created when a new user registers.
+
+### Space sharing
+
+Users can share spaces with other registered users by email (read-only or read-write).
+
+- **Sharing API** — `GET/POST /api/spaces/[slug]/shares`, `PUT/DELETE /api/spaces/[slug]/shares/[id]`
+- **Shared space URLs**: `/s/{spaceSlug}?owner={ownerId}` — the `owner` param tells the server whose DB to query
+- **Read-only enforcement**: Server returns 403 for non-GET requests on read-only shares. Client hides add/edit/delete buttons and disables DnD via `isReadonly` flag.
+
+## Admin panel
+
+Admin-only page at `/admin` for:
+- **Invite codes** — Generate/revoke registration codes (`GET/POST /api/admin/invite-codes`, `DELETE /api/admin/invite-codes/[code]`)
+- **User management** — View users, block/unblock (`PUT /api/admin/users/[id]/block`)
+- **Storage quotas** — View/adjust per-user quotas (`GET/PUT /api/admin/users/[id]/quota`)
 
 ## Client stores
 
 | Store | File | Purpose |
 |-------|------|---------|
-| `BoardStore` | `$lib/stores/board.svelte.ts` | Categories, items, tags, breadcrumb, current parent. Space-scoped mutations call API routes with `?space={slug}`. Tag mutations call `/api/tags` directly (no space param). Hierarchy mutations: `promoteCategory()`, `demoteCategory()`. |
+| `BoardStore` | `$lib/stores/board.svelte.ts` | Categories, items, tags, breadcrumb, current parent, `readonly` flag, optional `ownerId` for shared spaces. Space-scoped mutations append `?space={slug}&owner={ownerId}`. Tag mutations call `/api/tags` directly. Hierarchy mutations: `promoteCategory()`, `demoteCategory()`. |
 | `ThemeStore` | `$lib/stores/theme.svelte.ts` | `'light' \| 'dark' \| 'system'`, persists to localStorage, respects `prefers-color-scheme`. |
 | `PaletteStore` | `$lib/stores/palette.svelte.ts` | Accent colour palette (8 choices). Sets `data-palette` attribute, persists to localStorage. |
 
@@ -81,31 +135,44 @@ The space layout owns the Toolbar and exposes a context object via `setContext('
 
 ## API routes
 
-Errors return `{ error: string }` with appropriate status codes (201, 400, 404, 409, 429, 500). Space-scoped routes require `?space={slug}` (read via `getSpaceDb(url)`). Tag routes use `getGlobalDb()` directly — no space param needed. Rate limited: 100 requests per 60-second window per IP; returns `429` with `Retry-After` header.
+Errors return `{ error: string }` with appropriate status codes (201, 400, 401, 403, 404, 409, 429, 500). Space-scoped routes require `?space={slug}` (read via `resolveSpaceAccess(locals, url)`). Shared spaces add `&owner={userId}`. Rate limited: 100 requests per 60-second window per IP; returns `429` with `Retry-After` header.
 
 | Endpoint | Methods | Purpose |
 |----------|---------|---------|
+| `/api/auth/register` | POST | Register new user |
+| `/api/auth/login` | POST | Login, create session |
+| `/api/auth/logout` | POST | Logout, clear session |
+| `/api/auth/verify-email` | POST | Verify email with 6-digit code |
+| `/api/auth/resend-verification` | POST | Resend verification code |
+| `/api/admin/invite-codes` | GET, POST | List / create invite codes |
+| `/api/admin/invite-codes/[code]` | DELETE | Revoke an invite code |
+| `/api/admin/users/[id]/block` | PUT | Block / unblock a user |
+| `/api/admin/users/[id]/quota` | GET, PUT | View / update storage quota |
 | `/api/categories` | GET, POST | List / create categories |
-| `/api/categories/[id]` | PUT, DELETE | Update / delete a category |
+| `/api/categories/[id]` | GET, PUT, DELETE | Get / update / delete a category |
 | `/api/categories/[id]/breadcrumb` | GET | Ancestor chain via recursive CTE (root-first) |
 | `/api/categories/[id]/move` | POST | Move category subtree to a different space |
-| `/api/categories/reorder` | POST | Batch reorder categories |
+| `/api/categories/reorder` | PUT | Batch reorder categories |
 | `/api/items` | GET, POST | List / create items (POST fetches link metadata) |
-| `/api/items/[id]` | PUT, DELETE | Update / delete an item |
-| `/api/items/reorder` | POST | Batch reorder items |
+| `/api/items/[id]` | GET, PUT, DELETE | Get / update / delete an item |
+| `/api/items/[id]/refresh` | POST | Refetch link metadata |
+| `/api/items/reorder` | PUT | Batch reorder items |
 | `/api/items/upload` | POST | Upload a document (100 MB max) |
-| `/api/tags` | GET, POST | List / create tags (global DB, no space param) |
-| `/api/tags/[id]` | PUT, DELETE | Update / delete a tag (global DB) |
-| `/api/files/[...path]` | GET | Serve uploaded files |
+| `/api/tags` | GET, POST | List / create tags (per-user) |
+| `/api/tags/[id]` | PUT, DELETE | Update / delete a tag |
+| `/api/files/[...path]` | GET | Serve uploaded files (`?space=&owner=`) |
+| `/api/storage` | GET | Current user's storage usage and quota |
 | `/api/spaces` | GET, POST | List / create spaces |
-| `/api/spaces/[slug]` | PUT, DELETE | Rename / delete a space |
+| `/api/spaces/[slug]` | GET, PUT, DELETE | Get / rename / delete a space |
+| `/api/spaces/[slug]/shares` | GET, POST | List / create shares for a space |
+| `/api/spaces/[slug]/shares/[id]` | PUT, DELETE | Update / remove a share |
 | `/api/seed` | POST | Populate an empty space with sample data |
-| `/api/export` | GET | Export spaces as ZIP archive |
+| `/api/export` | POST | Export spaces as ZIP archive |
 | `/api/import` | POST | Import ZIP archive (preview or execute) |
 
 ## File storage
 
-Documents are stored at `storage/{space-slug}/{category-slug}/{uuid}.{ext}`. Original filenames are kept in the database. Moving items between categories physically moves files. Files are served via `/api/files/[...path]?space={slug}`. Both `data/` and `storage/` are gitignored.
+Documents are stored at `storage/{userId}/{space-slug}/{category-slug}/{uuid}.{ext}`. Original filenames are kept in the database. Moving items between categories physically moves files. Files are served via `/api/files/[...path]?space={slug}&owner={ownerId}`. Both `data/` and `storage/` are gitignored.
 
 ## Theming
 
@@ -113,7 +180,7 @@ CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Accent colou
 
 ## Drag-and-drop
 
-`svelte-dnd-action` handles internal reordering (columns and items). Native HTML5 drag events on Column handle external URL and file drops. Reorder is persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`).
+`svelte-dnd-action` handles internal reordering (columns and items). Native HTML5 drag events on Column handle external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. Reorder is persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`). Disabled for read-only shared spaces.
 
 ## Markdown rendering
 
@@ -125,7 +192,7 @@ When creating link items, the server fetches up to 100 KB of HTML to extract `<t
 
 ## Export & import
 
-- **`$lib/server/export.ts`** — `createExportZip()` builds a ZIP with a JSON manifest, per-space data, referenced global tags, and optionally files.
+- **`$lib/server/export.ts`** — `createExportZip()` builds a ZIP with a JSON manifest, per-space data, referenced tags, and optionally files.
 - **`$lib/server/import.ts`** — `previewImport()` validates a ZIP without changes; `executeImport()` imports with conflict resolution (`skip` / `rename` / `replace`). Safety limits: 1 GB decompressed, 50 MB per JSON, 50 000 entries.
 
 ## Rate limiting
@@ -143,26 +210,34 @@ src/
       Card.svelte         Item card (link, note, document)
       CategoryForm.svelte Category create/edit form
       Column.svelte       Single column with item list and drop zone
+      Icon.svelte         Centralized SVG icon component
       ItemForm.svelte     Item create/edit form with tag input
       MediaOverlay.svelte Full-screen document/image viewer
       Modal.svelte        Reusable modal dialog
       NoteOverlay.svelte  Full-screen markdown note reader
       ExportImportOverlay.svelte  Export/import spaces as ZIP archives
       SettingsOverlay.svelte  Theme and palette settings
+      SpaceSharingOverlay.svelte  Share space by email, manage permissions
       SubcategoryCard.svelte  Subcategory display within a column
       TagInput.svelte     Tag selector with create-on-the-fly
       TextFileOverlay.svelte  Full-screen text/markdown file viewer
       ThemeToggle.svelte  Light/dark/system toggle
       Toast.svelte        Notification toast
       Toolbar.svelte      App toolbar with search, actions, settings, help
+      HelpPanel.svelte    In-app help documentation
     server/             Server-only modules
-      db.ts               SQLite connection cache, space management, global DB
-      schema.ts           Table creation and meta helpers
-      space.ts            URL-based space slug extraction
-      storage.ts          File storage operations with path traversal defense
+      auth.ts             Password hashing (crypto.scrypt)
+      auth-schema.ts      Auth DB table creation
+      db.ts               SQLite connection cache, user/auth DB management
+      email.ts            SMTP email (nodemailer) with console fallback
       export.ts           ZIP archive creation for space export
       import.ts           ZIP archive parsing and import with conflict resolution
+      migration.ts        One-time migration from old per-space to per-user DBs
       rate-limit.ts       In-memory per-IP rate limiter
+      session.ts          Server-side session management
+      space.ts            resolveSpaceAccess() — central auth + DB resolution
+      storage.ts          File storage operations with path traversal defense
+      user-schema.ts      Per-user DB table creation
     stores/             Reactive stores (Svelte 5 runes)
       board.svelte.ts     Board state and API mutations
       palette.svelte.ts   Accent colour palette
@@ -173,21 +248,29 @@ src/
     actions/
       trapFocus.ts        Svelte action: traps keyboard focus within modals/overlays
     utils/
-      api.ts              Fetch helpers
+      api.ts              Typed fetch wrapper
       slugify.ts          URL-safe slug generation
   routes/
     +layout.svelte        Root layout (theme + palette context)
-    +page.server.ts       Load all spaces with stats for dashboard
-    +page.svelte          Spaces dashboard (grid, create/delete)
+    +layout.server.ts     Pass user from locals to all pages
+    +page.server.ts       Load spaces with stats + shared spaces
+    +page.svelte          Spaces dashboard (own + shared, create/delete)
+    login/                Login page
+    register/             Registration page (with invite code)
+    verify-email/         Email verification page
+    admin/                Admin panel (invite codes, users, quotas)
     s/[space]/
-      +layout.server.ts   Validate space, load spaces list
+      +layout.server.ts   Validate space ownership or shared access
       +layout.svelte      Space layout (Toolbar + app context)
       +page.server.ts     SSR load categories + items
       +page.svelte        Board page with modals and keyboard shortcuts
       +error.svelte       Error page for invalid space slugs
     api/                  REST endpoints (see API routes table above)
-data/                   SQLite databases, one per space (gitignored)
-storage/                Uploaded files, one directory per space (gitignored)
+data/                   SQLite databases (gitignored, auto-created)
+  {userId}.db             Per-user database (spaces, tags, categories, items)
+  _auth.db                Central auth database (users, sessions, shares)
+storage/                Uploaded files (gitignored)
+  {userId}/{spaceSlug}/   Per-user, per-space file storage
 static/                 Static assets (favicon)
 docs/                   Documentation
 ```
@@ -200,7 +283,7 @@ GitHub Actions workflow (`.github/workflows/docker-publish.yml`) builds and push
 
 - **Svelte 5 runes only** — `$state`, `$derived`, `$effect`, `$props()`, `$bindable()`. No legacy `let` exports or `createEventDispatcher`.
 - **Callback props for events** — e.g. `onsubmit`, `onclose`, `onadd` (not `dispatch`).
-- **API routes return `json()`** from `@sveltejs/kit`. Space-scoped routes require `?space={slug}`. Tag routes use global DB directly (no space param).
+- **API routes return `json()`** from `@sveltejs/kit`. Space-scoped routes require `?space={slug}` (read via `resolveSpaceAccess(locals, url)`). Shared spaces add `&owner={userId}`.
 - **DB operations are synchronous** — `.run()`, `.get()`, `.all()`. Use `db.transaction()` for multi-statement writes.
-- **Types** live in `$lib/types/index.ts`. Key types: `CategoryWithItems`, `Item`, `Tag`, `Space`, `SpaceWithStats`, `BreadcrumbSegment`, `ReorderMove`. Export/import types in `$lib/types/export.ts`.
+- **Types** live in `$lib/types/index.ts`. Key types: `CategoryWithItems`, `Item`, `Tag`, `Space`, `SpaceWithStats`, `BreadcrumbSegment`, `ReorderMove`, `User`, `Session`, `InviteCode`, `SpaceShare`, `SharedSpaceInfo`, `StorageQuotaInfo`. Export/import types in `$lib/types/export.ts`.
 - **Scoped CSS** — component-scoped via `<style>` blocks. Global variables in `app.css`.

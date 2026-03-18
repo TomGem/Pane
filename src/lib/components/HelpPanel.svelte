@@ -57,7 +57,7 @@
 		<div class="help-body">
 			<section class="help-section">
 				<h3>Getting started</h3>
-				<p>Pane is a local Kanban dashboard for organizing links, notes, and documents into columns. Use <strong>Spaces</strong> to keep separate boards for different projects or topics.</p>
+				<p>Pane is a multi-user Kanban dashboard for organizing links, notes, and documents into columns. Use <strong>Spaces</strong> to keep separate boards for different projects or topics.</p>
 				<ul>
 					<li>Create <strong>categories</strong> (columns) to group your items</li>
 					<li>Add <strong>links</strong>, <strong>notes</strong>, or <strong>documents</strong> to any category</li>
@@ -77,6 +77,15 @@
 				</ul>
 			</section>
 			<section class="help-section">
+				<h3>Sharing</h3>
+				<ul>
+					<li><strong>Share spaces</strong> with other users by email from the toolbar or dashboard</li>
+					<li>Choose <strong>Can edit</strong> (read-write) or <strong>View only</strong> (read-only) permissions</li>
+					<li>Shared spaces appear in the <strong>"Shared with me"</strong> section on the dashboard</li>
+					<li>Leave a shared space anytime from the dashboard</li>
+				</ul>
+			</section>
+			<section class="help-section">
 				<h3>Drag &amp; drop</h3>
 				<ul>
 					<li>Drag items between columns to move them</li>
@@ -88,7 +97,7 @@
 			<section class="help-section">
 				<h3>Tags &amp; filtering</h3>
 				<ul>
-					<li>Tags are <strong>shared across all spaces</strong></li>
+					<li>Tags are <strong>shared across all your spaces</strong></li>
 					<li>Assign tags to items when creating or editing them</li>
 					<li>Edit tag names and colours from the <strong>tag dropdown</strong> in the toolbar</li>
 					<li>Click a <strong>tag badge</strong> on a card to filter by that tag</li>
@@ -157,13 +166,21 @@
 				</ul>
 			</section>
 			<section class="help-section">
+				<h3>Account &amp; storage</h3>
+				<ul>
+					<li>Click the <strong>user icon</strong> to see your account info and storage usage</li>
+					<li>Each user has a <strong>storage quota</strong> — check your usage in the user menu</li>
+					<li>Admins can manage users, invite codes, and quotas from the <strong>Admin Panel</strong></li>
+				</ul>
+			</section>
+			<section class="help-section">
 				<h3>Privacy</h3>
 				<ul>
-					<li>All data stays on your local machine — nothing is sent to the cloud</li>
+					<li>All data stays on your server — databases and files are stored locally</li>
 				</ul>
 			</section>
 			<div class="help-clock">{clockText}</div>
-			<div class="help-version">Pane v1.7</div>
+			<div class="help-version">Pane v2.0</div>
 		</div>
 	</div>
 </div>

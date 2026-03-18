@@ -54,7 +54,21 @@ pnpm dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-On first launch a default space called **Desk** is created automatically. You'll land on the **Spaces dashboard**, which shows all your spaces as cards with category and item counts. Click a space to open its board. On an empty board, click **Load Sample Data** to populate it with curated content, or start creating your own categories.
+### First run (multi-user mode)
+
+By default Pane runs in **multi-user mode**. On first launch you'll see the **registration page**. The first user to register becomes the **admin** — no invite code is needed. Subsequent users require an invite code generated from the admin panel.
+
+After registering, you'll land on the **Spaces dashboard**, which shows your spaces as cards with category and item counts. A default space called **Desk** is created automatically. Click a space to open its board. On an empty board, click **Load Sample Data** to populate it with curated content, or start creating your own categories.
+
+### Single-user mode
+
+For self-hosting without authentication, set the `SINGLE_USER` environment variable:
+
+```bash
+SINGLE_USER=true pnpm dev
+```
+
+This skips registration and login entirely — a synthetic user is injected automatically.
 
 ## Docker (alternative)
 

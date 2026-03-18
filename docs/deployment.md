@@ -26,14 +26,12 @@ PORT=8080 node build
 
 The server creates two directories alongside the working directory:
 
-- **`data/`** — SQLite database files (one `.db` per space)
-- **`storage/`** — Uploaded documents (one subdirectory per space)
+- **`data/`** — SQLite database files (one `.db` per user plus `_auth.db` for authentication)
+- **`storage/`** — Uploaded documents (one subdirectory per user, with per-space subdirectories within)
 
 Both are created automatically on first run. Back these up to preserve your data.
 
 ## Environment
-
-No environment variables are required. Optional:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -41,6 +39,15 @@ No environment variables are required. Optional:
 | `HOST` | `0.0.0.0` | Server bind address |
 | `ORIGIN` | — | Set if running behind a reverse proxy (e.g. `https://pane.example.com`) |
 | `BODY_SIZE_LIMIT` | `512K` | Max request body size. Supports units: `K`, `M`, `G`. Set to `Infinity` to disable (required for file uploads) |
+| `SINGLE_USER` | `false` | When `true`, no auth required — a synthetic user is injected automatically |
+| `SMTP_HOST` | — | SMTP server hostname |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_USER` | — | SMTP username |
+| `SMTP_PASS` | — | SMTP password |
+| `SMTP_FROM` | `Pane <SMTP_USER>` | From address for emails |
+| `SMTP_SECURE` | `false` | Set to `true` for port 465 |
+
+When SMTP is not configured, verification codes and sharing notifications are logged to the server console.
 
 ## Running behind a reverse proxy
 
@@ -186,6 +193,7 @@ Override environment variables in `docker-compose.yml` or via `docker run -e`:
 docker run -d -p 8080:8080 \
   -e PORT=8080 \
   -e ORIGIN=https://pane.example.com \
+  -e SINGLE_USER=true \
   -v ./data:/app/data \
   -v ./storage:/app/storage \
   pane
