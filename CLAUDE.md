@@ -45,7 +45,7 @@ Root `/` is a spaces dashboard showing the user's own spaces (with category/item
 
 - **`$lib/server/auth.ts`** — Password hashing via Node's `crypto.scrypt` (no native dependency).
 - **`$lib/server/session.ts`** — Server-side sessions stored in auth DB. `createSession()`, `validateSession()`, `invalidateSession()`, `cleanExpiredSessions()`. 30-day expiry. Cookie: `pane_session`, HttpOnly, SameSite=Lax, Secure in production.
-- **`$lib/server/email.ts`** — SMTP email via `nodemailer`. `sendVerificationEmail()` (6-digit code), `sendSpaceInvitationEmail()`. Falls back to console.log when SMTP not configured.
+- **`$lib/server/email.ts`** — SMTP email via `nodemailer`. `sendVerificationEmail()` (6-digit code), `sendPasswordResetEmail()` (6-digit code), `sendSpaceInvitationEmail()`. Falls back to console.log when SMTP not configured.
 
 **Auth middleware** in `hooks.server.ts`:
 1. If `SINGLE_USER=true`: inject synthetic user, skip auth
@@ -53,7 +53,7 @@ Root `/` is a spaces dashboard showing the user's own spaces (with category/item
 3. Read session cookie → `validateSession()` → set `locals.user`/`locals.userId`
 4. If no user and not public path: redirect to `/login` (pages) or 401 (API)
 
-Public paths: `/login`, `/register`, `/verify-email`, `/api/auth/*`
+Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/api/auth/*`
 
 **Auth API routes**:
 - `POST /api/auth/register` — Validate invite code (first user skips), create user+DB, send verification email
@@ -61,8 +61,11 @@ Public paths: `/login`, `/register`, `/verify-email`, `/api/auth/*`
 - `POST /api/auth/logout` — Invalidate session, clear cookie
 - `POST /api/auth/verify-email` — Check 6-digit code, mark `email_verified=1`
 - `POST /api/auth/resend-verification` — Rate-limited (60s), new code
+- `POST /api/auth/change-password` — Authenticated. Verify current password, set new one, invalidate all sessions (creates fresh session)
+- `POST /api/auth/forgot-password` — Send 6-digit reset code via email (15-min TTL, rate-limited 60s). Always returns success to prevent email enumeration
+- `POST /api/auth/reset-password` — Validate reset code, set new password, invalidate all sessions
 
-**Auth UI pages**: `/login`, `/register`, `/verify-email` — centered card layout using existing CSS classes.
+**Auth UI pages**: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` — centered card layout using existing CSS classes.
 
 **Admin panel** (`/admin`): Admin-only page for generating/revoking invite codes and viewing registered users.
 - `GET/POST /api/admin/invite-codes` — List/create invite codes
@@ -72,7 +75,7 @@ Public paths: `/login`, `/register`, `/verify-email`, `/api/auth/*`
 
 **One SQLite DB per user** (`data/{userId}.db`) containing all their spaces, tags, categories, items. **Central auth DB** (`data/_auth.db`) for users, sessions, invite codes, space shares, OAuth accounts (prepared but not active).
 
-- **`$lib/server/auth-schema.ts`** — Auth DB schema: `users`, `sessions`, `email_verifications`, `invite_codes`, `space_shares`, `oauth_accounts`, `meta`
+- **`$lib/server/auth-schema.ts`** — Auth DB schema: `users`, `sessions`, `email_verifications`, `password_resets`, `invite_codes`, `space_shares`, `oauth_accounts`, `meta`
 - **`$lib/server/user-schema.ts`** — Per-user DB schema: `spaces`, `tags`, `categories` (with `space_slug` FK), `items`, `item_tags`
 - **`$lib/server/db.ts`** — `getAuthDb()`, `getUserDb(userId)`, `createUserDb(userId)`, `listSpaces(userId)`, `validateSpaceSlug(slug)`. Connection cache keyed by `auth` or `user:{userId}`. Slug regex: `/^[a-z0-9-]{1,64}$/`.
 - **`$lib/server/migration.ts`** — One-time migration from old one-DB-per-space layout to one-DB-per-user. Archives old DBs to `data/_migrated/`.
@@ -96,9 +99,11 @@ Users can share spaces with others by email (read-only or read-write).
 
 ```
 /                           → spaces dashboard (own spaces + shared with me)
-/login                      → login page
+/login                      → login page (with "Forgot password?" link)
 /register                   → registration page (with invite code)
 /verify-email               → email verification (6-digit code)
+/forgot-password            → request password reset code via email
+/reset-password             → enter reset code + new password
 /admin                      → admin panel (invite codes, user list)
 /s/[space]/                 → space layout (toolbar + context) + page (board)
 /s/[space]?owner={id}       → shared space view
@@ -152,7 +157,7 @@ Notes and descriptions render markdown via `marked` with HTML sanitized through 
 
 Full-screen overlay components follow a shared pattern: glass backdrop (`glass-strong`), Escape key to close, click-outside-to-close, callback props (`onclose`). Key overlays:
 
-- **SettingsOverlay** — Theme mode toggle and accent palette selection.
+- **SettingsOverlay** — Theme mode toggle, accent palette selection, and change password form (hidden in single-user mode).
 - **NoteOverlay / MediaOverlay** — Content viewers for notes and documents.
 - **TextFileOverlay** — Fetches and displays plain text/markdown files with copy-to-clipboard and markdown rendering.
 - **ExportImportOverlay** — Tabbed UI for exporting spaces as ZIP and importing from ZIP (preview + conflict resolution).
@@ -212,7 +217,7 @@ SMTP_FROM=                 # From address for emails (default: "Pane <SMTP_USER>
 SMTP_SECURE=false          # true for port 465
 ```
 
-When SMTP is not configured, verification codes and sharing notifications are logged to the console.
+When SMTP is not configured, verification codes, password reset codes, and sharing notifications are logged to the console.
 
 ## Conventions
 
