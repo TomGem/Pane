@@ -4,6 +4,7 @@ import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { moveFile, deleteFile } from '$lib/server/storage';
 import { getTagsForItem } from '$lib/server/tags';
 import type { Item, Category } from '$lib/types';
+import { emit } from '$lib/server/events';
 
 export const GET: RequestHandler = async ({ params, url, locals }) => {
 	try {
@@ -95,6 +96,7 @@ export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item;
 		item.tags = getTagsForItem(db, item.id);
 
+		emit(access.ownerId, access.spaceSlug, { type: 'item:updated', timestamp: Date.now() }, locals.userId);
 		return json(item);
 	} catch (err) {
 		if (isHttpError(err)) throw err;
@@ -108,7 +110,7 @@ export const DELETE: RequestHandler = async ({ params, url, locals }) => {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
 
-		const access = resolveSpaceAccess(locals, url);
+			const access = resolveSpaceAccess(locals, url);
 		requireWriteAccess(access);
 		const { db, spaceSlug, ownerId } = access;
 
@@ -123,6 +125,7 @@ export const DELETE: RequestHandler = async ({ params, url, locals }) => {
 
 		db.prepare('DELETE FROM items WHERE id = ?').run(numId);
 
+		emit(access.ownerId, access.spaceSlug, { type: 'item:deleted', timestamp: Date.now() }, locals.userId);
 		return json({ success: true });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

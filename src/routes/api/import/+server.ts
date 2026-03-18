@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { previewImport, executeImport } from '$lib/server/import';
 import type { ConflictMode } from '$lib/types/export';
+import { emit } from '$lib/server/events';
 
 const MAX_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -43,5 +44,8 @@ export const POST: RequestHandler = async ({ url, request, locals }) => {
 	}
 
 	const result = executeImport(locals.userId, zipBuffer, { conflict_mode: conflictMode });
+	if (result.success) {
+		emit(locals.userId, 'all', { type: 'space:imported', timestamp: Date.now() }, locals.userId);
+	}
 	return json(result, { status: result.success ? 200 : 500 });
 };

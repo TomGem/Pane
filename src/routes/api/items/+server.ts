@@ -4,6 +4,7 @@ import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { getTagsForItem, attachTagsBatched } from '$lib/server/tags';
 import { fetchPageMeta } from '$lib/server/meta';
 import type { Item } from '$lib/types';
+import { emit } from '$lib/server/events';
 
 const VALID_ITEM_TYPES = ['link', 'note', 'document'];
 const MAX_TITLE_LENGTH = 1000;
@@ -140,6 +141,7 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(itemId) as Item;
 		item.tags = getTagsForItem(db, item.id);
 
+		emit(access.ownerId, access.spaceSlug, { type: 'item:created', timestamp: Date.now() }, locals.userId);
 		return json(item, { status: 201 });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

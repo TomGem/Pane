@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { moveFile } from '$lib/server/storage';
 import type { Item, Category, ReorderMove } from '$lib/types';
+import { emit } from '$lib/server/events';
 
 export const PUT: RequestHandler = async ({ request, url, locals }) => {
 	try {
@@ -53,6 +54,7 @@ export const PUT: RequestHandler = async ({ request, url, locals }) => {
 			updateFilePaths();
 		}
 
+		emit(access.ownerId, access.spaceSlug, { type: 'item:reordered', timestamp: Date.now() }, locals.userId);
 		return json({ success: true });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

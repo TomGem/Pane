@@ -4,6 +4,7 @@ import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
 import { deleteCategoryDir, renameCategoryDir } from '$lib/server/storage';
 import type { Category, Item } from '$lib/types';
+import { emit } from '$lib/server/events';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
@@ -110,6 +111,7 @@ export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 			 FROM categories c WHERE c.id = ?`
 		).get(categoryId) as Category;
 
+		emit(access.ownerId, access.spaceSlug, { type: 'category:updated', timestamp: Date.now() }, locals.userId);
 		return json(category);
 	} catch (err) {
 		if (isHttpError(err)) throw err;
@@ -150,6 +152,7 @@ export const DELETE: RequestHandler = async ({ params, url, locals }) => {
 			deleteCategoryDir(ownerId, spaceSlug, slug);
 		}
 
+		emit(access.ownerId, access.spaceSlug, { type: 'category:deleted', timestamp: Date.now() }, locals.userId);
 		return json({ success: true });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

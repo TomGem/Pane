@@ -315,6 +315,35 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		return { categories: totalCategories, items: totalItems };
 	}
 
+	// SSE
+	let eventSource: EventSource | null = null;
+	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function connectSSE(singleUser: boolean) {
+		if (singleUser || typeof window === 'undefined') return;
+		disconnectSSE();
+		const params = spaceParam(spaceSlug, ownerId);
+		eventSource = new EventSource(`/api/events?${params}`);
+		eventSource.onmessage = () => {
+			if (debounceTimer) clearTimeout(debounceTimer);
+			debounceTimer = setTimeout(() => {
+				refresh().catch(console.error);
+				loadTags().catch(console.error);
+			}, 300);
+		};
+	}
+
+	function disconnectSSE() {
+		if (debounceTimer) {
+			clearTimeout(debounceTimer);
+			debounceTimer = null;
+		}
+		if (eventSource) {
+			eventSource.close();
+			eventSource = null;
+		}
+	}
+
 	// Tags
 	async function addTag(name: string, color: string) {
 		const tag = await api<Tag>(withSpace('/api/tags', spaceSlug, ownerId), {
@@ -372,7 +401,9 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		moveCategoryToSpace,
 		importFolder,
 		addTag,
-		updateTag
+		updateTag,
+		connectSSE,
+		disconnectSSE
 	};
 }
 

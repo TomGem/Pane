@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { getUserDb } from '$lib/server/db';
 import { slugify } from '$lib/utils/slugify';
+import { emit } from '$lib/server/events';
 
 export const POST: RequestHandler = async ({ url, locals }) => {
 	try {
@@ -274,6 +275,7 @@ export const POST: RequestHandler = async ({ url, locals }) => {
 
 		seed();
 
+		emit(access.ownerId, access.spaceSlug, { type: 'space:seeded', timestamp: Date.now() }, locals.userId);
 		return json({ success: true }, { status: 201 });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

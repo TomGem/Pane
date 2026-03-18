@@ -8,7 +8,7 @@
 	import Icon from '$lib/components/Icon.svelte';
 	import { createBoardStore } from '$lib/stores/board.svelte';
 	import { getDirectoryEntries, traverseDirectory } from '$lib/utils/folder-drop';
-	import { getContext } from 'svelte';
+	import { getContext, onDestroy } from 'svelte';
 	import type { CategoryWithItems, Item, Tag, Space } from '$lib/types';
 	import { page } from '$app/stores';
 
@@ -25,6 +25,10 @@
 	const app = getContext<{ searchQuery: string; setSearchQuery: (query: string) => void; selectedTagIds: number[]; toggleTag: (tagId: number) => void; focusSearch: () => void; setAddCallback: (fn: () => void) => void; setAddCategoryCallback: (fn: () => void) => void; setTags: (tags: Tag[]) => void; setUpdateTag: (fn: (id: number, name: string, color: string) => Promise<Tag>) => void }>('app');
 
 	let isNested = $derived(board.currentParentId !== null);
+
+	// Connect SSE for real-time updates from other users
+	board.connectSSE($page.data.singleUser as boolean ?? false);
+	onDestroy(() => board.disconnectSSE());
 
 	// Sync tags to layout context whenever they change
 	$effect(() => {

@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
 import type { Category } from '$lib/types';
+import { emit } from '$lib/server/events';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
@@ -86,6 +87,7 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 			 FROM categories c WHERE c.id = ?`
 		).get(result.lastInsertRowid);
 
+		emit(access.ownerId, access.spaceSlug, { type: 'category:created', timestamp: Date.now() }, locals.userId);
 		return json(category, { status: 201 });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

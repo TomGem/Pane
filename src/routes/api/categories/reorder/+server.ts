@@ -1,6 +1,7 @@
 import { json, isHttpError } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
+import { emit } from '$lib/server/events';
 
 export const PUT: RequestHandler = async ({ request, url, locals }) => {
 	try {
@@ -23,6 +24,7 @@ export const PUT: RequestHandler = async ({ request, url, locals }) => {
 
 		reorder(orderedIds);
 
+		emit(access.ownerId, access.spaceSlug, { type: 'category:reordered', timestamp: Date.now() }, locals.userId);
 		return json({ success: true });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

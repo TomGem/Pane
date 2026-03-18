@@ -4,6 +4,7 @@ import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { saveFile, deleteFile } from '$lib/server/storage';
 import { getUserStorageUsage, getUserQuota } from '$lib/server/db';
 import type { Item, Category } from '$lib/types';
+import { emit } from '$lib/server/events';
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
@@ -78,6 +79,7 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 			const item = db.prepare('SELECT * FROM items WHERE id = ?').get(result.lastInsertRowid) as Item;
 			item.tags = [];
 
+			emit(access.ownerId, access.spaceSlug, { type: 'item:created', timestamp: Date.now() }, locals.userId);
 			return json(item, { status: 201 });
 		} catch (dbErr) {
 			deleteFile(ownerId, spaceSlug, filePath);

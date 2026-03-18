@@ -114,3 +114,14 @@ export interface SharedSpaceInfo extends Space {
 	owner_name: string;
 	permission: 'read' | 'write';
 }
+
+export type SpaceEventType =
+	| 'item:created' | 'item:updated' | 'item:deleted' | 'item:reordered'
+	| 'category:created' | 'category:updated' | 'category:deleted' | 'category:reordered' | 'category:moved'
+	| 'tag:created' | 'tag:updated' | 'tag:deleted'
+	| 'space:seeded' | 'space:imported';
+
+export interface SpaceEvent {
+	type: SpaceEventType;
+	timestamp: number;
+}

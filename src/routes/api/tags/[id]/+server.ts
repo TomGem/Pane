@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import type { Tag } from '$lib/types';
+import { emit } from '$lib/server/events';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
@@ -36,6 +37,7 @@ export const PUT: RequestHandler = async ({ params, request, locals, url }) => {
 
 		const tag = access.db.prepare('SELECT * FROM tags WHERE id = ?').get(numId) as Tag;
 
+		emit(access.ownerId, access.spaceSlug, { type: 'tag:updated', timestamp: Date.now() }, locals.userId);
 		return json(tag);
 	} catch (err) {
 		if (err instanceof Error && err.message.includes('UNIQUE constraint')) {
@@ -61,6 +63,7 @@ export const DELETE: RequestHandler = async ({ params, locals, url }) => {
 
 		access.db.prepare('DELETE FROM tags WHERE id = ?').run(numId);
 
+		emit(access.ownerId, access.spaceSlug, { type: 'tag:deleted', timestamp: Date.now() }, locals.userId);
 		return json({ success: true });
 	} catch (err) {
 		console.error('Failed to delete tag:', err);
