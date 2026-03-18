@@ -46,7 +46,7 @@ SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. All DB
 
 | Table | Purpose |
 |-------|---------|
-| `users` | User accounts: email, password hash, display name, role (admin/user), blocked status, storage quota |
+| `users` | User accounts: email, password hash, display name, role (admin/user), blocked status, storage quota, `show_email` privacy preference |
 | `sessions` | Server-side sessions with 30-day expiry |
 | `email_verifications` | 6-digit verification codes (15-min expiry) |
 | `password_resets` | 6-digit password reset codes (15-min expiry) |
@@ -79,6 +79,7 @@ SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. All DB
 - **`$lib/server/export.ts`** — Creates ZIP archives with JSON manifest, space data, and optional files.
 - **`$lib/server/import.ts`** — Validates and imports ZIP archives with preview mode, conflict resolution, and rollback.
 - **`$lib/server/rate-limit.ts`** — In-memory per-IP rate limiter (100 requests per 60-second window).
+- **`$lib/server/events.ts`** — Server-sent events (SSE) module. `emitToUser(userId, event)` broadcasts events to connected clients. Used for real-time share notifications.
 
 ## Authentication & sessions
 
@@ -115,8 +116,10 @@ Each space lives within a user's database. Storage directory: `storage/{userId}/
 Users can share spaces with other registered users by email (read-only or read-write).
 
 - **Sharing API** — `GET/POST /api/spaces/[slug]/shares`, `PUT/DELETE /api/spaces/[slug]/shares/[id]`
+- **User search** — `GET /api/users/search?q={query}` returns up to 8 matching users by display name (respects `show_email` privacy preference). Used for username autocomplete in the sharing overlay.
 - **Shared space URLs**: `/s/{spaceSlug}?owner={ownerId}` — the `owner` param tells the server whose DB to query
 - **Read-only enforcement**: Server returns 403 for non-GET requests on read-only shares. Client hides add/edit/delete buttons and disables DnD via `isReadonly` flag.
+- **Real-time notifications** — Server-sent events (SSE) via `GET /api/events/user` notify users when spaces are shared or unshared with them. The dashboard auto-refreshes on these events.
 
 ## Admin panel
 
@@ -132,6 +135,8 @@ Admin-only page at `/admin` for:
 | `BoardStore` | `$lib/stores/board.svelte.ts` | Categories, items, tags, breadcrumb, current parent, `readonly` flag, optional `ownerId` for shared spaces. Space-scoped mutations append `?space={slug}&owner={ownerId}`. Tag mutations call `/api/tags` directly. Hierarchy mutations: `promoteCategory()`, `demoteCategory()`. |
 | `ThemeStore` | `$lib/stores/theme.svelte.ts` | `'light' \| 'dark' \| 'system'`, persists to localStorage, respects `prefers-color-scheme`. |
 | `PaletteStore` | `$lib/stores/palette.svelte.ts` | Accent colour palette (8 choices). Sets `data-palette` attribute, persists to localStorage. |
+| `FontStore` | `$lib/stores/font.svelte.ts` | Sans-serif font choice (System, Fira Sans, Inter, Ubuntu). Sets `data-font` attribute, persists to localStorage. |
+| `MonoFontStore` | `$lib/stores/mono-font.svelte.ts` | Monospace font choice (System, Fira Code, JetBrains Mono, Source Code Pro). Sets `data-mono-font` attribute, persists to localStorage. |
 
 All stores use Svelte 5 runes (`$state`, `$derived`, `$effect`).
 
@@ -175,6 +180,9 @@ Errors return `{ error: string }` with appropriate status codes (201, 400, 401, 
 | `/api/spaces/[slug]` | GET, PUT, DELETE | Get / rename / delete a space |
 | `/api/spaces/[slug]/shares` | GET, POST | List / create shares for a space |
 | `/api/spaces/[slug]/shares/[id]` | PUT, DELETE | Update / remove a share |
+| `/api/users/search` | GET | Search users by display name (autocomplete, max 8 results) |
+| `/api/preferences` | GET, PUT | Get / update user preferences (e.g. `show_email`) |
+| `/api/events/user` | GET (SSE) | Server-sent events for real-time sharing notifications |
 | `/api/seed` | POST | Populate an empty space with sample data |
 | `/api/export` | POST | Export spaces as ZIP archive |
 | `/api/import` | POST | Import ZIP archive (preview or execute) |
@@ -185,7 +193,7 @@ Documents are stored at `storage/{userId}/{space-slug}/{category-slug}/{uuid}.{e
 
 ## Theming
 
-CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Accent colours via `[data-palette]` attribute with 8 palette options. Theme and palette stores persist to localStorage. Flash prevention via inline script in `app.html`. Glass effect uses `backdrop-filter: blur()`.
+CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Accent colours via `[data-palette]` attribute with 8 palette options. Font choices via `[data-font]` and `[data-mono-font]` attributes with self-hosted WOFF2 web fonts in `static/fonts/`. Theme, palette, and font stores persist to localStorage. Flash prevention via inline script in `app.html`. Glass effect uses `backdrop-filter: blur()`.
 
 ## Drag-and-drop
 
@@ -242,6 +250,7 @@ src/
       export.ts           ZIP archive creation for space export
       import.ts           ZIP archive parsing and import with conflict resolution
       migration.ts        One-time migration from old per-space to per-user DBs
+      events.ts           Server-sent events (SSE) for real-time notifications
       rate-limit.ts       In-memory per-IP rate limiter
       session.ts          Server-side session management
       space.ts            resolveSpaceAccess() — central auth + DB resolution
@@ -249,6 +258,8 @@ src/
       user-schema.ts      Per-user DB table creation
     stores/             Reactive stores (Svelte 5 runes)
       board.svelte.ts     Board state and API mutations
+      font.svelte.ts      Sans-serif font preference
+      mono-font.svelte.ts Monospace font preference
       palette.svelte.ts   Accent colour palette
       theme.svelte.ts     Theme mode (light/dark/system)
     types/

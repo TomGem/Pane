@@ -91,9 +91,12 @@ Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/rese
 Users can share spaces with others by email (read-only or read-write).
 
 - **Sharing API** — `GET/POST /api/spaces/[slug]/shares`, `PUT/DELETE /api/spaces/[slug]/shares/[id]`
+- **User search** — `GET /api/users/search?q={query}` returns up to 8 matching users by display name. Respects `show_email` privacy preference.
 - **Shared space URLs**: `/s/{spaceSlug}?owner={ownerId}` — the `owner` param tells the server whose DB to query
 - **Read-only enforcement**: Server returns 403 for non-GET requests on read-only shares. Client hides add/edit/delete buttons and disables DnD via `isReadonly` flag.
-- **SpaceSharingOverlay** — Accessible from Toolbar "Share" button (owner only). Add/remove shares, change permissions.
+- **SpaceSharingOverlay** — Accessible from Toolbar "Share" button (owner only). Share by username (with autocomplete) or email. Add/remove shares, change permissions.
+- **Real-time notifications** — SSE via `GET /api/events/user` (`$lib/server/events.ts`). `emitToUser(userId, event)` broadcasts share events. Dashboard auto-refreshes.
+- **Privacy** — `show_email` column on users table (default 0). Toggle in UserOverlay. `GET/PUT /api/preferences`.
 
 ### Route structure
 
@@ -136,12 +139,14 @@ Documents stored at `storage/{userId}/{space-slug}/{category-slug}/{uuid}.{ext}`
 - **`$lib/stores/board.svelte.ts`** — Board state (`BoardStore`). Tracks categories, items, tags, breadcrumb, current parent, `readonly` flag, and optional `ownerId` for shared spaces. Space-scoped mutations append `?space={slug}&owner={ownerId}`. Tag mutations call `/api/tags` directly (per-user, no space param).
 - **`$lib/stores/theme.svelte.ts`** — `ThemeMode` (`'light'|'dark'|'system'`), persists to localStorage, respects `prefers-color-scheme`.
 - **`$lib/stores/palette.svelte.ts`** — Accent color palette (8 choices: indigo, blue, teal, green, orange, red, pink, grey). Sets `data-palette` attribute and persists to localStorage. Maps to CSS `--accent`, `--accent-hover`, `--accent-soft` variables.
+- **`$lib/stores/font.svelte.ts`** — Sans-serif font choice (System, Fira Sans, Inter, Ubuntu). Sets `data-font` attribute, persists to localStorage.
+- **`$lib/stores/mono-font.svelte.ts`** — Monospace font choice (System, Fira Code, JetBrains Mono, Source Code Pro). Sets `data-mono-font` attribute, persists to localStorage.
 
-Root layout provides both `theme` and `palette` store contexts.
+Root layout provides `theme`, `palette`, `font`, and `monoFont` store contexts.
 
 ### Theming
 
-CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Accent colors via `[data-palette]` attribute with 8 palette options. Theme and palette stores persist to localStorage. Flash prevention via inline script in `app.html`. Glass effect uses `backdrop-filter: blur()`.
+CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Accent colors via `[data-palette]` attribute with 8 palette options. Font choices via `[data-font]` and `[data-mono-font]` attributes with self-hosted WOFF2 web fonts in `static/fonts/`. Theme, palette, and font stores persist to localStorage. Flash prevention via inline script in `app.html`. Glass effect uses `backdrop-filter: blur()`.
 
 Global CSS utility classes in `app.css`: `.glass`, `.glass-strong`, `.input`, `.btn`, `.btn-primary`, `.btn-ghost`, `.btn-danger`, `.btn-sm`, `.badge`. No CSS framework (Tailwind etc.) — all custom properties.
 
@@ -157,7 +162,7 @@ Notes and descriptions render markdown via `marked` with HTML sanitized through 
 
 Full-screen overlay components follow a shared pattern: glass backdrop (`glass-strong`), Escape key to close, click-outside-to-close, callback props (`onclose`). Key overlays:
 
-- **UserOverlay** — Unified user/settings overlay opened via user icon in Toolbar. Sections: account info & storage bar (multi-user only), theme toggle, accent palette, change password (multi-user only), export/import button. Footer with Admin Panel link (admin, multi-user) and sign out (multi-user). In single-user mode shows only theme, palette, and data sections.
+- **UserOverlay** — Unified user/settings overlay opened via user icon in Toolbar. Sections: account info & storage bar (multi-user only), privacy toggle (`show_email`), theme toggle, accent palette, font selection (sans-serif + monospace), change password (multi-user only), export/import button. Footer with Admin Panel link (admin, multi-user) and sign out (multi-user). In single-user mode shows only theme, palette, fonts, and data sections.
 - **NoteOverlay / MediaOverlay** — Content viewers for notes and documents.
 - **TextFileOverlay** — Fetches and displays plain text/markdown files with copy-to-clipboard and markdown rendering.
 - **ExportImportOverlay** — Tabbed UI for exporting spaces as ZIP and importing from ZIP (preview + conflict resolution).

@@ -79,9 +79,11 @@
 			<section class="help-section">
 				<h3>Sharing</h3>
 				<ul>
-					<li><strong>Share spaces</strong> with other users by email from the toolbar or dashboard</li>
+					<li><strong>Share spaces</strong> with other users by <strong>username</strong> or <strong>email</strong> from the toolbar or dashboard</li>
+					<li>Username search offers <strong>autocomplete</strong> suggestions as you type</li>
 					<li>Choose <strong>Can edit</strong> (read-write) or <strong>View only</strong> (read-only) permissions</li>
 					<li>Shared spaces appear in the <strong>"Shared with me"</strong> section on the dashboard</li>
+					<li>Space cards show a <strong>"Shared with N"</strong> indicator when shared</li>
 					<li>Leave a shared space anytime from the dashboard</li>
 				</ul>
 			</section>
@@ -152,7 +154,7 @@
 			<section class="help-section">
 				<h3>Export &amp; import</h3>
 				<ul>
-					<li>Open <strong>Settings</strong> (gear icon) and click <strong>Export &amp; Import</strong></li>
+					<li>Open the <strong>user menu</strong> (person icon) and click <strong>Export &amp; Import</strong></li>
 					<li>Export one or more spaces as a ZIP archive, optionally including files</li>
 					<li>Import a ZIP to restore or transfer spaces between machines</li>
 					<li>Choose how to handle conflicts: <strong>skip</strong>, <strong>rename</strong>, or <strong>replace</strong></li>
@@ -162,14 +164,15 @@
 				<h3>Appearance</h3>
 				<ul>
 					<li>Toggle between <strong>light</strong>, <strong>dark</strong>, and <strong>system</strong> themes</li>
-					<li>Choose from <strong>8 accent colour palettes</strong> in Settings</li>
+					<li>Choose from <strong>8 accent colour palettes</strong> in the user menu</li>
+					<li>Pick a <strong>sans-serif font</strong> (System, Fira Sans, Inter, Ubuntu) and <strong>monospace font</strong> (System, Fira Code, JetBrains Mono, Source Code Pro)</li>
 				</ul>
 			</section>
 			<section class="help-section">
 				<h3>Account &amp; storage</h3>
 				<ul>
 					<li>Click the <strong>user icon</strong> to see your account info and storage usage</li>
-					<li><strong>Change your password</strong> from <strong>Settings</strong> (gear icon)</li>
+					<li><strong>Change your password</strong> from the <strong>user menu</strong> (person icon)</li>
 					<li><strong>Forgot your password?</strong> Use the link on the login page to reset it via email</li>
 					<li>Each user has a <strong>storage quota</strong> — check your usage in the user menu</li>
 					<li>Admins can manage users, invite codes, and quotas from the <strong>Admin Panel</strong></li>
@@ -179,10 +182,11 @@
 				<h3>Privacy</h3>
 				<ul>
 					<li>All data stays on your server — databases and files are stored locally</li>
+					<li>Control whether other users can see your <strong>email address</strong> in the privacy settings of the user menu</li>
 				</ul>
 			</section>
 			<div class="help-clock">{clockText}</div>
-			<div class="help-version">Pane v2.1</div>
+			<div class="help-version">Pane v2.2</div>
 		</div>
 	</div>
 </div>
