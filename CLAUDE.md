@@ -157,7 +157,7 @@ Notes and descriptions render markdown via `marked` with HTML sanitized through 
 
 Full-screen overlay components follow a shared pattern: glass backdrop (`glass-strong`), Escape key to close, click-outside-to-close, callback props (`onclose`). Key overlays:
 
-- **SettingsOverlay** — Theme mode toggle, accent palette selection, and change password form (hidden in single-user mode).
+- **UserOverlay** — Unified user/settings overlay opened via user icon in Toolbar. Sections: account info & storage bar (multi-user only), theme toggle, accent palette, change password (multi-user only), export/import button. Footer with Admin Panel link (admin, multi-user) and sign out (multi-user). In single-user mode shows only theme, palette, and data sections.
 - **NoteOverlay / MediaOverlay** — Content viewers for notes and documents.
 - **TextFileOverlay** — Fetches and displays plain text/markdown files with copy-to-clipboard and markdown rendering.
 - **ExportImportOverlay** — Tabbed UI for exporting spaces as ZIP and importing from ZIP (preview + conflict resolution).
