@@ -17,14 +17,24 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	const authDb = getAuthDb();
 	const shares = authDb.prepare(`
 		SELECT ss.id, ss.owner_id, ss.space_slug, ss.shared_with, ss.permission, ss.created_at,
-		       u.email, u.display_name
+		       u.email, u.display_name, u.show_email
 		FROM space_shares ss
 		JOIN users u ON u.id = ss.shared_with
 		WHERE ss.owner_id = ? AND ss.space_slug = ?
 		ORDER BY ss.created_at DESC
-	`).all(locals.userId, slug) as (SpaceShare & { email: string; display_name: string })[];
+	`).all(locals.userId, slug) as (SpaceShare & { email: string; display_name: string; show_email: number })[];
 
-	return json({ shares });
+	const isAdmin = locals.user?.role === 'admin';
+
+	return json({
+		shares: shares.map(s => {
+			const { show_email, ...rest } = s;
+			return {
+				...rest,
+				email: (isAdmin || show_email === 1) ? s.email : null
+			};
+		})
+	});
 };
 
 export const POST: RequestHandler = async ({ params, request, locals, url }) => {
@@ -121,6 +131,10 @@ export const POST: RequestHandler = async ({ params, request, locals, url }) => 
 			appUrl
 		);
 
+		// Check if target user allows showing email
+		const targetUserFull = authDb.prepare('SELECT show_email FROM users WHERE id = ?').get(targetUser.id) as { show_email: number } | undefined;
+		const canSeeEmail = locals.user?.role === 'admin' || targetUserFull?.show_email === 1;
+
 		return json({
 			share: {
 				id: result.lastInsertRowid,
@@ -128,7 +142,7 @@ export const POST: RequestHandler = async ({ params, request, locals, url }) => 
 				space_slug: slug,
 				shared_with: targetUser.id,
 				permission,
-				email: targetUser.email,
+				email: canSeeEmail ? targetUser.email : null,
 				display_name: targetUser.display_name
 			}
 		}, { status: 201 });

@@ -74,6 +74,7 @@ export interface User {
 	role: 'admin' | 'user';
 	blocked: number;
 	storage_quota_bytes: number;
+	show_email: number;
 	created_at: string;
 	updated_at: string;
 }

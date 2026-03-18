@@ -10,11 +10,19 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 	const authDb = getAuthDb();
 	const users = authDb.prepare(`
-		SELECT id, display_name, email FROM users
+		SELECT id, display_name, email, show_email FROM users
 		WHERE id != ? AND blocked = 0 AND display_name LIKE ? ESCAPE '\\'
 		ORDER BY display_name COLLATE NOCASE
 		LIMIT 8
-	`).all(locals.userId, `%${q.replace(/[%_\\]/g, '\\$&')}%`) as { id: string; display_name: string; email: string }[];
+	`).all(locals.userId, `%${q.replace(/[%_\\]/g, '\\$&')}%`) as { id: string; display_name: string; email: string; show_email: number }[];
 
-	return json({ users });
+	const isAdmin = locals.user?.role === 'admin';
+
+	return json({
+		users: users.map(u => ({
+			id: u.id,
+			display_name: u.display_name,
+			email: (isAdmin || u.show_email === 1) ? u.email : null
+		}))
+	});
 };

@@ -4,7 +4,7 @@
 	interface Share {
 		id: number;
 		shared_with: string;
-		email: string;
+		email: string | null;
 		display_name: string;
 		permission: 'read' | 'write';
 	}
@@ -12,7 +12,7 @@
 	interface Suggestion {
 		id: string;
 		display_name: string;
-		email: string;
+		email: string | null;
 	}
 
 	interface Props {
@@ -201,7 +201,7 @@
 								onmousedown={() => selectSuggestion(s)}
 							>
 								<span class="suggestion-name">{s.display_name}</span>
-								<span class="suggestion-email">{s.email}</span>
+								{#if s.email}<span class="suggestion-email">{s.email}</span>{/if}
 							</button>
 						{/each}
 					</div>
@@ -230,7 +230,7 @@
 					<div class="share-row">
 						<div class="share-info">
 							<span class="share-name">{share.display_name}</span>
-							<span class="share-email">{share.email}</span>
+							{#if share.email}<span class="share-email">{share.email}</span>{/if}
 						</div>
 						<div class="share-actions">
 							<select

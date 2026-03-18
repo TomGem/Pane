@@ -85,6 +85,9 @@ export function initAuthSchema(db: Database.Database) {
 	if (!cols.some((c) => c.name === 'storage_quota_bytes')) {
 		db.exec("ALTER TABLE users ADD COLUMN storage_quota_bytes INTEGER NOT NULL DEFAULT 1073741824");
 	}
+	if (!cols.some((c) => c.name === 'show_email')) {
+		db.exec("ALTER TABLE users ADD COLUMN show_email INTEGER NOT NULL DEFAULT 0");
+	}
 }
 
 export function getAuthMeta(db: Database.Database, key: string): string | null {

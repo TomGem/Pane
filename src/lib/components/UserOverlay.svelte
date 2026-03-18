@@ -36,8 +36,39 @@
 		} catch { /* ignore */ }
 	}
 
+	// Privacy preference
+	let showEmail = $state(false);
+	let privacyLoading = $state(false);
+
+	async function fetchPreferences() {
+		try {
+			const res = await fetch('/api/preferences');
+			if (res.ok) {
+				const data = await res.json();
+				showEmail = data.show_email === 1;
+			}
+		} catch { /* ignore */ }
+	}
+
+	async function toggleShowEmail() {
+		privacyLoading = true;
+		try {
+			const res = await fetch('/api/preferences', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ show_email: !showEmail })
+			});
+			if (res.ok) {
+				const data = await res.json();
+				showEmail = data.show_email === 1;
+			}
+		} catch { /* ignore */ }
+		privacyLoading = false;
+	}
+
 	$effect(() => {
 		fetchStorage();
+		if (!singleUser) fetchPreferences();
 	});
 
 	// Password change
@@ -133,6 +164,24 @@
 							</div>
 						{/if}
 					</div>
+				</section>
+
+				<section class="section">
+					<h3 class="section-title">Privacy</h3>
+					<label class="toggle-row">
+						<span class="toggle-label">Allow other users to see my email address</span>
+						<button
+							class="toggle-switch"
+							class:active={showEmail}
+							onclick={toggleShowEmail}
+							disabled={privacyLoading}
+							role="switch"
+							aria-checked={showEmail}
+							aria-label="Allow other users to see my email address"
+						>
+							<span class="toggle-knob"></span>
+						</button>
+					</label>
 				</section>
 			{/if}
 
@@ -354,6 +403,56 @@
 
 	.storage-fill.storage-warning {
 		background: var(--danger);
+	}
+
+	/* Privacy toggle */
+	.toggle-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		cursor: pointer;
+	}
+
+	.toggle-label {
+		font-size: 13px;
+		color: var(--text-primary);
+	}
+
+	.toggle-switch {
+		position: relative;
+		width: 40px;
+		height: 22px;
+		border-radius: 11px;
+		background: var(--border);
+		cursor: pointer;
+		transition: background-color var(--transition);
+		flex-shrink: 0;
+	}
+
+	.toggle-switch.active {
+		background: var(--accent);
+	}
+
+	.toggle-switch:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.toggle-knob {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: white;
+		transition: transform var(--transition);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+	}
+
+	.toggle-switch.active .toggle-knob {
+		transform: translateX(18px);
 	}
 
 	/* Palette */
