@@ -3,20 +3,26 @@
 	import Icon from './Icon.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
 	import { PALETTES, type PaletteId } from '$lib/stores/palette.svelte';
+	import { FONTS, type FontId } from '$lib/stores/font.svelte';
+	import { MONO_FONTS, type MonoFontId } from '$lib/stores/mono-font.svelte';
 
 	interface Props {
 		user?: { id: string; email: string; display_name: string; role: string } | null;
 		themeMode: ThemeMode;
 		paletteId: PaletteId;
+		fontId?: FontId;
+		monoFontId?: MonoFontId;
 		singleUser?: boolean;
 		onclose: () => void;
 		onthemechange?: (mode: ThemeMode) => void;
 		onpalettechange?: (id: PaletteId) => void;
+		onfontchange?: (id: FontId) => void;
+		onmonofontchange?: (id: MonoFontId) => void;
 		onexportimport?: () => void;
 		onlogout: () => void;
 	}
 
-	let { user = null, themeMode, paletteId, singleUser = false, onclose, onthemechange, onpalettechange, onexportimport, onlogout }: Props = $props();
+	let { user = null, themeMode, paletteId, fontId = 'system', monoFontId = 'system', singleUser = false, onclose, onthemechange, onpalettechange, onfontchange, onmonofontchange, onexportimport, onlogout }: Props = $props();
 
 	// Storage
 	let liveStorage = $state<{ used_bytes: number; quota_bytes: number } | null>(null);
@@ -188,6 +194,42 @@
 			<section class="section">
 				<h3 class="section-title">Theme</h3>
 				<ThemeToggle mode={themeMode} onchange={onthemechange} />
+			</section>
+
+			<section class="section">
+				<h3 class="section-title">Font</h3>
+				<div class="font-grid">
+					{#each FONTS as f (f.id)}
+						<button
+							class="font-option"
+							class:active={fontId === f.id}
+							onclick={() => onfontchange?.(f.id)}
+							title={f.name}
+							aria-label="{f.name} font"
+						>
+							<span class="font-preview" style:font-family={f.family}>Aa</span>
+							<span class="font-name">{f.name}</span>
+						</button>
+					{/each}
+				</div>
+			</section>
+
+			<section class="section">
+				<h3 class="section-title">Mono font</h3>
+				<div class="font-grid">
+					{#each MONO_FONTS as f (f.id)}
+						<button
+							class="font-option"
+							class:active={monoFontId === f.id}
+							onclick={() => onmonofontchange?.(f.id)}
+							title={f.name}
+							aria-label="{f.name} mono font"
+						>
+							<span class="font-preview mono-preview" style:font-family={f.family}>01</span>
+							<span class="font-name">{f.name}</span>
+						</button>
+					{/each}
+				</div>
 			</section>
 
 			<section class="section">
@@ -503,6 +545,57 @@
 		font-size: 11px;
 		font-weight: 500;
 		color: var(--text-secondary);
+	}
+
+	/* Font picker */
+	.font-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 6px;
+	}
+
+	.font-option {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		padding: 8px 4px;
+		border-radius: var(--radius);
+		cursor: pointer;
+		transition: background-color var(--transition);
+	}
+
+	.font-option:hover {
+		background: var(--accent-soft);
+	}
+
+	.font-option.active {
+		background: var(--accent-soft);
+	}
+
+	.font-preview {
+		font-size: 20px;
+		font-weight: 500;
+		color: var(--text-primary);
+		line-height: 1;
+		height: 28px;
+		display: flex;
+		align-items: center;
+	}
+
+	.font-option.active .font-preview {
+		color: var(--accent);
+	}
+
+	.font-name {
+		font-size: 10px;
+		font-weight: 500;
+		color: var(--text-secondary);
+		white-space: nowrap;
+	}
+
+	.mono-preview {
+		font-size: 18px;
 	}
 
 	/* Action buttons */

@@ -5,11 +5,15 @@
 	import type { Tag, Space, StorageQuotaInfo } from '$lib/types';
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
+	import type { FontStore } from '$lib/stores/font.svelte';
+	import type { MonoFontStore } from '$lib/stores/mono-font.svelte';
 
 	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[]; ownerId?: string; permission: 'owner' | 'read' | 'write'; user?: { id: string; email: string; display_name: string; role: string } | null; storage?: StorageQuotaInfo | null; singleUser?: boolean }; children: Snippet } = $props();
 
 	const theme = getContext<ThemeStore>('theme');
 	const palette = getContext<PaletteStore>('palette');
+	const fontStore = getContext<FontStore>('font');
+	const monoFontStore = getContext<MonoFontStore>('monoFont');
 	let searchQuery = $state('');
 	let tags = $state<Tag[]>([]);
 	let selectedTagIds = $state<number[]>([]);
@@ -88,6 +92,10 @@
 	onthemechange={(mode: string) => theme.setMode(mode as 'light' | 'dark' | 'system')}
 	paletteId={palette.palette}
 	onpalettechange={(id) => palette.setPalette(id)}
+	fontId={fontStore.font}
+	onfontchange={(id) => fontStore.setFont(id)}
+	monoFontId={monoFontStore.font}
+	onmonofontchange={(id) => monoFontStore.setFont(id)}
 />
 <main class="app-content">
 	{#key data.spaceSlug}

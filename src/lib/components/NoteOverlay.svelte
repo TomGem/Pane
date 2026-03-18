@@ -165,14 +165,14 @@
 		color: var(--text-primary, #e0e0e0);
 		margin-bottom: 20px;
 		line-height: 1.3;
-		font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+		font-family: var(--font-mono);
 	}
 
 	.note-content {
 		color: var(--text-secondary, #b0b0b0);
 		font-size: 14px;
 		line-height: 1.7;
-		font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+		font-family: var(--font-mono);
 	}
 
 	.note-editor {
@@ -185,7 +185,7 @@
 		color: var(--text-primary, #e0e0e0);
 		font-size: 15px;
 		line-height: 1.7;
-		font-family: 'SF Mono', 'Fira Code', monospace;
+		font-family: var(--font-mono);
 		resize: vertical;
 	}
 
@@ -243,7 +243,7 @@
 		padding: 2px 6px;
 		border-radius: 4px;
 		font-size: 0.9em;
-		font-family: 'SF Mono', 'Fira Code', monospace;
+		font-family: var(--font-mono);
 	}
 	.markdown :global(pre) {
 		background: rgba(0, 0, 0, 0.3);

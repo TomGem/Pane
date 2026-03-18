@@ -163,7 +163,7 @@
 		margin-bottom: 20px;
 		line-height: 1.3;
 		word-break: break-word;
-		font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+		font-family: var(--font-mono);
 	}
 
 	.loading, .error {
@@ -179,7 +179,7 @@
 		color: var(--text-secondary, #b0b0b0);
 		font-size: 13px;
 		line-height: 1.6;
-		font-family: 'SF Mono', 'Fira Code', monospace;
+		font-family: var(--font-mono);
 		white-space: pre-wrap;
 		word-break: break-word;
 		margin: 0;
@@ -189,7 +189,7 @@
 		color: var(--text-secondary, #b0b0b0);
 		font-size: 14px;
 		line-height: 1.7;
-		font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+		font-family: var(--font-mono);
 	}
 
 	/* Markdown styles (same as NoteOverlay) */
@@ -200,7 +200,7 @@
 	.markdown :global(ul), .markdown :global(ol) { margin: 0.6em 0; padding-left: 1.5em; }
 	.markdown :global(li) { margin: 0.25em 0; }
 	.markdown :global(blockquote) { border-left: 3px solid var(--accent, #6c63ff); padding-left: 12px; margin: 0.8em 0; color: var(--text-muted, #888); font-style: italic; }
-	.markdown :global(code) { background: rgba(255, 255, 255, 0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-family: 'SF Mono', 'Fira Code', monospace; }
+	.markdown :global(code) { background: rgba(255, 255, 255, 0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; font-family: var(--font-mono); }
 	.markdown :global(pre) { background: rgba(0, 0, 0, 0.3); padding: 12px 16px; border-radius: 8px; overflow-x: auto; margin: 0.8em 0; }
 	.markdown :global(pre code) { background: none; padding: 0; }
 	.markdown :global(a) { color: var(--accent, #6c63ff); text-decoration: underline; }

@@ -2,6 +2,8 @@
 	import '../app.css';
 	import { createThemeStore } from '$lib/stores/theme.svelte';
 	import { createPaletteStore } from '$lib/stores/palette.svelte';
+	import { createFontStore } from '$lib/stores/font.svelte';
+	import { createMonoFontStore } from '$lib/stores/mono-font.svelte';
 	import { setContext } from 'svelte';
 	import type { Snippet } from 'svelte';
 
@@ -9,9 +11,13 @@
 
 	const theme = createThemeStore();
 	const palette = createPaletteStore();
+	const fontStore = createFontStore();
+	const monoFontStore = createMonoFontStore();
 
 	setContext('theme', theme);
 	setContext('palette', palette);
+	setContext('font', fontStore);
+	setContext('monoFont', monoFontStore);
 </script>
 
 <svelte:head>

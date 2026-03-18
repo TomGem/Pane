@@ -2,6 +2,86 @@
    Design System — Pane
    ============================================================ */
 
+/* --- Fonts -------------------------------------------------- */
+@font-face {
+	font-family: 'Fira Sans';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/fonts/FiraSans-Regular.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'Fira Sans';
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url('/fonts/FiraSans-Medium.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'Fira Sans';
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url('/fonts/FiraSans-SemiBold.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'Fira Sans';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('/fonts/FiraSans-Bold.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'Ubuntu';
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url('/fonts/Ubuntu-Regular.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'Ubuntu';
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url('/fonts/Ubuntu-Medium.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'Ubuntu';
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+	src: url('/fonts/Ubuntu-Bold.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'Inter';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/Inter-Variable.woff2') format('woff2');
+}
+
+@font-face {
+	font-family: 'Fira Code';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/FiraCode-Variable.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'JetBrains Mono';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');
+}
+@font-face {
+	font-family: 'Source Code Pro';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/SourceCodePro-Variable.woff2') format('woff2');
+}
+
 /* --- Reset -------------------------------------------------- */
 *,
 *::before,
@@ -63,9 +143,8 @@ html {
 	--scrollbar-track: transparent;
 
 	/* Font */
-	--font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui,
-		sans-serif;
-	--font-mono: 'SF Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--font-sans: system-ui, sans-serif;
+	--font-mono: ui-monospace, monospace;
 }
 
 [data-theme='dark'] {

@@ -7,7 +7,7 @@
 		<link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
 		<script>
-			// Apply persisted theme and palette immediately to prevent flash
+			// Apply persisted theme, palette, and font immediately to prevent flash
 			(function () {
 				var d = document.documentElement;
 				var stored = localStorage.getItem('theme-mode');
@@ -22,6 +22,18 @@
 				d.setAttribute('data-theme', theme);
 				var palette = localStorage.getItem('palette');
 				if (palette) d.setAttribute('data-palette', palette);
+				var font = localStorage.getItem('font');
+				if (font) {
+					d.setAttribute('data-font', font);
+					var fontMap = { fira: "'Fira Sans', system-ui, sans-serif", inter: "'Inter', system-ui, sans-serif", ubuntu: "'Ubuntu', system-ui, sans-serif" };
+					if (fontMap[font]) d.style.setProperty('--font-sans', fontMap[font]);
+				}
+				var monoFont = localStorage.getItem('mono-font');
+				if (monoFont) {
+					d.setAttribute('data-mono-font', monoFont);
+					var monoMap = { 'fira-code': "'Fira Code', ui-monospace, monospace", jetbrains: "'JetBrains Mono', ui-monospace, monospace", 'source-code': "'Source Code Pro', ui-monospace, monospace" };
+					if (monoMap[monoFont]) d.style.setProperty('--font-mono', monoMap[monoFont]);
+				}
 			})();
 		</script>
 		%sveltekit.head%

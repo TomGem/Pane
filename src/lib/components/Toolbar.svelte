@@ -6,6 +6,8 @@
 	import Icon from './Icon.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
 	import type { PaletteId } from '$lib/stores/palette.svelte';
+	import type { FontId } from '$lib/stores/font.svelte';
+	import type { MonoFontId } from '$lib/stores/mono-font.svelte';
 	import type { Tag, Space } from '$lib/types';
 	import { getContext } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -16,6 +18,8 @@
 		selectedTagIds?: number[];
 		themeMode: ThemeMode;
 		paletteId?: PaletteId;
+		fontId?: FontId;
+		monoFontId?: MonoFontId;
 		spaceName?: string;
 		spaces?: Space[];
 		spaceSlug?: string;
@@ -30,9 +34,11 @@
 		ontagupdate?: (id: number, name: string, color: string) => Promise<void>;
 		onthemechange?: (mode: ThemeMode) => void;
 		onpalettechange?: (id: PaletteId) => void;
+		onfontchange?: (id: FontId) => void;
+		onmonofontchange?: (id: MonoFontId) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, singleUser = false, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', fontId = 'system', monoFontId = 'system', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, singleUser = false, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange, onfontchange, onmonofontchange }: Props = $props();
 
 	let showUserOverlay = $state(false);
 	let showSharing = $state(false);
@@ -388,10 +394,14 @@
 		{user}
 		{themeMode}
 		{paletteId}
+		{fontId}
+		{monoFontId}
 		{singleUser}
 		onclose={() => showUserOverlay = false}
 		onthemechange={onthemechange}
 		onpalettechange={onpalettechange}
+		onfontchange={onfontchange}
+		onmonofontchange={onmonofontchange}
 		onexportimport={() => { showUserOverlay = false; showExportImport = true; }}
 		onlogout={handleLogout}
 	/>

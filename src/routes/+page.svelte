@@ -3,6 +3,8 @@
 	import { getContext, onMount } from 'svelte';
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
+	import type { FontStore } from '$lib/stores/font.svelte';
+	import type { MonoFontStore } from '$lib/stores/mono-font.svelte';
 	import UserOverlay from '$lib/components/UserOverlay.svelte';
 	import HelpPanel from '$lib/components/HelpPanel.svelte';
 	import SpaceSharingOverlay from '$lib/components/SpaceSharingOverlay.svelte';
@@ -31,6 +33,8 @@
 
 	const theme = getContext<ThemeStore>('theme');
 	const palette = getContext<PaletteStore>('palette');
+	const fontStore = getContext<FontStore>('font');
+	const monoFontStore = getContext<MonoFontStore>('monoFont');
 
 	let showUserOverlay = $state(false);
 	let showExportImport = $state(false);
@@ -308,10 +312,14 @@
 		user={data.user}
 		themeMode={theme.mode}
 		paletteId={palette.palette}
+		fontId={fontStore.font}
+		monoFontId={monoFontStore.font}
 		singleUser={data.singleUser}
 		onclose={() => showUserOverlay = false}
 		onthemechange={(mode) => theme.setMode(mode)}
 		onpalettechange={(id) => palette.setPalette(id)}
+		onfontchange={(id) => fontStore.setFont(id)}
+		onmonofontchange={(id) => monoFontStore.setFont(id)}
 		onexportimport={() => { showUserOverlay = false; showExportImport = true; }}
 		onlogout={handleLogout}
 	/>
