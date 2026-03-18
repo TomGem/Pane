@@ -11,6 +11,7 @@ declare global {
 				role: 'admin' | 'user';
 			} | null;
 			userId: string | null;
+			singleUser: boolean;
 		}
 		// interface PageData {}
 		// interface PageState {}

@@ -6,6 +6,7 @@
 	import SettingsOverlay from '$lib/components/SettingsOverlay.svelte';
 	import HelpPanel from '$lib/components/HelpPanel.svelte';
 	import SpaceSharingOverlay from '$lib/components/SpaceSharingOverlay.svelte';
+	import ExportImportOverlay from '$lib/components/ExportImportOverlay.svelte';
 	import Icon from '$lib/components/Icon.svelte';
 
 	let { data } = $props();
@@ -14,6 +15,7 @@
 	const palette = getContext<PaletteStore>('palette');
 
 	let showSettings = $state(false);
+	let showExportImport = $state(false);
 	let showHelp = $state(false);
 	let showUserMenu = $state(false);
 	let liveStorage = $state<{ used_bytes: number; quota_bytes: number } | null>(null);
@@ -365,6 +367,14 @@
 		onclose={() => showSettings = false}
 		onthemechange={(mode) => theme.setMode(mode)}
 		onpalettechange={(id) => palette.setPalette(id)}
+		onexportimport={() => { showSettings = false; showExportImport = true; }}
+	/>
+{/if}
+
+{#if showExportImport}
+	<ExportImportOverlay
+		spaces={data.spaces}
+		onclose={() => showExportImport = false}
 	/>
 {/if}
 

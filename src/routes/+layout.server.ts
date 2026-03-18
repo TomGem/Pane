@@ -4,7 +4,7 @@ import { getUserStorageUsage, getUserQuota } from '$lib/server/db';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	let storage: StorageQuotaInfo | null = null;
-	if (locals.userId && locals.userId !== 'single-user') {
+	if (locals.userId) {
 		storage = {
 			used_bytes: getUserStorageUsage(locals.userId),
 			quota_bytes: getUserQuota(locals.userId)
@@ -13,6 +13,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 
 	return {
 		user: locals.user,
-		storage
+		storage,
+		singleUser: locals.singleUser
 	};
 };

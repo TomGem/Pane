@@ -4,7 +4,7 @@ import { getAuthDb, getUserStorageUsage } from '$lib/server/db';
 import type { InviteCode, User } from '$lib/types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user || locals.user.role !== 'admin') {
+	if (!locals.user || locals.user.role !== 'admin' || locals.singleUser) {
 		throw redirect(307, '/');
 	}
 

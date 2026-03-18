@@ -76,6 +76,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Single-user mode: inject synthetic user, skip auth
+	event.locals.singleUser = SINGLE_USER;
+
 	if (SINGLE_USER) {
 		event.locals.user = {
 			id: SINGLE_USER_ID,

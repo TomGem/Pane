@@ -22,6 +22,7 @@
 		user?: { id: string; email: string; display_name: string; role: string } | null;
 		storage?: StorageQuotaInfo | null;
 		isOwner?: boolean;
+		singleUser?: boolean;
 		onsearch?: (query: string) => void;
 		ontagtoggle?: (tagId: number) => void;
 		oncleartags?: () => void;
@@ -32,7 +33,7 @@
 		onpalettechange?: (id: PaletteId) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, storage = null, isOwner = true, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, storage = null, isOwner = true, singleUser = false, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange }: Props = $props();
 
 	function formatBytes(bytes: number): string {
 		if (bytes === 0) return '0 B';
@@ -380,7 +381,7 @@
 			<Icon name="folder-plus" size={18} />
 			</button>
 		{/if}
-		{#if isOwner}
+		{#if isOwner && !singleUser}
 			<button class="btn-toolbar-icon" onclick={() => showSharing = true} aria-label="Share space" title="Share space">
 				<Icon name="users" size={18} />
 			</button>
@@ -409,31 +410,43 @@
 							<span class="user-menu-name">{user.display_name}</span>
 							<span class="user-menu-email">{user.email}</span>
 							{#if liveStorage}
-								{@const pct = liveStorage.quota_bytes > 0 ? Math.min(100, (liveStorage.used_bytes / liveStorage.quota_bytes) * 100) : 0}
 								<div class="user-menu-storage">
 									<div class="user-menu-storage-header">
 										<span>Storage</span>
-										<span>{formatBytes(liveStorage.used_bytes)} / {formatBytes(liveStorage.quota_bytes)}</span>
+										{#if singleUser}
+											<span>{formatBytes(liveStorage.used_bytes)}</span>
+										{:else}
+											<span>{formatBytes(liveStorage.used_bytes)} / {formatBytes(liveStorage.quota_bytes)}</span>
+										{/if}
 									</div>
-									<div class="user-menu-storage-bar">
-										<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
-									</div>
+									{#if !singleUser}
+										{@const pct = liveStorage.quota_bytes > 0 ? Math.min(100, (liveStorage.used_bytes / liveStorage.quota_bytes) * 100) : 0}
+										<div class="user-menu-storage-bar">
+											<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+										</div>
+									{/if}
 								</div>
 							{:else if storage}
-								{@const pct = storage.quota_bytes > 0 ? Math.min(100, (storage.used_bytes / storage.quota_bytes) * 100) : 0}
 								<div class="user-menu-storage">
 									<div class="user-menu-storage-header">
 										<span>Storage</span>
-										<span>{formatBytes(storage.used_bytes)} / {formatBytes(storage.quota_bytes)}</span>
+										{#if singleUser}
+											<span>{formatBytes(storage.used_bytes)}</span>
+										{:else}
+											<span>{formatBytes(storage.used_bytes)} / {formatBytes(storage.quota_bytes)}</span>
+										{/if}
 									</div>
-									<div class="user-menu-storage-bar">
-										<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
-									</div>
+									{#if !singleUser}
+										{@const pct = storage.quota_bytes > 0 ? Math.min(100, (storage.used_bytes / storage.quota_bytes) * 100) : 0}
+										<div class="user-menu-storage-bar">
+											<div class="user-menu-storage-fill" class:storage-warning={pct > 90} style="width: {pct}%"></div>
+										</div>
+									{/if}
 								</div>
 							{/if}
 						</div>
 						<div class="user-menu-list">
-							{#if user.role === 'admin'}
+							{#if user.role === 'admin' && !singleUser}
 								<a class="user-menu-item" href="/admin" onclick={() => showUserMenu = false}>
 									<Icon name="shield" size={14} />
 									<span>Admin Panel</span>
