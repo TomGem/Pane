@@ -5,6 +5,7 @@ import { saveFile, deleteFile } from '$lib/server/storage';
 import { getUserStorageUsage, getUserQuota } from '$lib/server/db';
 import type { Item, Category } from '$lib/types';
 import { emit } from '$lib/server/events';
+import { logChange } from '$lib/server/changelog';
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB
 
@@ -80,6 +81,7 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 			item.tags = [];
 
 			emit(access.ownerId, access.spaceSlug, { type: 'item:created', timestamp: Date.now() }, locals.userId);
+			logChange({ db, spaceSlug, action: 'item:created', entityType: 'item', entityId: item.id, entityTitle: item.title, userId: locals.userId, userName: locals.user?.display_name });
 			return json(item, { status: 201 });
 		} catch (dbErr) {
 			deleteFile(ownerId, spaceSlug, filePath);

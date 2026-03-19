@@ -5,6 +5,7 @@ import { getTagsForItem, attachTagsBatched } from '$lib/server/tags';
 import { fetchPageMeta } from '$lib/server/meta';
 import type { Item } from '$lib/types';
 import { emit } from '$lib/server/events';
+import { logChange } from '$lib/server/changelog';
 
 const VALID_ITEM_TYPES = ['link', 'note', 'document'];
 const MAX_TITLE_LENGTH = 1000;
@@ -142,6 +143,7 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 		item.tags = getTagsForItem(db, item.id);
 
 		emit(access.ownerId, access.spaceSlug, { type: 'item:created', timestamp: Date.now() }, locals.userId);
+		logChange({ db, spaceSlug: access.spaceSlug, action: 'item:created', entityType: 'item', entityId: item.id, entityTitle: item.title, userId: locals.userId, userName: locals.user?.display_name });
 		return json(item, { status: 201 });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

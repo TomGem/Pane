@@ -8,6 +8,7 @@ import { spaceExists } from '$lib/server/user-schema';
 import { copyCategoryDirAcrossSpaces, deleteCategoryDir, ensureSpaceDir, getStorageRoot } from '$lib/server/storage';
 import type { Category, Item, ItemTag } from '$lib/types';
 import { emit } from '$lib/server/events';
+import { logChange } from '$lib/server/changelog';
 
 interface CategoryRow extends Category {
 	children_count?: number;
@@ -202,6 +203,8 @@ export const POST: RequestHandler = async ({ params, request, url, locals }) => 
 
 		emit(ownerId, sourceSpace, { type: 'category:moved', timestamp: Date.now() }, locals.userId);
 		emit(ownerId, targetSpace, { type: 'category:moved', timestamp: Date.now() }, locals.userId);
+		logChange({ db, spaceSlug: sourceSpace, action: 'category:moved', entityType: 'category', entityId: categoryId, entityTitle: rootCategory.name, userId: locals.userId, userName: locals.user?.display_name });
+		logChange({ db, spaceSlug: targetSpace, action: 'category:moved', entityType: 'category', entityId: categoryId, entityTitle: rootCategory.name, userId: locals.userId, userName: locals.user?.display_name });
 		return json({ success: true, targetSpace });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

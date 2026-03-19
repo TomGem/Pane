@@ -5,6 +5,7 @@ import { slugify } from '$lib/utils/slugify';
 import { deleteCategoryDir, renameCategoryDir } from '$lib/server/storage';
 import type { Category, Item } from '$lib/types';
 import { emit } from '$lib/server/events';
+import { logChange } from '$lib/server/changelog';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
@@ -112,6 +113,7 @@ export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 		).get(categoryId) as Category;
 
 		emit(access.ownerId, access.spaceSlug, { type: 'category:updated', timestamp: Date.now() }, locals.userId);
+		logChange({ db, spaceSlug, action: 'category:updated', entityType: 'category', entityId: categoryId, entityTitle: name, userId: locals.userId, userName: locals.user?.display_name });
 		return json(category);
 	} catch (err) {
 		if (isHttpError(err)) throw err;
@@ -153,6 +155,7 @@ export const DELETE: RequestHandler = async ({ params, url, locals }) => {
 		}
 
 		emit(access.ownerId, access.spaceSlug, { type: 'category:deleted', timestamp: Date.now() }, locals.userId);
+		logChange({ db, spaceSlug, action: 'category:deleted', entityType: 'category', entityId: numId, entityTitle: category.name, userId: locals.userId, userName: locals.user?.display_name });
 		return json({ success: true });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

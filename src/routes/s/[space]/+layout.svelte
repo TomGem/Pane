@@ -83,6 +83,7 @@
 	user={data.user}
 	isOwner={!data.ownerId}
 	singleUser={data.singleUser ?? false}
+	ownerId={data.ownerId}
 	onsearch={handleSearch}
 	ontagtoggle={handleTagToggle}
 	oncleartags={handleClearTags}

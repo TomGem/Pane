@@ -5,6 +5,7 @@ import { moveFile, deleteFile } from '$lib/server/storage';
 import { getTagsForItem } from '$lib/server/tags';
 import type { Item, Category } from '$lib/types';
 import { emit } from '$lib/server/events';
+import { logChange } from '$lib/server/changelog';
 
 export const GET: RequestHandler = async ({ params, url, locals }) => {
 	try {
@@ -97,6 +98,7 @@ export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 		item.tags = getTagsForItem(db, item.id);
 
 		emit(access.ownerId, access.spaceSlug, { type: 'item:updated', timestamp: Date.now() }, locals.userId);
+		logChange({ db: access.db, spaceSlug: access.spaceSlug, action: 'item:updated', entityType: 'item', entityId: item.id, entityTitle: item.title, userId: locals.userId, userName: locals.user?.display_name });
 		return json(item);
 	} catch (err) {
 		if (isHttpError(err)) throw err;
@@ -126,6 +128,7 @@ export const DELETE: RequestHandler = async ({ params, url, locals }) => {
 		db.prepare('DELETE FROM items WHERE id = ?').run(numId);
 
 		emit(access.ownerId, access.spaceSlug, { type: 'item:deleted', timestamp: Date.now() }, locals.userId);
+		logChange({ db: access.db, spaceSlug: access.spaceSlug, action: 'item:deleted', entityType: 'item', entityId: numId, entityTitle: item.title, userId: locals.userId, userName: locals.user?.display_name });
 		return json({ success: true });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

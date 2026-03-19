@@ -4,6 +4,7 @@ import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { getUserDb } from '$lib/server/db';
 import { slugify } from '$lib/utils/slugify';
 import { emit } from '$lib/server/events';
+import { logChange } from '$lib/server/changelog';
 
 export const POST: RequestHandler = async ({ url, locals }) => {
 	try {
@@ -276,6 +277,7 @@ export const POST: RequestHandler = async ({ url, locals }) => {
 		seed();
 
 		emit(access.ownerId, access.spaceSlug, { type: 'space:seeded', timestamp: Date.now() }, locals.userId);
+		logChange({ db, spaceSlug, action: 'space:seeded', entityType: 'space', entityTitle: 'Sample data added', userId: locals.userId, userName: locals.user?.display_name });
 		return json({ success: true }, { status: 201 });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

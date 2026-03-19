@@ -57,6 +57,20 @@ export function initUserSchema(db: Database.Database) {
 			tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
 			PRIMARY KEY (item_id, tag_id)
 		);
+
+		CREATE TABLE IF NOT EXISTS changelog (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			space_slug TEXT NOT NULL REFERENCES spaces(slug) ON DELETE CASCADE,
+			action TEXT NOT NULL,
+			entity_type TEXT NOT NULL,
+			entity_id INTEGER,
+			entity_title TEXT,
+			user_id TEXT,
+			user_name TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+		CREATE INDEX IF NOT EXISTS idx_changelog_space ON changelog(space_slug);
+		CREATE INDEX IF NOT EXISTS idx_changelog_created ON changelog(space_slug, created_at DESC);
 	`);
 }
 

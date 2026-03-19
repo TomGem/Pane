@@ -3,6 +3,7 @@ import type { RequestHandler } from './$types';
 import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import type { Tag } from '$lib/types';
 import { emit } from '$lib/server/events';
+import { logChange } from '$lib/server/changelog';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
@@ -43,6 +44,7 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 		const tag = access.db.prepare('SELECT * FROM tags WHERE id = ?').get(result.lastInsertRowid) as Tag;
 
 		emit(access.ownerId, access.spaceSlug, { type: 'tag:created', timestamp: Date.now() }, locals.userId);
+		logChange({ db: access.db, spaceSlug: access.spaceSlug, action: 'tag:created', entityType: 'tag', entityId: tag.id, entityTitle: tag.name, userId: locals.userId, userName: locals.user?.display_name });
 		return json(tag, { status: 201 });
 	} catch (err) {
 		if (err instanceof Error && err.message.includes('UNIQUE constraint')) {

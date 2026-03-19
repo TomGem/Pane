@@ -57,6 +57,7 @@ export function getUserDb(userId: string): Database.Database {
 			throw new Error(`User database not found for '${userId}'`);
 		}
 		db = openDbAt(dbPath);
+		initUserSchema(db);
 		cache.set(cacheKey, db);
 	}
 	return db;

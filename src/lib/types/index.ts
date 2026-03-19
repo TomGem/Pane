@@ -117,6 +117,18 @@ export interface SharedSpaceInfo extends Space {
 	permission: 'read' | 'write';
 }
 
+export interface ChangelogEntry {
+	id: number;
+	space_slug: string;
+	action: string;
+	entity_type: 'item' | 'category' | 'tag' | 'space';
+	entity_id: number | null;
+	entity_title: string | null;
+	user_id: string | null;
+	user_name: string | null;
+	created_at: string;
+}
+
 export type SpaceEventType =
 	| 'item:created' | 'item:updated' | 'item:deleted' | 'item:reordered'
 	| 'category:created' | 'category:updated' | 'category:deleted' | 'category:reordered' | 'category:moved'

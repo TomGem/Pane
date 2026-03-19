@@ -4,6 +4,7 @@ import { resolveSpaceAccess, requireWriteAccess } from '$lib/server/space';
 import { slugify } from '$lib/utils/slugify';
 import type { Category } from '$lib/types';
 import { emit } from '$lib/server/events';
+import { logChange } from '$lib/server/changelog';
 
 const MAX_NAME_LENGTH = 255;
 const MAX_COLOR_LENGTH = 50;
@@ -88,6 +89,7 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 		).get(result.lastInsertRowid);
 
 		emit(access.ownerId, access.spaceSlug, { type: 'category:created', timestamp: Date.now() }, locals.userId);
+		logChange({ db, spaceSlug, action: 'category:created', entityType: 'category', entityId: result.lastInsertRowid as number, entityTitle: name, userId: locals.userId, userName: locals.user?.display_name });
 		return json(category, { status: 201 });
 	} catch (err) {
 		if (isHttpError(err)) throw err;

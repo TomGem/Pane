@@ -2,6 +2,7 @@
 	import UserOverlay from './UserOverlay.svelte';
 	import ExportImportOverlay from './ExportImportOverlay.svelte';
 	import SpaceSharingOverlay from './SpaceSharingOverlay.svelte';
+	import ChangelogOverlay from './ChangelogOverlay.svelte';
 	import HelpPanel from './HelpPanel.svelte';
 	import Icon from './Icon.svelte';
 	import type { ThemeMode } from '$lib/stores/theme.svelte';
@@ -26,6 +27,7 @@
 		user?: { id: string; email: string; display_name: string; role: string } | null;
 		isOwner?: boolean;
 		singleUser?: boolean;
+		ownerId?: string;
 		onsearch?: (query: string) => void;
 		ontagtoggle?: (tagId: number) => void;
 		oncleartags?: () => void;
@@ -38,10 +40,11 @@
 		onmonofontchange?: (id: MonoFontId) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', fontId = 'system', monoFontId = 'system', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, singleUser = false, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange, onfontchange, onmonofontchange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', fontId = 'system', monoFontId = 'system', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, singleUser = false, ownerId, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange, onfontchange, onmonofontchange }: Props = $props();
 
 	let showUserOverlay = $state(false);
 	let showSharing = $state(false);
+	let showChangelog = $state(false);
 
 	const TAG_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
@@ -128,7 +131,9 @@
 	let spaceError = $state<string | null>(null);
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && showSharing) {
+		if (e.key === 'Escape' && showChangelog) {
+			showChangelog = false;
+		} else if (e.key === 'Escape' && showSharing) {
 			showSharing = false;
 		} else if (e.key === 'Escape' && showExportImport) {
 			showExportImport = false;
@@ -362,6 +367,9 @@
 			<Icon name="folder-plus" size={18} />
 			</button>
 		{/if}
+		<button class="btn-toolbar-icon" onclick={() => showChangelog = true} aria-label="Changelog" title="Changelog">
+			<Icon name="clock" size={18} />
+		</button>
 		{#if isOwner && !singleUser}
 			<button class="btn-toolbar-icon" onclick={() => showSharing = true} aria-label="Share space" title="Share space">
 				<Icon name="users" size={18} />
@@ -423,6 +431,15 @@
 		{spaceSlug}
 		{spaceName}
 		onclose={() => showSharing = false}
+	/>
+{/if}
+
+{#if showChangelog}
+	<ChangelogOverlay
+		{spaceSlug}
+		{ownerId}
+		{singleUser}
+		onclose={() => showChangelog = false}
 	/>
 {/if}
 
