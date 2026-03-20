@@ -57,7 +57,7 @@ if (!SINGLE_USER) {
 
 // --- Request handler ---
 
-const PUBLIC_PATHS = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/api/auth/'];
+const PUBLIC_PATHS = ['/login', '/register', '/verify-email', '/forgot-password', '/reset-password', '/api/auth/', '/legal', '/api/legal'];
 
 function isPublicPath(pathname: string): boolean {
 	return PUBLIC_PATHS.some((p) => pathname.startsWith(p));

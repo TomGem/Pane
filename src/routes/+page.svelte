@@ -308,7 +308,7 @@
 </main>
 
 {#if showHelp}
-	<HelpPanel onclose={() => showHelp = false} />
+	<HelpPanel onclose={() => showHelp = false} legalEnabled={data.legalEnabled ?? false} />
 {/if}
 
 {#if showUserOverlay}

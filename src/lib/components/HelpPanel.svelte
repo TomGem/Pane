@@ -3,9 +3,10 @@
 
 	interface Props {
 		onclose: () => void;
+		legalEnabled?: boolean;
 	}
 
-	let { onclose }: Props = $props();
+	let { onclose, legalEnabled = false }: Props = $props();
 
 	let now = $state(new Date());
 
@@ -198,6 +199,15 @@
 					<li>Control whether other users can see your <strong>email address</strong> in the privacy settings of the user menu</li>
 				</ul>
 			</section>
+			{#if legalEnabled}
+				<section class="help-section">
+					<h3>Legal</h3>
+					<ul>
+						<li><a href="/legal" class="help-demo-link">Privacy Policy</a></li>
+						<li><a href="/legal?tab=legal" class="help-demo-link">Legal Notice</a></li>
+					</ul>
+				</section>
+			{/if}
 			<section class="help-section">
 				<h3>Feature demo</h3>
 				<p>Want a visual overview? <a href="/demo.html" target="_blank" class="help-demo-link">Open the interactive feature presentation</a></p>

@@ -10,7 +10,7 @@
 	import type { MonoFontStore } from '$lib/stores/mono-font.svelte';
 	import { createChatStore } from '$lib/stores/chat.svelte';
 
-	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[]; ownerId?: string; permission: 'owner' | 'read' | 'write'; user?: { id: string; email: string; display_name: string; role: string } | null; storage?: StorageQuotaInfo | null; singleUser?: boolean; hasShares?: boolean }; children: Snippet } = $props();
+	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[]; ownerId?: string; permission: 'owner' | 'read' | 'write'; user?: { id: string; email: string; display_name: string; role: string } | null; storage?: StorageQuotaInfo | null; singleUser?: boolean; hasShares?: boolean; legalEnabled?: boolean }; children: Snippet } = $props();
 
 	const theme = getContext<ThemeStore>('theme');
 	const palette = getContext<PaletteStore>('palette');
@@ -123,6 +123,7 @@
 	user={data.user}
 	isOwner={!data.ownerId}
 	singleUser={data.singleUser ?? false}
+	legalEnabled={data.legalEnabled ?? false}
 	ownerId={data.ownerId}
 	{hasShares}
 	chatUnread={chat?.unreadCount ?? 0}

@@ -27,6 +27,7 @@
 		user?: { id: string; email: string; display_name: string; role: string; avatar_path?: string | null } | null;
 		isOwner?: boolean;
 		singleUser?: boolean;
+		legalEnabled?: boolean;
 		ownerId?: string;
 		hasShares?: boolean;
 		chatUnread?: number;
@@ -44,7 +45,7 @@
 		onshareschange?: (count: number) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', fontId = 'system', monoFontId = 'system', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, singleUser = false, ownerId, hasShares = false, chatUnread = 0, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange, onfontchange, onmonofontchange, onchat, onshareschange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', fontId = 'system', monoFontId = 'system', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, singleUser = false, legalEnabled = false, ownerId, hasShares = false, chatUnread = 0, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange, onfontchange, onmonofontchange, onchat, onshareschange }: Props = $props();
 
 	let showUserOverlay = $state(false);
 	let showSharing = $state(false);
@@ -498,7 +499,7 @@
 {/if}
 
 {#if showHelp}
-	<HelpPanel onclose={() => showHelp = false} />
+	<HelpPanel onclose={() => showHelp = false} {legalEnabled} />
 {/if}
 
 {#if showSharing}

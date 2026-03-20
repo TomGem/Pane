@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 
+	let { data } = $props();
+
 	let email = $state('');
 	let password = $state('');
 	let error = $state('');
@@ -85,6 +87,13 @@
 		<p class="auth-footer" style="margin-top: 8px;">
 			<a href="/demo.html" target="_blank">See what Pane can do</a>
 		</p>
+		{#if data.legalEnabled}
+			<p class="auth-footer legal-links" style="margin-top: 16px;">
+				<a href="/legal">Privacy Policy</a>
+				<span class="legal-sep">&middot;</span>
+				<a href="/legal?tab=legal">Legal Notice</a>
+			</p>
+		{/if}
 	</div>
 </div>
 
@@ -153,5 +162,17 @@
 		text-align: center;
 		font-size: 13px;
 		color: var(--text-muted);
+	}
+
+	.legal-links {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+	}
+
+	.legal-sep {
+		color: var(--text-muted);
+		opacity: 0.5;
 	}
 </style>

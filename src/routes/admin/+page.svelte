@@ -28,6 +28,61 @@
 	let editingQuotaUser = $state<string | null>(null);
 	let quotaInput = $state('');
 
+	// Legal settings
+	let legalEnabled = $state(false);
+	let privacyPolicy = $state('');
+	let legalNotice = $state('');
+	let legalLoaded = $state(false);
+	let legalSaving = $state(false);
+	let legalError = $state('');
+	let legalSuccess = $state('');
+	let editingLegalTab = $state<'privacy' | 'legal'>('privacy');
+
+	async function loadLegal() {
+		try {
+			const res = await fetch('/api/admin/legal');
+			if (res.ok) {
+				const d = await res.json();
+				legalEnabled = d.legal_enabled;
+				privacyPolicy = d.privacy_policy;
+				legalNotice = d.legal_notice;
+				legalLoaded = true;
+			}
+		} catch { /* ignore */ }
+	}
+
+	async function saveLegal() {
+		legalError = '';
+		legalSuccess = '';
+		legalSaving = true;
+		try {
+			const res = await fetch('/api/admin/legal', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					legal_enabled: legalEnabled,
+					privacy_policy: privacyPolicy,
+					legal_notice: legalNotice
+				})
+			});
+			if (!res.ok) {
+				const d = await res.json();
+				legalError = d.error || 'Failed to save';
+			} else {
+				legalSuccess = 'Saved successfully';
+				setTimeout(() => legalSuccess = '', 3000);
+			}
+		} catch {
+			legalError = 'Failed to save';
+		} finally {
+			legalSaving = false;
+		}
+	}
+
+	$effect(() => {
+		if (!legalLoaded) loadLegal();
+	});
+
 	async function createCode() {
 		error = '';
 		creating = true;
@@ -303,6 +358,71 @@
 				</div>
 			{/each}
 		</div>
+	</section>
+
+	<section class="admin-section">
+		<h2 class="section-title">Legal &amp; Privacy</h2>
+		<p class="section-desc">Configure privacy policy and legal notice displayed to users</p>
+
+		{#if legalLoaded}
+			<div class="legal-toggle">
+				<label class="toggle-label">
+					<input type="checkbox" bind:checked={legalEnabled} />
+					<span>Enable legal pages</span>
+				</label>
+				<span class="toggle-hint">When enabled, links appear on the login page and in the help panel</span>
+			</div>
+
+			<div class="legal-tabs">
+				<button
+					class="legal-tab"
+					class:active={editingLegalTab === 'privacy'}
+					onclick={() => editingLegalTab = 'privacy'}
+				>Privacy Policy</button>
+				<button
+					class="legal-tab"
+					class:active={editingLegalTab === 'legal'}
+					onclick={() => editingLegalTab = 'legal'}
+				>Legal Notice</button>
+			</div>
+
+			<div class="legal-editor">
+				{#if editingLegalTab === 'privacy'}
+					<textarea
+						class="input legal-textarea"
+						bind:value={privacyPolicy}
+						placeholder="Enter privacy policy (Markdown supported)"
+						rows="16"
+					></textarea>
+				{:else}
+					<textarea
+						class="input legal-textarea"
+						bind:value={legalNotice}
+						placeholder="Enter legal notice / Impressum (Markdown supported)"
+						rows="16"
+					></textarea>
+				{/if}
+				<span class="legal-hint">Markdown formatting is supported</span>
+			</div>
+
+			<div class="legal-actions">
+				<button class="btn btn-primary" onclick={saveLegal} disabled={legalSaving}>
+					{legalSaving ? 'Saving...' : 'Save Legal Settings'}
+				</button>
+				{#if legalEnabled}
+					<a href="/legal" target="_blank" class="btn btn-ghost">Preview</a>
+				{/if}
+			</div>
+
+			{#if legalError}
+				<div class="form-error">{legalError}</div>
+			{/if}
+			{#if legalSuccess}
+				<div class="legal-success">{legalSuccess}</div>
+			{/if}
+		{:else}
+			<p class="empty-state">Loading legal settings...</p>
+		{/if}
 	</section>
 </main>
 
@@ -634,5 +754,87 @@
 		display: flex;
 		gap: 4px;
 		flex-wrap: wrap;
+	}
+
+	.legal-toggle {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 16px;
+		border-radius: var(--radius);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
+	}
+
+	.toggle-label {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--text-primary);
+		cursor: pointer;
+	}
+
+	.toggle-hint {
+		font-size: 12px;
+		color: var(--text-muted);
+		margin-left: 26px;
+	}
+
+	.legal-tabs {
+		display: flex;
+		gap: 4px;
+	}
+
+	.legal-tab {
+		padding: 6px 14px;
+		font-size: 13px;
+		font-weight: 600;
+		color: var(--text-muted);
+		border-radius: var(--radius-sm);
+		transition: color var(--transition), background-color var(--transition);
+	}
+
+	.legal-tab:hover {
+		color: var(--text-primary);
+		background: var(--accent-soft);
+	}
+
+	.legal-tab.active {
+		color: var(--accent);
+		background: var(--accent-soft);
+	}
+
+	.legal-editor {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.legal-textarea {
+		width: 100%;
+		min-height: 300px;
+		font-family: var(--font-mono);
+		font-size: 13px;
+		line-height: 1.6;
+		resize: vertical;
+	}
+
+	.legal-hint {
+		font-size: 12px;
+		color: var(--text-muted);
+	}
+
+	.legal-actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.legal-success {
+		font-size: 13px;
+		color: #16a34a;
+		font-weight: 500;
 	}
 </style>
