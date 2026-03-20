@@ -332,6 +332,7 @@
 	.board > :global(*) {
 		flex: 1 1 320px;
 		min-width: 280px;
+		max-width: 600px;
 	}
 
 	.board > :global(div:has(.collapsed)) {
