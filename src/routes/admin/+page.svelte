@@ -203,6 +203,23 @@
 		editingQuotaUser = null;
 	}
 
+	let deletingUser = $state<string | null>(null);
+
+	async function deleteUser(user: User) {
+		if (deletingUser === user.id) {
+			// Second click = confirm
+			try {
+				const res = await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' });
+				if (res.ok) {
+					users = users.filter((u) => u.id !== user.id);
+				}
+			} catch { /* ignore */ }
+			deletingUser = null;
+		} else {
+			deletingUser = user.id;
+		}
+	}
+
 	async function toggleBlock(user: User) {
 		const newBlocked = !user.blocked;
 		try {
@@ -352,6 +369,13 @@
 								onclick={() => toggleBlock(user)}
 							>
 								{user.blocked ? 'Unblock' : 'Block'}
+							</button>
+							<button
+								class="btn btn-sm btn-danger"
+								onclick={() => deleteUser(user)}
+								onmouseleave={() => { if (deletingUser === user.id) deletingUser = null; }}
+							>
+								{deletingUser === user.id ? 'Confirm delete' : 'Delete'}
 							</button>
 						{/if}
 					</div>
