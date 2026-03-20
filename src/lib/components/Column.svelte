@@ -168,6 +168,7 @@
 
 <div
 	class="column"
+	class:collapsed
 	ondragenter={handleDragEnter}
 	ondragover={handleDragOver}
 	ondragleave={handleDragLeave}
@@ -176,9 +177,18 @@
 	role="region"
 	aria-label="{category.name} column"
 >
+	{#if collapsed}
+		<button class="collapsed-bar" style:border-top-color={category.color} onclick={() => userCollapsed = false} title="Expand {category.name}" aria-label="Expand {category.name}">
+			<svg class="collapse-chevron collapsed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<polyline points="6 9 12 15 18 9" />
+			</svg>
+			<span class="collapsed-title">{category.name}</span>
+			<span class="collapsed-count">{filteredItems.length}</span>
+		</button>
+	{:else}
 	<div class="column-header" style:border-top-color={category.color}>
-		<button class="btn-collapse" onclick={() => userCollapsed = !userCollapsed} aria-label={collapsed ? 'Expand column' : 'Collapse column'} title={collapsed ? 'Expand column' : 'Collapse column'}>
-			<svg class="collapse-chevron" class:collapsed width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<button class="btn-collapse" onclick={() => userCollapsed = !userCollapsed} aria-label="Collapse column" title="Collapse column">
+			<svg class="collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<polyline points="6 9 12 15 18 9" />
 			</svg>
 		</button>
@@ -230,7 +240,6 @@
 		</div>
 	</div>
 
-	{#if !collapsed}
 		{#if category.children && category.children.length > 0}
 			<div class="subcategory-list">
 				{#each category.children as child (child.id)}
@@ -287,9 +296,7 @@
 <style>
 	.column {
 		position: relative;
-		flex: 0 0 320px;
-		width: 320px;
-		max-width: 320px;
+		width: 100%;
 		display: flex;
 		flex-direction: column;
 		background: var(--bg-secondary);
@@ -298,12 +305,65 @@
 		max-height: none;
 	}
 
+	.column.collapsed {
+		height: 100%;
+	}
+
+	.collapsed-bar {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		padding: 14px 4px;
+		border-top: 3px solid transparent;
+		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+		width: 100%;
+		height: 100%;
+		cursor: pointer;
+		color: var(--text-primary);
+		transition: background-color var(--transition);
+	}
+
+	.collapsed-bar:hover {
+		background-color: var(--accent-soft);
+	}
+
+	.collapsed-title {
+		writing-mode: vertical-rl;
+		text-orientation: mixed;
+		font-size: 14px;
+		font-weight: 700;
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		min-height: 0;
+	}
+
+	.collapsed-count {
+		font-size: 11px;
+		font-weight: 600;
+		color: var(--text-muted);
+		background: var(--bg-primary);
+		padding: 2px 6px;
+		border-radius: 9999px;
+	}
+
 	@media (max-width: 767px) {
-		.column {
-			flex: 1 1 100%;
-			max-width: 100%;
-			min-width: 0;
-			max-height: none;
+		.column.collapsed {
+			height: auto;
+		}
+
+		.collapsed-bar {
+			flex-direction: row;
+			padding: 10px 14px;
+			height: auto;
+		}
+
+		.collapsed-title {
+			writing-mode: horizontal-tb;
+			text-orientation: initial;
+			flex: 1;
 		}
 	}
 

@@ -329,6 +329,18 @@
 		border-radius: var(--radius);
 	}
 
+	.board > :global(*) {
+		flex: 1 1 320px;
+		min-width: 280px;
+	}
+
+	.board > :global(div:has(.collapsed)) {
+		flex: 0 0 44px;
+		min-width: 44px;
+		max-width: 44px;
+		align-self: stretch;
+	}
+
 	.search-hidden {
 		display: none;
 	}
@@ -339,8 +351,15 @@
 		}
 
 		.board > :global(*) {
+			flex: 1 1 100%;
 			min-width: 0;
 			max-width: 100%;
+		}
+
+		.board > :global(div:has(.collapsed)) {
+			flex: 1 1 100%;
+			max-width: 100%;
+			align-self: auto;
 		}
 	}
 </style>
