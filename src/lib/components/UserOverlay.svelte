@@ -119,6 +119,38 @@
 		}
 	}
 
+	// Delete account
+	let deletePassword = $state('');
+	let deleteError = $state('');
+	let deleteLoading = $state(false);
+	let deleteConfirmVisible = $state(false);
+
+	async function handleDeleteAccount() {
+		deleteError = '';
+		if (!deletePassword) {
+			deleteError = 'Password is required';
+			return;
+		}
+		deleteLoading = true;
+		try {
+			const res = await fetch('/api/auth/delete-account', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ password: deletePassword })
+			});
+			const data = await res.json();
+			if (!res.ok) {
+				deleteError = data.error || 'Failed to delete account';
+				return;
+			}
+			window.location.href = '/login';
+		} catch {
+			deleteError = 'Failed to delete account';
+		} finally {
+			deleteLoading = false;
+		}
+	}
+
 	let isDark = $derived(themeMode === 'dark' || (themeMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches));
 
 	// Avatar
@@ -374,6 +406,38 @@
 					<span>Export & Import</span>
 				</button>
 			</section>
+
+			{#if !singleUser}
+				<section class="section">
+					<h3 class="section-title danger-title">Danger zone</h3>
+					{#if !deleteConfirmVisible}
+						<button class="action-btn danger-action" onclick={() => { deleteConfirmVisible = true; }}>
+							<Icon name="trash" size={16} />
+							<span>Delete account</span>
+						</button>
+					{:else}
+						<div class="delete-confirm">
+							<p class="delete-warning">This will permanently delete your account, all spaces, files, and shared access. This cannot be undone.</p>
+							{#if deleteError}
+								<div class="password-msg password-error">{deleteError}</div>
+							{/if}
+							<input
+								class="input"
+								type="password"
+								bind:value={deletePassword}
+								placeholder="Enter your password to confirm"
+								autocomplete="current-password"
+							/>
+							<div class="delete-actions">
+								<button class="btn btn-sm" onclick={() => { deleteConfirmVisible = false; deletePassword = ''; deleteError = ''; }}>Cancel</button>
+								<button class="btn btn-sm btn-danger" onclick={handleDeleteAccount} disabled={deleteLoading}>
+									{deleteLoading ? 'Deleting...' : 'Delete my account'}
+								</button>
+							</div>
+						</div>
+					{/if}
+				</section>
+			{/if}
 		</div>
 
 		{#if !singleUser}
@@ -780,5 +844,38 @@
 	.footer-link.logout:hover {
 		color: var(--danger);
 		background: rgba(239, 68, 68, 0.1);
+	}
+
+	/* Danger zone */
+	.danger-title {
+		color: var(--danger);
+	}
+
+	.danger-action {
+		color: var(--danger);
+	}
+
+	.danger-action:hover {
+		background: rgba(239, 68, 68, 0.1);
+		color: var(--danger);
+	}
+
+	.delete-confirm {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.delete-warning {
+		font-size: 12px;
+		color: var(--danger);
+		line-height: 1.4;
+		margin: 0;
+	}
+
+	.delete-actions {
+		display: flex;
+		gap: 8px;
+		justify-content: flex-end;
 	}
 </style>
