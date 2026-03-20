@@ -219,6 +219,12 @@
 		transform: translateY(-1px);
 	}
 
+	@media (pointer: coarse) {
+		.card {
+			cursor: default;
+		}
+	}
+
 	.card:active {
 		cursor: grabbing;
 	}
@@ -272,6 +278,12 @@
 
 	.card:hover .card-actions {
 		opacity: 1;
+	}
+
+	@media (pointer: coarse) {
+		.card-actions {
+			opacity: 1;
+		}
 	}
 
 	.btn-icon {

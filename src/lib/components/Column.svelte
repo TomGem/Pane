@@ -5,6 +5,11 @@
 	import { getDirectoryEntries } from '$lib/utils/folder-drop';
 	import type { CategoryWithItems, Category, Item } from '$lib/types';
 
+	let isTouchDevice = $state(false);
+	$effect(() => {
+		isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+	});
+
 	interface Props {
 		category: CategoryWithItems;
 		allItems?: Item[];
@@ -236,7 +241,7 @@
 
 		<div
 			class="column-items"
-			use:dndzone={{ items: category.items, flipDurationMs: 200, dropTargetStyle: {} }}
+			use:dndzone={{ items: category.items, flipDurationMs: 200, dropTargetStyle: {}, dragDisabled: isTouchDevice }}
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
 		>

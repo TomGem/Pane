@@ -461,6 +461,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{spaceName} – Pane</title>
+</svelte:head>
+
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="page">

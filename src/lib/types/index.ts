@@ -76,6 +76,7 @@ export interface User {
 	blocked: number;
 	storage_quota_bytes: number;
 	show_email: number;
+	avatar_path: string | null;
 	created_at: string;
 	updated_at: string;
 }

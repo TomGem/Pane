@@ -504,3 +504,11 @@ html.theme-transitioning *::after {
 		transition-duration: 0.01ms !important;
 	}
 }
+
+/* --- Touch Device Fixes ------------------------------------ */
+@media (pointer: coarse) {
+	/* Override svelte-dnd-action's inline touch-action: none to allow scrolling */
+	[style*="touch-action"] {
+		touch-action: auto !important;
+	}
+}

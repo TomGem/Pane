@@ -105,6 +105,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Pane</title>
+</svelte:head>
+
 <svelte:window onkeydown={handleGlobalKeydown} />
 
 <header class="toolbar glass-strong">

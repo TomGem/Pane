@@ -83,7 +83,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 			id: SINGLE_USER_ID,
 			email: 'local@localhost',
 			display_name: 'Local User',
-			role: 'admin'
+			role: 'admin',
+			avatar_path: null
 		};
 		event.locals.userId = SINGLE_USER_ID;
 		return resolve(event);
@@ -103,7 +104,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 					id: result.id,
 					email: result.email,
 					display_name: result.display_name,
-					role: result.role
+					role: result.role,
+					avatar_path: result.avatar_path
 				};
 				event.locals.userId = result.id;
 			}

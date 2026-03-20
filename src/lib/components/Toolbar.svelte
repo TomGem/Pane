@@ -24,7 +24,7 @@
 		spaceName?: string;
 		spaces?: Space[];
 		spaceSlug?: string;
-		user?: { id: string; email: string; display_name: string; role: string } | null;
+		user?: { id: string; email: string; display_name: string; role: string; avatar_path?: string | null } | null;
 		isOwner?: boolean;
 		singleUser?: boolean;
 		ownerId?: string;
@@ -384,7 +384,11 @@
 			aria-label={user ? user.display_name : 'Settings'}
 			title={user ? user.display_name : 'Settings'}
 		>
-			<Icon name="user" size={18} />
+			{#if user?.avatar_path}
+				<img class="toolbar-avatar" src="/api/avatar?t={Date.now()}" alt="" />
+			{:else}
+				<Icon name="user" size={18} />
+			{/if}
 		</button>
 	</div>
 </header>
@@ -981,5 +985,11 @@
 		color: var(--accent);
 	}
 
+	.toolbar-avatar {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		object-fit: cover;
+	}
 
 </style>

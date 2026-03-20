@@ -19,7 +19,7 @@ export function createSession(userId: string): { sessionId: string; expiresAt: D
 export function validateSession(sessionId: string): User | null {
 	const authDb = getAuthDb();
 	const row = authDb.prepare(`
-		SELECT u.id, u.email, u.email_verified, u.display_name, u.role, u.blocked, u.storage_quota_bytes, u.show_email, u.created_at, u.updated_at, s.expires_at
+		SELECT u.id, u.email, u.email_verified, u.display_name, u.role, u.blocked, u.storage_quota_bytes, u.show_email, u.avatar_path, u.created_at, u.updated_at, s.expires_at
 		FROM sessions s
 		JOIN users u ON s.user_id = u.id
 		WHERE s.id = ?
@@ -41,6 +41,7 @@ export function validateSession(sessionId: string): User | null {
 		blocked: row.blocked,
 		storage_quota_bytes: row.storage_quota_bytes,
 		show_email: row.show_email,
+		avatar_path: row.avatar_path ?? null,
 		created_at: row.created_at,
 		updated_at: row.updated_at
 	};

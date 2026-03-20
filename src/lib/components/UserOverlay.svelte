@@ -6,9 +6,10 @@
 	import { FONTS, type FontId } from '$lib/stores/font.svelte';
 	import { MONO_FONTS, type MonoFontId } from '$lib/stores/mono-font.svelte';
 	import { trapFocus } from '$lib/actions/trapFocus';
+	import { invalidateAll } from '$app/navigation';
 
 	interface Props {
-		user?: { id: string; email: string; display_name: string; role: string } | null;
+		user?: { id: string; email: string; display_name: string; role: string; avatar_path?: string | null } | null;
 		themeMode: ThemeMode;
 		paletteId: PaletteId;
 		fontId?: FontId;
@@ -120,6 +121,59 @@
 
 	let isDark = $derived(themeMode === 'dark' || (themeMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches));
 
+	// Avatar
+	let avatarFileInput = $state<HTMLInputElement | null>(null);
+	let avatarLoading = $state(false);
+	let avatarError = $state('');
+	let avatarTimestamp = $state(Date.now());
+
+	function getInitials(name: string): string {
+		return name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+	}
+
+	async function handleAvatarUpload(e: Event) {
+		const input = e.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		avatarError = '';
+		avatarLoading = true;
+		try {
+			const formData = new FormData();
+			formData.append('file', file);
+			const res = await fetch('/api/avatar', { method: 'POST', body: formData });
+			if (!res.ok) {
+				const data = await res.json().catch(() => ({ error: 'Upload failed' }));
+				avatarError = data.error || 'Upload failed';
+				return;
+			}
+			avatarTimestamp = Date.now();
+			await invalidateAll();
+		} catch {
+			avatarError = 'Upload failed';
+		} finally {
+			avatarLoading = false;
+			input.value = '';
+		}
+	}
+
+	async function handleAvatarRemove() {
+		avatarError = '';
+		avatarLoading = true;
+		try {
+			const res = await fetch('/api/avatar', { method: 'DELETE' });
+			if (!res.ok) {
+				avatarError = 'Failed to remove avatar';
+				return;
+			}
+			avatarTimestamp = Date.now();
+			await invalidateAll();
+		} catch {
+			avatarError = 'Failed to remove avatar';
+		} finally {
+			avatarLoading = false;
+		}
+	}
+
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -138,6 +192,33 @@
 			{#if !singleUser && user}
 				<section class="section">
 					<h3 class="section-title">Account</h3>
+					<div class="avatar-row">
+						<div class="avatar-preview">
+							{#if user.avatar_path}
+								<img class="avatar-img" src="/api/avatar?t={avatarTimestamp}" alt="" />
+							{:else}
+								<span class="avatar-initials">{getInitials(user.display_name)}</span>
+							{/if}
+						</div>
+						<div class="avatar-actions">
+							<input
+								bind:this={avatarFileInput}
+								type="file"
+								accept="image/jpeg,image/png,image/gif,image/webp"
+								onchange={handleAvatarUpload}
+								hidden
+							/>
+							<button class="btn btn-sm" onclick={() => avatarFileInput?.click()} disabled={avatarLoading}>
+								{avatarLoading ? 'Uploading...' : 'Change'}
+							</button>
+							{#if user.avatar_path}
+								<button class="btn btn-sm btn-ghost" onclick={handleAvatarRemove} disabled={avatarLoading}>Remove</button>
+							{/if}
+						</div>
+					</div>
+					{#if avatarError}
+						<div class="avatar-error">{avatarError}</div>
+					{/if}
 					<div class="account-info">
 						<span class="account-email">{user.email}</span>
 						{#if liveStorage}
@@ -384,6 +465,49 @@
 		text-transform: uppercase;
 		letter-spacing: 0.03em;
 		margin-bottom: 10px;
+	}
+
+	/* Avatar */
+	.avatar-row {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-bottom: 10px;
+	}
+
+	.avatar-preview {
+		width: 64px;
+		height: 64px;
+		border-radius: 50%;
+		overflow: hidden;
+		background: var(--accent-soft);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.avatar-img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.avatar-initials {
+		font-size: 22px;
+		font-weight: 700;
+		color: var(--accent);
+	}
+
+	.avatar-actions {
+		display: flex;
+		gap: 6px;
+	}
+
+	.avatar-error {
+		font-size: 12px;
+		color: var(--danger);
+		margin-bottom: 8px;
 	}
 
 	/* Account */

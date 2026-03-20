@@ -9,6 +9,7 @@ declare global {
 				email: string;
 				display_name: string;
 				role: 'admin' | 'user';
+				avatar_path: string | null;
 			} | null;
 			userId: string | null;
 			singleUser: boolean;

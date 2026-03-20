@@ -88,6 +88,9 @@ export function initAuthSchema(db: Database.Database) {
 	if (!cols.some((c) => c.name === 'show_email')) {
 		db.exec("ALTER TABLE users ADD COLUMN show_email INTEGER NOT NULL DEFAULT 0");
 	}
+	if (!cols.some((c) => c.name === 'avatar_path')) {
+		db.exec("ALTER TABLE users ADD COLUMN avatar_path TEXT DEFAULT NULL");
+	}
 }
 
 export function getAuthMeta(db: Database.Database, key: string): string | null {
