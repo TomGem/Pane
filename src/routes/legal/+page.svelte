@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import DOMPurify from 'dompurify';
+	import { browser } from '$app/environment';
 	import { marked } from 'marked';
 
 	let { data } = $props();
@@ -9,8 +9,16 @@
 		($page.url.searchParams.get('tab') === 'legal') ? 'legal' : 'privacy'
 	);
 
-	let privacyHtml = $derived(DOMPurify.sanitize(marked.parse(data.privacy_policy) as string));
-	let legalHtml = $derived(DOMPurify.sanitize(marked.parse(data.legal_notice) as string));
+	let DOMPurify: typeof import('dompurify').default | undefined = $state();
+
+	$effect(() => {
+		if (browser) {
+			import('dompurify').then((mod) => { DOMPurify = mod.default; });
+		}
+	});
+
+	let privacyHtml = $derived(DOMPurify ? DOMPurify.sanitize(marked.parse(data.privacy_policy) as string) : '');
+	let legalHtml = $derived(DOMPurify ? DOMPurify.sanitize(marked.parse(data.legal_notice) as string) : '');
 </script>
 
 <svelte:head>
