@@ -46,13 +46,14 @@ SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. All DB
 
 | Table | Purpose |
 |-------|---------|
-| `users` | User accounts: email, password hash, display name, role (admin/user), blocked status, storage quota, `show_email` privacy preference |
+| `users` | User accounts: email, password hash, display name, role (admin/user), blocked status, storage quota, `show_email` privacy preference, `avatar_path` |
 | `sessions` | Server-side sessions with 30-day expiry |
 | `email_verifications` | 6-digit verification codes (15-min expiry) |
 | `password_resets` | 6-digit password reset codes (15-min expiry) |
 | `invite_codes` | Admin-generated registration codes with optional max uses and expiration |
 | `space_shares` | Sharing records: owner, space slug, shared-with user, permission (read/write) |
 | `oauth_accounts` | Prepared for OAuth providers (not yet active) |
+| `chat_messages` | Real-time chat messages scoped to owner+space, with user attribution |
 | `meta` | Key-value metadata store |
 
 ### Per-user database schema (`user-schema.ts`)
@@ -64,6 +65,7 @@ SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. All DB
 | `categories` | Columns on the board, with optional `parent_id` for hierarchy and `space_slug` FK |
 | `items` | Single table with `type` discriminator: `link`, `note`, `document`. Includes `favicon_url` for links and `file_size` for documents. |
 | `item_tags` | Junction table linking items to tags |
+| `changelog` | Activity log tracking changes to items, categories, and tags per space |
 
 ### Key modules
 
@@ -120,6 +122,8 @@ Users can share spaces with other registered users by email (read-only or read-w
 - **Shared space URLs**: `/s/{spaceSlug}?owner={ownerId}` — the `owner` param tells the server whose DB to query
 - **Read-only enforcement**: Server returns 403 for non-GET requests on read-only shares. Client hides add/edit/delete buttons and disables DnD via `isReadonly` flag.
 - **Real-time notifications** — Server-sent events (SSE) via `GET /api/events/user` notify users when spaces are shared or unshared with them. The dashboard auto-refreshes on these events.
+- **Real-time chat** — `GET/POST/DELETE /api/chat` for space-scoped messaging. `GET /api/chat/presence` for online user tracking. Messages broadcast via SSE. 2000-char limit, 50-message pagination. Owner can clear chat history.
+- **User avatars** — `GET/POST/DELETE /api/avatar`. Upload JPEG/PNG/GIF/WebP up to 2 MB. Stored at `storage/{userId}/avatar.{ext}`. Displayed in chat and presence indicators.
 
 ## Admin panel
 
@@ -132,7 +136,8 @@ Admin-only page at `/admin` for:
 
 | Store | File | Purpose |
 |-------|------|---------|
-| `BoardStore` | `$lib/stores/board.svelte.ts` | Categories, items, tags, breadcrumb, current parent, `readonly` flag, optional `ownerId` for shared spaces. Space-scoped mutations append `?space={slug}&owner={ownerId}`. Tag mutations call `/api/tags` directly. Hierarchy mutations: `promoteCategory()`, `demoteCategory()`. |
+| `BoardStore` | `$lib/stores/board.svelte.ts` | Categories, items, tags, breadcrumb, current parent, `readonly` flag, optional `ownerId` for shared spaces. Space-scoped mutations append `?space={slug}&owner={ownerId}`. Tag mutations call `/api/tags` directly. Hierarchy mutations: `promoteCategory()`, `demoteCategory()`. Folder import: `importFolder()`. |
+| `ChatStore` | `$lib/stores/chat.svelte.ts` | Chat messages, presence, SSE connection for real-time updates. `sendMessage()`, `loadMessages()`, `loadMore()`, `clearChat()`, `loadPresence()`. |
 | `ThemeStore` | `$lib/stores/theme.svelte.ts` | `'light' \| 'dark' \| 'system'`, persists to localStorage, respects `prefers-color-scheme`. |
 | `PaletteStore` | `$lib/stores/palette.svelte.ts` | Accent colour palette (8 choices). Sets `data-palette` attribute, persists to localStorage. |
 | `FontStore` | `$lib/stores/font.svelte.ts` | Sans-serif font choice (System, Fira Sans, Inter, Ubuntu). Sets `data-font` attribute, persists to localStorage. |
@@ -186,6 +191,10 @@ Errors return `{ error: string }` with appropriate status codes (201, 400, 401, 
 | `/api/seed` | POST | Populate an empty space with sample data |
 | `/api/export` | POST | Export spaces as ZIP archive |
 | `/api/import` | POST | Import ZIP archive (preview or execute) |
+| `/api/chat` | GET, POST, DELETE | List / send / clear chat messages (space-scoped) |
+| `/api/chat/presence` | GET | Online users in a shared space |
+| `/api/avatar` | GET, POST, DELETE | Get / upload / remove user avatar |
+| `/api/changelog` | GET | Activity log for a space |
 
 ## File storage
 
@@ -197,7 +206,7 @@ CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Accent colou
 
 ## Drag-and-drop
 
-`svelte-dnd-action` handles internal reordering (columns and items). Native HTML5 drag events on Column handle external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. Reorder is persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`). Disabled for read-only shared spaces.
+`svelte-dnd-action` handles internal reordering (columns and items). Native HTML5 drag events on Column handle external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. **Entire folders** (including subfolders) can be dropped onto a column — subdirectories are created as subcategories with all files imported automatically (`$lib/utils/folder-drop.ts`). Reorder is persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`). Disabled for read-only shared spaces.
 
 ## Markdown rendering
 
@@ -226,6 +235,8 @@ src/
       Breadcrumb.svelte   Navigation breadcrumb for nested categories
       Card.svelte         Item card (link, note, document)
       CategoryForm.svelte Category create/edit form
+      ChangelogOverlay.svelte Space activity log with clickable navigation
+      ChatPanel.svelte    Real-time chat for shared spaces with presence
       Column.svelte       Single column with item list and drop zone
       Icon.svelte         Centralized SVG icon component
       ItemForm.svelte     Item create/edit form with tag input
@@ -250,6 +261,7 @@ src/
       export.ts           ZIP archive creation for space export
       import.ts           ZIP archive parsing and import with conflict resolution
       migration.ts        One-time migration from old per-space to per-user DBs
+      changelog.ts        Activity logging (logChange, getChangelog)
       events.ts           Server-sent events (SSE) for real-time notifications
       rate-limit.ts       In-memory per-IP rate limiter
       session.ts          Server-side session management
@@ -257,7 +269,8 @@ src/
       storage.ts          File storage operations with path traversal defense
       user-schema.ts      Per-user DB table creation
     stores/             Reactive stores (Svelte 5 runes)
-      board.svelte.ts     Board state and API mutations
+      board.svelte.ts     Board state and API mutations (incl. folder import)
+      chat.svelte.ts      Chat state, messages, presence, SSE connection
       font.svelte.ts      Sans-serif font preference
       mono-font.svelte.ts Monospace font preference
       palette.svelte.ts   Accent colour palette
@@ -269,6 +282,7 @@ src/
       trapFocus.ts        Svelte action: traps keyboard focus within modals/overlays
     utils/
       api.ts              Typed fetch wrapper
+      folder-drop.ts      HTML5 folder drag-and-drop with recursive traversal
       slugify.ts          URL-safe slug generation
   routes/
     +layout.svelte        Root layout (theme + palette context)

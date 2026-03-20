@@ -75,8 +75,8 @@ Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/rese
 
 **One SQLite DB per user** (`data/{userId}.db`) containing all their spaces, tags, categories, items. **Central auth DB** (`data/_auth.db`) for users, sessions, invite codes, space shares, OAuth accounts (prepared but not active).
 
-- **`$lib/server/auth-schema.ts`** — Auth DB schema: `users`, `sessions`, `email_verifications`, `password_resets`, `invite_codes`, `space_shares`, `oauth_accounts`, `meta`
-- **`$lib/server/user-schema.ts`** — Per-user DB schema: `spaces`, `tags`, `categories` (with `space_slug` FK), `items`, `item_tags`
+- **`$lib/server/auth-schema.ts`** — Auth DB schema: `users` (incl. `avatar_path`), `sessions`, `email_verifications`, `password_resets`, `invite_codes`, `space_shares`, `chat_messages`, `oauth_accounts`, `meta`
+- **`$lib/server/user-schema.ts`** — Per-user DB schema: `spaces`, `tags`, `categories` (with `space_slug` FK), `items`, `item_tags`, `changelog`
 - **`$lib/server/db.ts`** — `getAuthDb()`, `getUserDb(userId)`, `createUserDb(userId)`, `listSpaces(userId)`, `validateSpaceSlug(slug)`. Connection cache keyed by `auth` or `user:{userId}`. Slug regex: `/^[a-z0-9-]{1,64}$/`.
 - **`$lib/server/migration.ts`** — One-time migration from old one-DB-per-space layout to one-DB-per-user. Archives old DBs to `data/_migrated/`.
 
@@ -96,7 +96,18 @@ Users can share spaces with others by email (read-only or read-write).
 - **Read-only enforcement**: Server returns 403 for non-GET requests on read-only shares. Client hides add/edit/delete buttons and disables DnD via `isReadonly` flag.
 - **SpaceSharingOverlay** — Accessible from Toolbar "Share" button (owner only). Share by username (with autocomplete) or email. Add/remove shares, change permissions.
 - **Real-time notifications** — SSE via `GET /api/events/user` (`$lib/server/events.ts`). `emitToUser(userId, event)` broadcasts share events. Dashboard auto-refreshes.
+- **Real-time chat** — `GET/POST/DELETE /api/chat` for space-scoped messaging. `GET /api/chat/presence` for online user tracking. Messages broadcast via SSE. 2000-char limit, 50-message pagination. Owner can clear history.
 - **Privacy** — `show_email` column on users table (default 0). Toggle in UserOverlay. `GET/PUT /api/preferences`.
+
+### User Avatars
+
+- **Avatar API** — `GET/POST/DELETE /api/avatar`. Upload JPEG/PNG/GIF/WebP up to 2 MB. Stored at `storage/{userId}/avatar.{ext}`. Displayed in chat and presence indicators.
+
+### Space Changelog
+
+- **`$lib/server/changelog.ts`** — `logChange()` records item/category/tag mutations. `getChangelog()` fetches entries with pagination.
+- **`$lib/components/ChangelogOverlay.svelte`** — Activity log overlay with clickable navigation to items.
+- **Changelog API** — `GET /api/changelog?space={slug}` returns paginated activity entries.
 
 ### Route structure
 
@@ -133,10 +144,12 @@ Documents stored at `storage/{userId}/{space-slug}/{category-slug}/{uuid}.{ext}`
 
 - **`$lib/utils/api.ts`** — Typed fetch wrapper (`api<T>(url, options)`) used by the board store for all mutations. Parses JSON error bodies automatically.
 - **`$lib/utils/slugify.ts`** — Wrapper around `slugify` library for URL-safe slugs.
+- **`$lib/utils/folder-drop.ts`** — HTML5 folder drag-and-drop. Uses `webkitGetAsEntry()` for recursive directory traversal. Returns `FolderStructure` with files and subfolders.
 
 ### Client stores
 
-- **`$lib/stores/board.svelte.ts`** — Board state (`BoardStore`). Tracks categories, items, tags, breadcrumb, current parent, `readonly` flag, and optional `ownerId` for shared spaces. Space-scoped mutations append `?space={slug}&owner={ownerId}`. Tag mutations call `/api/tags` directly (per-user, no space param).
+- **`$lib/stores/board.svelte.ts`** — Board state (`BoardStore`). Tracks categories, items, tags, breadcrumb, current parent, `readonly` flag, and optional `ownerId` for shared spaces. Space-scoped mutations append `?space={slug}&owner={ownerId}`. Tag mutations call `/api/tags` directly (per-user, no space param). Folder import via `importFolder()`.
+- **`$lib/stores/chat.svelte.ts`** — Chat state for shared spaces. Messages, presence, SSE connection. `sendMessage()`, `loadMessages()`, `loadMore()`, `clearChat()`, `loadPresence()`.
 - **`$lib/stores/theme.svelte.ts`** — `ThemeMode` (`'light'|'dark'|'system'`), persists to localStorage, respects `prefers-color-scheme`.
 - **`$lib/stores/palette.svelte.ts`** — Accent color palette (8 choices: indigo, blue, teal, green, orange, red, pink, grey). Sets `data-palette` attribute and persists to localStorage. Maps to CSS `--accent`, `--accent-hover`, `--accent-soft` variables.
 - **`$lib/stores/font.svelte.ts`** — Sans-serif font choice (System, Fira Sans, Inter, Ubuntu). Sets `data-font` attribute, persists to localStorage.
@@ -152,7 +165,7 @@ Global CSS utility classes in `app.css`: `.glass`, `.glass-strong`, `.input`, `.
 
 ### Drag-and-drop
 
-`svelte-dnd-action` for internal reorder (columns and items). Native HTML5 drag events on Column for external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. Reorder persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`). Disabled for read-only shared spaces.
+`svelte-dnd-action` for internal reorder (columns and items). Native HTML5 drag events on Column for external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. **Entire folders** (including subfolders) can be dropped onto a column — subdirectories are created as subcategories with all files imported automatically (`$lib/utils/folder-drop.ts`). Reorder persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`). Disabled for read-only shared spaces.
 
 ### Markdown rendering
 
@@ -162,11 +175,13 @@ Notes and descriptions render markdown via `marked` with HTML sanitized through 
 
 Full-screen overlay components follow a shared pattern: glass backdrop (`glass-strong`), Escape key to close, click-outside-to-close, callback props (`onclose`). Key overlays:
 
-- **UserOverlay** — Unified user/settings overlay opened via user icon in Toolbar. Sections: account info & storage bar (multi-user only), privacy toggle (`show_email`), theme toggle, accent palette, font selection (sans-serif + monospace), change password (multi-user only), export/import button. Footer with Admin Panel link (admin, multi-user) and sign out (multi-user). In single-user mode shows only theme, palette, fonts, and data sections.
+- **UserOverlay** — Unified user/settings overlay opened via user icon in Toolbar. Sections: account info & avatar upload & storage bar (multi-user only), privacy toggle (`show_email`), theme toggle, accent palette, font selection (sans-serif + monospace), change password (multi-user only), export/import button. Footer with Admin Panel link (admin, multi-user) and sign out (multi-user). In single-user mode shows only theme, palette, fonts, and data sections.
 - **NoteOverlay / MediaOverlay** — Content viewers for notes and documents.
 - **TextFileOverlay** — Fetches and displays plain text/markdown files with copy-to-clipboard and markdown rendering.
 - **ExportImportOverlay** — Tabbed UI for exporting spaces as ZIP and importing from ZIP (preview + conflict resolution).
 - **SpaceSharingOverlay** — Share space by email, manage permissions, remove access.
+- **ChangelogOverlay** — Space activity log with clickable item navigation.
+- **ChatPanel** — Real-time chat panel for shared spaces with presence indicators.
 - **HelpPanel** — App documentation (inline in Toolbar).
 
 ### Rate limiting
@@ -186,6 +201,10 @@ In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/a
 - `POST /api/categories/[id]/move?space={slug}` — Move entire category subtree to a different space (recursive CTE, transaction-based, physical file migration, slug collision handling).
 - `POST /api/export?spaces={slug|all}&include_files={true|false}` — Export spaces as ZIP with JSON manifest.
 - `POST /api/import?action={preview|execute}&conflict_mode={skip|rename|replace}` — Import ZIP archive.
+- `GET/POST/DELETE /api/chat?space={slug}&owner={id}` — Chat messages for shared spaces (50-message pagination, 2000-char limit).
+- `GET /api/chat/presence?space={slug}&owner={id}` — Online users in a shared space.
+- `GET/POST/DELETE /api/avatar` — User avatar management (2 MB max, JPEG/PNG/GIF/WebP).
+- `GET /api/changelog?space={slug}` — Paginated activity log for a space.
 
 ### Seed endpoint
 

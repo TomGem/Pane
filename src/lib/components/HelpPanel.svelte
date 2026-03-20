@@ -77,7 +77,7 @@
 				</ul>
 			</section>
 			<section class="help-section">
-				<h3>Sharing</h3>
+				<h3>Sharing &amp; chat</h3>
 				<ul>
 					<li><strong>Share spaces</strong> with other users by <strong>username</strong> or <strong>email</strong> from the toolbar or dashboard</li>
 					<li>Username search offers <strong>autocomplete</strong> suggestions as you type</li>
@@ -85,6 +85,8 @@
 					<li>Shared spaces appear in the <strong>"Shared with me"</strong> section on the dashboard</li>
 					<li>Space cards show a <strong>"Shared with N"</strong> indicator when shared</li>
 					<li>Leave a shared space anytime from the dashboard</li>
+					<li><strong>Real-time chat</strong> is available in shared spaces — open the chat panel to message collaborators</li>
+					<li><strong>Presence indicators</strong> show which users are currently online in a shared space</li>
 				</ul>
 			</section>
 			<section class="help-section">
@@ -94,6 +96,7 @@
 					<li>Drag items into expanded subcategories</li>
 					<li>Drag columns to reorder them</li>
 					<li>Drop a <strong>URL</strong> or <strong>file</strong> onto a column to add it instantly</li>
+					<li>Drop an <strong>entire folder</strong> onto a column — subfolders are automatically created as subcategories with all files imported</li>
 				</ul>
 			</section>
 			<section class="help-section">
@@ -169,9 +172,19 @@
 				</ul>
 			</section>
 			<section class="help-section">
+				<h3>Changelog</h3>
+				<ul>
+					<li>Open the <strong>changelog</strong> from the toolbar to see a history of changes in the current space</li>
+					<li>Tracks item, category, and tag creation, updates, and deletions</li>
+					<li>Click on an entry to <strong>navigate to the item</strong> in the board</li>
+					<li>Shows who made each change in shared spaces</li>
+				</ul>
+			</section>
+			<section class="help-section">
 				<h3>Account &amp; storage</h3>
 				<ul>
 					<li>Click the <strong>user icon</strong> to see your account info and storage usage</li>
+					<li>Upload a <strong>profile avatar</strong> from the user menu</li>
 					<li><strong>Change your password</strong> from the <strong>user menu</strong> (person icon)</li>
 					<li><strong>Forgot your password?</strong> Use the link on the login page to reset it via email</li>
 					<li>Each user has a <strong>storage quota</strong> — check your usage in the user menu</li>
