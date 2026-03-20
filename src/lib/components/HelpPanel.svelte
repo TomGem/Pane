@@ -214,7 +214,7 @@
 				<p>Want a visual overview? <a href="/demo.html" target="_blank" class="help-demo-link">Open the interactive feature presentation</a></p>
 			</section>
 			<div class="help-clock">{clockText}</div>
-			<div class="help-version">Pane v2.3.1</div>
+			<div class="help-version">Pane v2.4.0</div>
 		</div>
 	</div>
 </div>
