@@ -47,11 +47,22 @@ export const load: LayoutServerLoad = async ({ params, locals, url }) => {
 	const spaceName = row?.display_name ?? space;
 	const spaces = listSpaces(locals.userId);
 
+	// Check if space has any shares
+	let hasShares = false;
+	if (ownerId === locals.userId) {
+		const authDb = getAuthDb();
+		const shareCount = authDb.prepare(
+			'SELECT COUNT(*) as cnt FROM space_shares WHERE owner_id = ? AND space_slug = ?'
+		).get(locals.userId, space) as { cnt: number };
+		hasShares = shareCount.cnt > 0;
+	}
+
 	return {
 		spaceSlug: space,
 		spaceName,
 		spaces,
 		ownerId: ownerId !== locals.userId ? ownerId : undefined,
-		permission
+		permission,
+		hasShares
 	};
 };

@@ -12,6 +12,17 @@ function channelKey(ownerId: string, spaceSlug: string): string {
 	return `${ownerId}:${spaceSlug}`;
 }
 
+export function getSpaceSubscribers(ownerId: string, spaceSlug: string): string[] {
+	const key = channelKey(ownerId, spaceSlug);
+	const subs = channels.get(key);
+	if (!subs) return [];
+	const ids = new Set<string>();
+	for (const sub of subs) {
+		ids.add(sub.userId);
+	}
+	return [...ids];
+}
+
 export function subscribe(
 	ownerId: string,
 	spaceSlug: string,
@@ -43,6 +54,13 @@ export function subscribe(
 
 	channels.get(key)!.add(subscriber);
 
+	// Emit presence:joined to other subscribers
+	emit(ownerId, spaceSlug, {
+		type: 'presence:joined',
+		timestamp: Date.now(),
+		data: { userId }
+	}, userId);
+
 	// Heartbeat to keep connection alive through proxies
 	const heartbeat = setInterval(() => {
 		try {
@@ -60,6 +78,17 @@ export function subscribe(
 			if (subs.size === 0) {
 				channels.delete(key);
 			}
+		}
+
+		// Only emit presence:left if no other connections remain for this userId
+		const remaining = channels.get(key);
+		const stillConnected = remaining ? [...remaining].some(s => s.userId === userId) : false;
+		if (!stillConnected) {
+			emit(ownerId, spaceSlug, {
+				type: 'presence:left',
+				timestamp: Date.now(),
+				data: { userId }
+			});
 		}
 	};
 }

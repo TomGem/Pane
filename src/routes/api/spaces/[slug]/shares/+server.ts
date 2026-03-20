@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 import { getAuthDb, getUserDb, validateSpaceSlug } from '$lib/server/db';
 import { spaceExists } from '$lib/server/user-schema';
 import { sendSpaceInvitationEmail } from '$lib/server/email';
-import { emitToUser } from '$lib/server/events';
+import { emit, emitToUser } from '$lib/server/events';
 import type { SpaceShare, User } from '$lib/types';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
@@ -134,6 +134,9 @@ export const POST: RequestHandler = async ({ params, request, locals, url }) => 
 
 		// Notify the target user's dashboard via SSE
 		emitToUser(targetUser.id, { type: 'share:created', timestamp: Date.now() });
+
+		// Notify the space channel so the owner's UI can update (e.g. show chat button)
+		emit(locals.userId, slug, { type: 'share:created', timestamp: Date.now() });
 
 		// Check if target user allows showing email
 		const targetUserFull = authDb.prepare('SELECT show_email FROM users WHERE id = ?').get(targetUser.id) as { show_email: number } | undefined;

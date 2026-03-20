@@ -75,6 +75,17 @@ export function initAuthSchema(db: Database.Database) {
 			key TEXT PRIMARY KEY,
 			value TEXT NOT NULL
 		);
+
+		CREATE TABLE IF NOT EXISTS chat_messages (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			owner_id TEXT NOT NULL,
+			space_slug TEXT NOT NULL,
+			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			message TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+		CREATE INDEX IF NOT EXISTS idx_chat_messages_space
+			ON chat_messages(owner_id, space_slug, created_at);
 	`);
 
 	// Add missing columns (migration for existing DBs)

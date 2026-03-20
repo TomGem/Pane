@@ -28,6 +28,8 @@
 		isOwner?: boolean;
 		singleUser?: boolean;
 		ownerId?: string;
+		hasShares?: boolean;
+		chatUnread?: number;
 		onsearch?: (query: string) => void;
 		ontagtoggle?: (tagId: number) => void;
 		oncleartags?: () => void;
@@ -38,9 +40,11 @@
 		onpalettechange?: (id: PaletteId) => void;
 		onfontchange?: (id: FontId) => void;
 		onmonofontchange?: (id: MonoFontId) => void;
+		onchat?: () => void;
+		onshareschange?: (count: number) => void;
 	}
 
-	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', fontId = 'system', monoFontId = 'system', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, singleUser = false, ownerId, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange, onfontchange, onmonofontchange }: Props = $props();
+	let { searchQuery = $bindable(''), tags = [], selectedTagIds = [], themeMode, paletteId = 'indigo', fontId = 'system', monoFontId = 'system', spaceName = 'Desk', spaces = [], spaceSlug = 'desk', user = null, isOwner = true, singleUser = false, ownerId, hasShares = false, chatUnread = 0, onsearch, ontagtoggle, oncleartags, onadd, onaddcategory, ontagupdate, onthemechange, onpalettechange, onfontchange, onmonofontchange, onchat, onshareschange }: Props = $props();
 
 	let showUserOverlay = $state(false);
 	let showSharing = $state(false);
@@ -370,6 +374,14 @@
 		<button class="btn-toolbar-icon" onclick={() => showChangelog = true} aria-label="Changelog" title="Changelog">
 			<Icon name="clock" size={18} />
 		</button>
+		{#if (hasShares || ownerId) && !singleUser}
+			<button class="btn-toolbar-icon chat-btn" onclick={() => onchat?.()} aria-label="Chat" title="Chat">
+				<Icon name="message-circle" size={18} />
+				{#if chatUnread > 0}
+					<span class="chat-unread">{chatUnread > 9 ? '9+' : chatUnread}</span>
+				{/if}
+			</button>
+		{/if}
 		{#if isOwner && !singleUser}
 			<button class="btn-toolbar-icon" onclick={() => showSharing = true} aria-label="Share space" title="Share space">
 				<Icon name="users" size={18} />
@@ -435,6 +447,7 @@
 		{spaceSlug}
 		{spaceName}
 		onclose={() => showSharing = false}
+		{onshareschange}
 	/>
 {/if}
 
@@ -990,6 +1003,27 @@
 		height: 24px;
 		border-radius: 50%;
 		object-fit: cover;
+	}
+
+	.chat-btn {
+		position: relative;
+	}
+
+	.chat-unread {
+		position: absolute;
+		top: 2px;
+		right: 2px;
+		font-size: 9px;
+		font-weight: 700;
+		background: var(--accent);
+		color: white;
+		min-width: 14px;
+		height: 14px;
+		line-height: 14px;
+		text-align: center;
+		border-radius: 9999px;
+		padding: 0 3px;
+		pointer-events: none;
 	}
 
 </style>

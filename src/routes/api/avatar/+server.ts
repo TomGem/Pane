@@ -17,23 +17,26 @@ function getAvatarDir(userId: string): string {
 	return path.join('storage', userId);
 }
 
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!locals.userId) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
+	// Allow fetching another user's avatar via ?user= param
+	const targetUserId = url.searchParams.get('user') || locals.userId;
+
 	const authDb = getAuthDb();
-	const row = authDb.prepare('SELECT avatar_path FROM users WHERE id = ?').get(locals.userId) as { avatar_path: string | null } | undefined;
+	const row = authDb.prepare('SELECT avatar_path FROM users WHERE id = ?').get(targetUserId) as { avatar_path: string | null } | undefined;
 
 	if (!row?.avatar_path) {
 		return new Response(null, { status: 404 });
 	}
 
-	const filePath = path.join('storage', locals.userId, row.avatar_path);
+	const filePath = path.join('storage', targetUserId, row.avatar_path);
 
 	// Prevent path traversal
 	const resolved = path.resolve(filePath);
-	const storageRoot = path.resolve('storage', locals.userId);
+	const storageRoot = path.resolve('storage', targetUserId);
 	if (!resolved.startsWith(storageRoot)) {
 		return json({ error: 'Invalid path' }, { status: 400 });
 	}

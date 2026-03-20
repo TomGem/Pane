@@ -130,14 +130,32 @@ export interface ChangelogEntry {
 	created_at: string;
 }
 
+export interface ChatMessage {
+	id: number;
+	user_id: string;
+	display_name: string;
+	avatar_path: string | null;
+	message: string;
+	created_at: string;
+}
+
+export interface PresenceUser {
+	id: string;
+	display_name: string;
+	avatar_path: string | null;
+}
+
 export type SpaceEventType =
 	| 'item:created' | 'item:updated' | 'item:deleted' | 'item:reordered'
 	| 'category:created' | 'category:updated' | 'category:deleted' | 'category:reordered' | 'category:moved'
 	| 'tag:created' | 'tag:updated' | 'tag:deleted'
 	| 'space:seeded' | 'space:imported'
-	| 'share:created' | 'share:removed';
+	| 'share:created' | 'share:removed'
+	| 'chat:message' | 'chat:cleared'
+	| 'presence:joined' | 'presence:left';
 
 export interface SpaceEvent {
 	type: SpaceEventType;
 	timestamp: number;
+	data?: unknown;
 }

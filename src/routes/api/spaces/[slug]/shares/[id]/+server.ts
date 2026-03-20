@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getAuthDb, validateSpaceSlug } from '$lib/server/db';
-import { emitToUser } from '$lib/server/events';
+import { emit, emitToUser } from '$lib/server/events';
 
 export const PUT: RequestHandler = async ({ params, request, locals }) => {
 	if (!locals.userId) return json({ error: 'Unauthorized' }, { status: 401 });
@@ -55,6 +55,9 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
 
 	// Notify the recipient that a share was removed
 	emitToUser(share.shared_with, { type: 'share:removed', timestamp: Date.now() });
+
+	// Notify the space channel so the owner's UI can update
+	emit(share.owner_id, slug, { type: 'share:removed', timestamp: Date.now() });
 
 	return json({ success: true });
 };

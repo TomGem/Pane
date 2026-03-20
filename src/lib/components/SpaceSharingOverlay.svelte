@@ -19,9 +19,10 @@
 		spaceSlug: string;
 		spaceName: string;
 		onclose: () => void;
+		onshareschange?: (count: number) => void;
 	}
 
-	let { spaceSlug, spaceName, onclose }: Props = $props();
+	let { spaceSlug, spaceName, onclose, onshareschange }: Props = $props();
 
 	let shares = $state<Share[]>([]);
 	let identifier = $state('');
@@ -134,6 +135,7 @@
 				shares = [data.share, ...shares];
 				identifier = '';
 				selectedUserId = null;
+				onshareschange?.(shares.length);
 			}
 		} catch {
 			error = 'Failed to share';
@@ -159,6 +161,7 @@
 			const res = await fetch(`/api/spaces/${spaceSlug}/shares/${share.id}`, { method: 'DELETE' });
 			if (res.ok) {
 				shares = shares.filter(s => s.id !== share.id);
+				onshareschange?.(shares.length);
 			}
 		} catch { /* ignore */ }
 	}

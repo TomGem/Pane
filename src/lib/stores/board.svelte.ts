@@ -330,7 +330,16 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		disconnectSSE();
 		const params = spaceParam(spaceSlug, ownerId);
 		eventSource = new EventSource(`/api/events?${params}`);
-		eventSource.onmessage = () => {
+		eventSource.onmessage = (e) => {
+			try {
+				const event = JSON.parse(e.data);
+				const type = event.type as string;
+				if (type?.startsWith('chat:') || type?.startsWith('presence:')) {
+					return; // Handled by chat store's own SSE connection
+				}
+			} catch {
+				// Not JSON — treat as board event
+			}
 			if (debounceTimer) clearTimeout(debounceTimer);
 			debounceTimer = setTimeout(() => {
 				refresh().catch(console.error);
