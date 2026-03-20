@@ -49,6 +49,7 @@
 	let showUserOverlay = $state(false);
 	let showSharing = $state(false);
 	let showChangelog = $state(false);
+	let showOverflowMenu = $state(false);
 
 	const TAG_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
 
@@ -135,7 +136,9 @@
 	let spaceError = $state<string | null>(null);
 
 	function handleGlobalKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && showChangelog) {
+		if (e.key === 'Escape' && showOverflowMenu) {
+			showOverflowMenu = false;
+		} else if (e.key === 'Escape' && showChangelog) {
 			showChangelog = false;
 		} else if (e.key === 'Escape' && showSharing) {
 			showSharing = false;
@@ -403,7 +406,63 @@
 			{/if}
 		</button>
 	</div>
+
+	<div class="toolbar-overflow">
+		{#if onadd}
+			<button class="btn-toolbar-icon mobile-add-btn" onclick={() => onadd?.()} aria-label="Add item" title="Add item">
+				<Icon name="file-plus" size={18} />
+			</button>
+		{/if}
+		<button class="btn-toolbar-icon" onclick={() => showOverflowMenu = !showOverflowMenu} aria-label="More actions" title="More actions">
+			<Icon name="dots-vertical" size={18} />
+		</button>
+		{#if showOverflowMenu}
+			<div class="overflow-menu glass-strong">
+				{#if onaddcategory}
+					<button class="overflow-menu-item" onclick={() => { showOverflowMenu = false; onaddcategory?.(); }}>
+						<Icon name="folder-plus" size={16} />
+						<span>Add category</span>
+					</button>
+				{/if}
+				<button class="overflow-menu-item" onclick={() => { showOverflowMenu = false; showChangelog = true; }}>
+					<Icon name="clock" size={16} />
+					<span>Changelog</span>
+				</button>
+				{#if (hasShares || ownerId) && !singleUser}
+					<button class="overflow-menu-item" onclick={() => { showOverflowMenu = false; onchat?.(); }}>
+						<Icon name="message-circle" size={16} />
+						<span>Chat</span>
+						{#if chatUnread > 0}
+							<span class="overflow-badge">{chatUnread > 9 ? '9+' : chatUnread}</span>
+						{/if}
+					</button>
+				{/if}
+				{#if isOwner && !singleUser}
+					<button class="overflow-menu-item" onclick={() => { showOverflowMenu = false; showSharing = true; }}>
+						<Icon name="users" size={16} />
+						<span>Share</span>
+					</button>
+				{/if}
+				<button class="overflow-menu-item" onclick={() => { showOverflowMenu = false; showHelp = true; }}>
+					<Icon name="help-circle" size={16} />
+					<span>Help</span>
+				</button>
+				<button class="overflow-menu-item" onclick={() => { showOverflowMenu = false; showUserOverlay = true; }}>
+					{#if user?.avatar_path}
+						<img class="overflow-avatar" src="/api/avatar?t={Date.now()}" alt="" />
+					{:else}
+						<Icon name="user" size={16} />
+					{/if}
+					<span>Settings</span>
+				</button>
+			</div>
+		{/if}
+	</div>
 </header>
+
+{#if showOverflowMenu}
+	<div class="overflow-menu-backdrop" onclick={() => showOverflowMenu = false} aria-hidden="true"></div>
+{/if}
 
 {#if showTagMenu}
 	<div class="tag-menu-backdrop" onclick={() => { showTagMenu = false; editingTagId = null; }} aria-hidden="true"></div>
@@ -1024,6 +1083,102 @@
 		border-radius: 9999px;
 		padding: 0 3px;
 		pointer-events: none;
+	}
+
+	/* Overflow menu — hidden on desktop */
+	.toolbar-overflow {
+		display: none;
+		position: relative;
+		flex-shrink: 0;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.overflow-menu {
+		position: absolute;
+		top: calc(100% + 10px);
+		right: 0;
+		z-index: 150;
+		min-width: 180px;
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-lg);
+		overflow: hidden;
+		background: var(--bg-primary);
+		border: 1px solid var(--border);
+		padding: 4px;
+	}
+
+	.overflow-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		padding: 9px 12px;
+		border-radius: var(--radius-sm);
+		cursor: pointer;
+		font-size: 13px;
+		color: var(--text-primary);
+		transition: background-color var(--transition);
+	}
+
+	.overflow-menu-item:hover {
+		background: var(--accent-soft);
+	}
+
+	.overflow-menu-item :global(svg) {
+		color: var(--text-muted);
+		flex-shrink: 0;
+	}
+
+	.overflow-badge {
+		font-size: 10px;
+		font-weight: 700;
+		background: var(--accent);
+		color: white;
+		min-width: 16px;
+		height: 16px;
+		line-height: 16px;
+		text-align: center;
+		border-radius: 9999px;
+		padding: 0 4px;
+		margin-left: auto;
+	}
+
+	.overflow-avatar {
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		object-fit: cover;
+	}
+
+	.overflow-menu-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 99;
+	}
+
+	/* Mobile breakpoint */
+	@media (max-width: 767px) {
+		.toolbar {
+			padding: 10px 12px;
+			gap: 10px;
+		}
+
+		.toolbar-right {
+			display: none;
+		}
+
+		.toolbar-overflow {
+			display: flex;
+		}
+
+		.toolbar-title {
+			display: none;
+		}
+
+		.space-switcher-btn {
+			max-width: 120px;
+		}
 	}
 
 </style>
