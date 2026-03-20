@@ -82,6 +82,9 @@
 		<p class="auth-footer" style="margin-top: 8px;">
 			Don't have an account? <a href="/register">Register</a>
 		</p>
+		<p class="auth-footer" style="margin-top: 8px;">
+			<a href="/demo.html" target="_blank">See what Pane can do</a>
+		</p>
 	</div>
 </div>
 

@@ -198,8 +198,12 @@
 					<li>Control whether other users can see your <strong>email address</strong> in the privacy settings of the user menu</li>
 				</ul>
 			</section>
+			<section class="help-section">
+				<h3>Feature demo</h3>
+				<p>Want a visual overview? <a href="/demo.html" target="_blank" class="help-demo-link">Open the interactive feature presentation</a></p>
+			</section>
 			<div class="help-clock">{clockText}</div>
-			<div class="help-version">Pane v2.2</div>
+			<div class="help-version">Pane v2.3.1</div>
 		</div>
 	</div>
 </div>
@@ -322,6 +326,11 @@
 		font-size: 12px;
 		color: var(--text-muted);
 		text-align: center;
+	}
+
+	.help-demo-link {
+		color: var(--accent);
+		font-weight: 600;
 	}
 
 	.shortcut-keys :global(kbd) {

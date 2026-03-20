@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pane — Feature Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --bg-card: #181a24;
+    --bg-card-hover: #1e2030;
+    --surface: #232638;
+    --border: #2a2d42;
+    --text: #e2e4ed;
+    --text-dim: #8b8fa7;
+    --accent: #6366f1;
+    --accent-soft: rgba(99,102,241,0.15);
+    --accent-glow: rgba(99,102,241,0.3);
+    --green: #34d399;
+    --orange: #fb923c;
+    --pink: #f472b6;
+    --red: #f87171;
+    --teal: #2dd4bf;
+    --blue: #60a5fa;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ── Slide container ── */
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 6rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(60px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* ── Typography ── */
+  h1 {
+    font-size: 3.8rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 2.6rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    font-size: 1.35rem;
+    color: var(--text-dim);
+    max-width: 700px;
+    line-height: 1.6;
+  }
+
+  .label {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    margin-bottom: 1.2rem;
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #818cf8, #6366f1, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-warm {
+    background: linear-gradient(135deg, var(--orange), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-cool {
+    background: linear-gradient(135deg, var(--teal), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-text-green {
+    background: linear-gradient(135deg, var(--green), var(--teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Layout helpers ── */
+  .center { text-align: center; align-items: center; }
+  .left { text-align: left; align-items: flex-start; }
+
+  .cols {
+    display: grid;
+    gap: 2rem;
+    width: 100%;
+    max-width: 1200px;
+    margin-top: 2rem;
+  }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    border-color: var(--accent);
+  }
+
+  .card .icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .card p {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-top: 0.5rem;
+  }
+
+  .icon-accent { background: var(--accent-soft); color: var(--accent); }
+  .icon-green { background: rgba(52,211,153,0.15); color: var(--green); }
+  .icon-orange { background: rgba(251,146,60,0.15); color: var(--orange); }
+  .icon-pink { background: rgba(244,114,182,0.15); color: var(--pink); }
+  .icon-teal { background: rgba(45,212,191,0.15); color: var(--teal); }
+  .icon-blue { background: rgba(96,165,250,0.15); color: var(--blue); }
+  .icon-red { background: rgba(248,113,113,0.15); color: var(--red); }
+
+  /* ── Kanban mockup ── */
+  .kanban {
+    display: flex;
+    gap: 1.2rem;
+    margin-top: 2rem;
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  .kanban-col {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    min-width: 0;
+  }
+
+  .kanban-col-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .kanban-col-header span {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .kanban-col-count {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    background: var(--surface);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+  }
+
+  .kanban-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.82rem;
+    cursor: grab;
+    transition: border-color 0.2s;
+  }
+
+  .kanban-item:hover { border-color: var(--accent); }
+
+  .kanban-item .item-type {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 0.3rem;
+  }
+
+  .kanban-item .item-title {
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 600;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    margin-right: 0.3rem;
+    margin-top: 0.3rem;
+  }
+
+  .tag-indigo { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+  .tag-green { background: rgba(52,211,153,0.2); color: #6ee7b7; }
+  .tag-orange { background: rgba(251,146,60,0.2); color: #fdba74; }
+  .tag-pink { background: rgba(244,114,182,0.2); color: #f9a8d4; }
+  .tag-teal { background: rgba(45,212,191,0.2); color: #5eead4; }
+
+  /* ── Mockup toolbar ── */
+  .toolbar-mock {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 1.2rem;
+    width: 100%;
+    max-width: 1100px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .toolbar-mock .logo {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 1rem;
+  }
+
+  .toolbar-mock .spacer { flex: 1; }
+
+  .toolbar-mock .search-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.8rem;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    width: 180px;
+  }
+
+  .toolbar-mock .tb-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  /* ── Palette swatches ── */
+  .palettes {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .swatch {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    transition: transform 0.2s, border-color 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .swatch:hover {
+    transform: scale(1.15);
+    border-color: white;
+  }
+
+  .swatch-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 0.4rem;
+  }
+
+  /* ── Tech stack pills ── */
+  .tech-pills {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .pill {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.5rem 1.2rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .pill .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* ── Code block ── */
+  .code-block {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1.5rem 2rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+    text-align: left;
+    max-width: 700px;
+    width: 100%;
+    margin-top: 1.5rem;
+    overflow-x: auto;
+  }
+
+  .code-block .cmd { color: var(--green); }
+  .code-block .flag { color: var(--orange); }
+  .code-block .url { color: var(--blue); }
+  .code-block .comment { color: #555a75; }
+
+  /* ── Feature list ── */
+  .feature-list {
+    list-style: none;
+    max-width: 600px;
+    text-align: left;
+  }
+
+  .feature-list li {
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 1rem;
+    color: var(--text-dim);
+  }
+
+  .feature-list li:last-child { border-bottom: none; }
+
+  .feature-list .check {
+    width: 24px;
+    height: 24px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  /* ── Shortcut table ── */
+  .shortcut-table {
+    margin-top: 1rem;
+    border-collapse: collapse;
+  }
+
+  .shortcut-table td {
+    padding: 0.6rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+  }
+
+  .shortcut-table td:first-child {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .shortcut-table td:last-child {
+    color: var(--text-dim);
+  }
+
+  /* ── Progress / nav ── */
+  .nav {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 100;
+    background: rgba(24,26,36,0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.5rem 1.5rem;
+  }
+
+  .nav button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .nav button:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  .nav button:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .nav .progress-dots {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .nav .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: background 0.3s, transform 0.3s;
+    cursor: pointer;
+  }
+
+  .nav .dot.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: scale(1.3);
+  }
+
+  .slide-number {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 3.5rem;
+    text-align: center;
+  }
+
+  /* ── Animated bg blobs ── */
+  .bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .blob-1 {
+    width: 500px; height: 500px;
+    background: var(--accent);
+    top: -150px; right: -100px;
+    animation: float 12s ease-in-out infinite;
+  }
+
+  .blob-2 {
+    width: 400px; height: 400px;
+    background: var(--pink);
+    bottom: -100px; left: -100px;
+    animation: float 15s ease-in-out infinite reverse;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(30px, -30px); }
+    66% { transform: translate(-20px, 20px); }
+  }
+
+  /* ── Sharing mockup ── */
+  .share-mock {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    max-width: 500px;
+    width: 100%;
+    margin-top: 1.5rem;
+  }
+
+  .share-mock .share-header {
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+  }
+
+  .share-mock .share-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .share-mock .share-row:last-child { border-bottom: none; }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .share-mock .share-info { flex: 1; }
+  .share-mock .share-name { font-weight: 500; font-size: 0.9rem; }
+  .share-mock .share-email { font-size: 0.75rem; color: var(--text-dim); }
+
+  .share-mock .perm-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+
+  .perm-write { background: rgba(52,211,153,0.15); color: var(--green); }
+  .perm-read { background: rgba(96,165,250,0.15); color: var(--blue); }
+  .perm-owner { background: var(--accent-soft); color: var(--accent); }
+
+  .online-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--green);
+    border-radius: 50%;
+    border: 2px solid var(--bg-card);
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+  }
+
+  /* ── Architecture diagram ── */
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+
+  .arch-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .arch-arrow {
+    color: var(--text-dim);
+    font-size: 1.2rem;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 900px) {
+    .slide { padding: 2rem 2rem; }
+    h1 { font-size: 2.4rem; }
+    h2 { font-size: 1.8rem; }
+    .cols-3, .cols-4 { grid-template-columns: 1fr 1fr; }
+    .kanban { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 1: Title ════ -->
+  <div class="slide center active" data-slide="0">
+    <div class="label">Multi-User Kanban Dashboard</div>
+    <h1><span class="gradient-text">Pane</span></h1>
+    <p class="subtitle">
+      Organize links, notes, and documents into draggable columns.<br>
+      Built with SvelteKit 2, Svelte 5 &amp; SQLite.
+    </p>
+    <div class="tech-pills">
+      <span class="pill"><span class="dot" style="background:#ff3e00"></span> SvelteKit 2</span>
+      <span class="pill"><span class="dot" style="background:#ff3e00"></span> Svelte 5 Runes</span>
+      <span class="pill"><span class="dot" style="background:#003b57"></span> SQLite</span>
+      <span class="pill"><span class="dot" style="background:#2dd4bf"></span> SSR + API</span>
+      <span class="pill"><span class="dot" style="background:#f472b6"></span> Real-time SSE</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 2: Board ════ -->
+  <div class="slide center" data-slide="1">
+    <div class="label">Core Experience</div>
+    <h2>The Kanban Board</h2>
+    <p class="subtitle" style="margin-bottom:0.5rem">Drag-and-drop columns and cards. Drop URLs, files, or entire folders directly onto a column.</p>
+
+    <div class="toolbar-mock">
+      <span class="logo">Pane</span>
+      <span class="tb-btn">My Space &#9662;</span>
+      <span class="spacer"></span>
+      <span class="search-box">/ Search...</span>
+      <span class="tb-btn">Tags</span>
+      <span class="tb-btn">+ New</span>
+      <span class="tb-btn">&#9881;</span>
+    </div>
+
+    <div class="kanban">
+      <div class="kanban-col">
+        <div class="kanban-col-header">
+          <span>Getting Started</span>
+          <span class="kanban-col-count">3</span>
+        </div>
+        <div class="kanban-item">
+          <div class="item-type">link</div>
+          <div class="item-title">Svelte Documentation</div>
+          <span class="tag tag-indigo">Tutorial</span>
+          <span class="tag tag-green">Beginner</span>
+        </div>
+        <div class="kanban-item">
+          <div class="item-type">note</div>
+          <div class="item-title">Setup Instructions</div>
+          <span class="tag tag-orange">Reference</span>
+        </div>
+        <div class="kanban-item">
+          <div class="item-type">document</div>
+          <div class="item-title">architecture.pdf</div>
+          <span class="tag tag-pink">Docs</span>
+        </div>
+      </div>
+
+      <div class="kanban-col">
+        <div class="kanban-col-header">
+          <span>In Progress</span>
+          <span class="kanban-col-count">2</span>
+        </div>
+        <div class="kanban-item">
+          <div class="item-type">note</div>
+          <div class="item-title">API design notes</div>
+          <span class="tag tag-teal">Backend</span>
+        </div>
+        <div class="kanban-item">
+          <div class="item-type">link</div>
+          <div class="item-title">MDN Web Docs</div>
+          <span class="tag tag-indigo">Tutorial</span>
+        </div>
+      </div>
+
+      <div class="kanban-col">
+        <div class="kanban-col-header">
+          <span>Resources</span>
+          <span class="kanban-col-count">2</span>
+        </div>
+        <div class="kanban-item">
+          <div class="item-type">document</div>
+          <div class="item-title">wireframes.png</div>
+          <span class="tag tag-pink">Docs</span>
+          <span class="tag tag-orange">Reference</span>
+        </div>
+        <div class="kanban-item">
+          <div class="item-type">link</div>
+          <div class="item-title">GitHub Repository</div>
+          <span class="tag tag-green">Beginner</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 3: Item Types ════ -->
+  <div class="slide center" data-slide="2">
+    <div class="label">Content Types</div>
+    <h2>Three Ways to Capture</h2>
+    <div class="cols cols-3" style="max-width:1000px">
+      <div class="card">
+        <div class="icon icon-blue">&#128279;</div>
+        <h3>Links</h3>
+        <p>Paste a URL &mdash; Pane auto-fetches the page title, description, and favicon. Click to open in a new tab.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-green">&#9998;</div>
+        <h3>Notes</h3>
+        <p>Write in full Markdown with headings, code blocks, and more. Rendered with syntax highlighting and sanitized HTML.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-orange">&#128196;</div>
+        <h3>Documents</h3>
+        <p>Upload files up to 100 MB. Inline preview for images, PDFs, video, audio, and text files with code rendering.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 4: Spaces ════ -->
+  <div class="slide center" data-slide="3">
+    <div class="label">Organization</div>
+    <h2><span class="gradient-text-cool">Spaces &amp; Hierarchy</span></h2>
+    <p class="subtitle" style="margin-bottom:1.5rem">Isolated workspaces with nested subcategories for deep organization.</p>
+    <div class="cols cols-2" style="max-width:900px">
+      <div class="card">
+        <div class="icon icon-accent">&#127968;</div>
+        <h3>Multiple Spaces</h3>
+        <p>Each space has its own categories, items, and file storage. Switch instantly from the dashboard or toolbar dropdown.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-teal">&#128193;</div>
+        <h3>Subcategories</h3>
+        <p>Nest categories for deeper structure. Drill down with breadcrumb navigation. Promote or demote categories freely.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-orange">&#127991;</div>
+        <h3>Tags &amp; Filtering</h3>
+        <p>Colored tags shared across spaces. Filter by multiple tags combined with full-text search across titles and content.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-pink">&#128270;</div>
+        <h3>Full-Text Search</h3>
+        <p>Press <code>/</code> to search. Matches auto-expand subcategories. Combines with tag filters for precise results.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 5: Sharing ════ -->
+  <div class="slide center" data-slide="4">
+    <div class="label">Collaboration</div>
+    <h2><span class="gradient-text-warm">Share &amp; Chat</span></h2>
+    <p class="subtitle" style="margin-bottom:0.5rem">Share spaces with other users. Collaborate in real-time.</p>
+
+    <div style="display:flex; gap:2rem; margin-top:1.5rem; flex-wrap:wrap; justify-content:center; max-width:900px; width:100%">
+      <div class="share-mock" style="flex:1; min-width:280px">
+        <div class="share-header">Space Sharing</div>
+        <div class="share-row">
+          <div style="position:relative">
+            <div class="avatar" style="background:var(--accent-soft); color:var(--accent)">TG</div>
+          </div>
+          <div class="share-info">
+            <div class="share-name">Tom Gem</div>
+            <div class="share-email">tom@example.com</div>
+          </div>
+          <span class="perm-badge perm-owner">Owner</span>
+        </div>
+        <div class="share-row">
+          <div style="position:relative">
+            <div class="avatar" style="background:rgba(52,211,153,0.15); color:var(--green)">JD</div>
+            <div class="online-dot"></div>
+          </div>
+          <div class="share-info">
+            <div class="share-name">Jane Doe</div>
+            <div class="share-email">jane@example.com</div>
+          </div>
+          <span class="perm-badge perm-write">Can edit</span>
+        </div>
+        <div class="share-row">
+          <div style="position:relative">
+            <div class="avatar" style="background:rgba(251,146,60,0.15); color:var(--orange)">AS</div>
+          </div>
+          <div class="share-info">
+            <div class="share-name">Alex Smith</div>
+            <div class="share-email">alex@example.com</div>
+          </div>
+          <span class="perm-badge perm-read">View only</span>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1; min-width:260px; display:flex; flex-direction:column;">
+        <h3 style="color:var(--green)">Real-time Features</h3>
+        <ul class="feature-list" style="margin-top:0.5rem">
+          <li><span class="check">&#10003;</span> Live chat in shared spaces</li>
+          <li><span class="check">&#10003;</span> Presence indicators (online dots)</li>
+          <li><span class="check">&#10003;</span> SSE-powered instant updates</li>
+          <li><span class="check">&#10003;</span> Read-only &amp; read-write permissions</li>
+          <li><span class="check">&#10003;</span> Owner can clear chat history</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 6: Theming ════ -->
+  <div class="slide center" data-slide="5">
+    <div class="label">Customization</div>
+    <h2>Theming &amp; Appearance</h2>
+    <p class="subtitle">Light, dark, and system themes. 8 accent palettes. 4 sans-serif + 4 monospace font choices.</p>
+
+    <div class="palettes">
+      <div style="text-align:center">
+        <div class="swatch" style="background: #6366f1;"></div>
+        <div class="swatch-label">Indigo</div>
+      </div>
+      <div style="text-align:center">
+        <div class="swatch" style="background: #3b82f6;"></div>
+        <div class="swatch-label">Blue</div>
+      </div>
+      <div style="text-align:center">
+        <div class="swatch" style="background: #14b8a6;"></div>
+        <div class="swatch-label">Teal</div>
+      </div>
+      <div style="text-align:center">
+        <div class="swatch" style="background: #22c55e;"></div>
+        <div class="swatch-label">Green</div>
+      </div>
+      <div style="text-align:center">
+        <div class="swatch" style="background: #f97316;"></div>
+        <div class="swatch-label">Orange</div>
+      </div>
+      <div style="text-align:center">
+        <div class="swatch" style="background: #ef4444;"></div>
+        <div class="swatch-label">Red</div>
+      </div>
+      <div style="text-align:center">
+        <div class="swatch" style="background: #ec4899;"></div>
+        <div class="swatch-label">Pink</div>
+      </div>
+      <div style="text-align:center">
+        <div class="swatch" style="background: #6b7280;"></div>
+        <div class="swatch-label">Grey</div>
+      </div>
+    </div>
+
+    <div class="cols cols-2" style="max-width:700px; margin-top:2rem">
+      <div class="card" style="padding:1.2rem 1.5rem">
+        <h3 style="font-size:1rem">Sans-serif</h3>
+        <p style="margin-top:0.3rem">System &middot; Fira Sans &middot; Inter &middot; Ubuntu</p>
+      </div>
+      <div class="card" style="padding:1.2rem 1.5rem">
+        <h3 style="font-size:1rem; font-family:'Fira Code',monospace">Monospace</h3>
+        <p style="margin-top:0.3rem">System &middot; Fira Code &middot; JetBrains Mono &middot; Source Code Pro</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 7: Auth & Admin ════ -->
+  <div class="slide center" data-slide="6">
+    <div class="label">Security</div>
+    <h2><span class="gradient-text-green">Auth &amp; Administration</span></h2>
+    <div class="cols cols-3" style="max-width:1050px">
+      <div class="card">
+        <div class="icon icon-accent">&#128274;</div>
+        <h3>Multi-User Auth</h3>
+        <p>Invite codes, email verification, session-based login, password reset. Scrypt password hashing.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-green">&#128100;</div>
+        <h3>Single-User Mode</h3>
+        <p>Set <code>SINGLE_USER=true</code> for self-hosting without authentication. Zero config.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-red">&#128737;</div>
+        <h3>Admin Panel</h3>
+        <p>Generate invite codes, manage users, view storage usage, set per-user quotas, block accounts.</p>
+      </div>
+    </div>
+    <div class="cols cols-2" style="max-width:700px">
+      <div class="card" style="padding:1.2rem 1.5rem">
+        <h3 style="font-size:1rem">Rate Limiting</h3>
+        <p>In-memory per-IP: 100 req / 60s on all API routes</p>
+      </div>
+      <div class="card" style="padding:1.2rem 1.5rem">
+        <h3 style="font-size:1rem">Security Headers</h3>
+        <p>CSP, XSS protection, DOMPurify sanitization, SSRF guards</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 8: DnD & Import ════ -->
+  <div class="slide center" data-slide="7">
+    <div class="label">Productivity</div>
+    <h2>Drag, Drop &amp; Import</h2>
+    <div class="cols cols-2" style="max-width:900px">
+      <div class="card">
+        <div class="icon icon-blue">&#128065;</div>
+        <h3>Drag &amp; Drop</h3>
+        <p>Reorder columns and items. Drop URLs to create links. Drop files to upload. Drop <code>.webloc</code> files to auto-convert to links. Drop <code>.md</code> files as notes.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-orange">&#128194;</div>
+        <h3>Folder Import</h3>
+        <p>Drop an entire folder onto a column. Subfolders become subcategories. All files are imported automatically.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-teal">&#128230;</div>
+        <h3>Export / Import</h3>
+        <p>Back up spaces as ZIP archives. Import with preview, conflict resolution (skip / rename / replace), and optional file inclusion.</p>
+      </div>
+      <div class="card">
+        <div class="icon icon-pink">&#128203;</div>
+        <h3>Activity Changelog</h3>
+        <p>Every space tracks all changes. Click entries to navigate to items. In shared spaces, see who made each change.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 9: Shortcuts ════ -->
+  <div class="slide center" data-slide="8">
+    <div class="label">Efficiency</div>
+    <h2>Keyboard Shortcuts</h2>
+    <table class="shortcut-table">
+      <tr><td><code>/</code> &nbsp;or&nbsp; <code>Ctrl + K</code></td><td>Focus search</td></tr>
+      <tr><td><code>Ctrl + N</code></td><td>New item</td></tr>
+      <tr><td><code>Ctrl + Shift + N</code></td><td>New category</td></tr>
+      <tr><td><code>Escape</code></td><td>Close modal / overlay / clear search</td></tr>
+    </table>
+
+    <div class="cols cols-3" style="max-width:900px; margin-top:2rem">
+      <div class="card" style="padding:1.2rem 1.5rem; text-align:center">
+        <h3 style="font-size:2rem; margin-bottom:0.3rem">&#9889;</h3>
+        <p>Full SSR &mdash; fast first paint</p>
+      </div>
+      <div class="card" style="padding:1.2rem 1.5rem; text-align:center">
+        <h3 style="font-size:2rem; margin-bottom:0.3rem">&#128274;</h3>
+        <p>Privacy-first &mdash; all data local</p>
+      </div>
+      <div class="card" style="padding:1.2rem 1.5rem; text-align:center">
+        <h3 style="font-size:2rem; margin-bottom:0.3rem">&#127760;</h3>
+        <p>Self-hosted fonts &mdash; no CDN calls</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 10: Architecture ════ -->
+  <div class="slide center" data-slide="9">
+    <div class="label">Under the Hood</div>
+    <h2>Architecture</h2>
+    <p class="subtitle" style="margin-bottom:0.5rem">Per-user SQLite databases + central auth DB. Clean data flow from server to client.</p>
+
+    <div class="arch-flow">
+      <div class="arch-box" style="border-color:var(--accent)">hooks.server.ts</div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="border-color:var(--teal)">+layout.server.ts</div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="border-color:var(--green)">+page.server.ts</div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="border-color:var(--orange)">BoardStore</div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="border-color:var(--pink)">API routes</div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-box" style="border-color:var(--blue)">SQLite</div>
+    </div>
+
+    <div class="cols cols-2" style="max-width:800px; margin-top:2rem">
+      <div class="card" style="padding:1.2rem 1.5rem">
+        <h3 style="font-size:0.95rem; color:var(--accent)">data/{userId}.db</h3>
+        <p>Per-user DB: spaces, categories, items, tags, changelog</p>
+      </div>
+      <div class="card" style="padding:1.2rem 1.5rem">
+        <h3 style="font-size:0.95rem; color:var(--pink)">data/_auth.db</h3>
+        <p>Central: users, sessions, invite codes, space shares, chat</p>
+      </div>
+    </div>
+
+    <div class="cols cols-3" style="max-width:900px; margin-top:1rem">
+      <div class="card" style="padding:1rem 1.2rem; text-align:center">
+        <p style="font-size:0.85rem"><strong>Svelte 5 Runes</strong><br>$state, $derived, $effect</p>
+      </div>
+      <div class="card" style="padding:1rem 1.2rem; text-align:center">
+        <p style="font-size:0.85rem"><strong>Sync SQLite</strong><br>.run(), .get(), .all()</p>
+      </div>
+      <div class="card" style="padding:1rem 1.2rem; text-align:center">
+        <p style="font-size:0.85rem"><strong>SSE Events</strong><br>Real-time notifications</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 11: Deploy ════ -->
+  <div class="slide center" data-slide="10">
+    <div class="label">Deployment</div>
+    <h2>Get Started in Seconds</h2>
+
+    <div class="code-block">
+      <span class="comment"># Quick start with Docker</span><br>
+      <span class="cmd">docker run</span> <span class="flag">-d -p</span> 3000:3000 \<br>
+      &nbsp;&nbsp;<span class="flag">-v</span> ./data:/app/data \<br>
+      &nbsp;&nbsp;<span class="flag">-v</span> ./storage:/app/storage \<br>
+      &nbsp;&nbsp;<span class="url">ghcr.io/tomgem/pane:latest</span><br><br>
+      <span class="comment"># Or from source</span><br>
+      <span class="cmd">git clone</span> <span class="url">https://github.com/TomGem/Pane.git</span><br>
+      <span class="cmd">cd</span> Pane<br>
+      <span class="cmd">pnpm install</span> && <span class="cmd">pnpm dev</span>
+    </div>
+
+    <div class="cols cols-3" style="max-width:900px; margin-top:2rem">
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div class="icon icon-blue" style="margin:0 auto 0.5rem">&#128051;</div>
+        <h3 style="font-size:0.95rem">Docker</h3>
+        <p>One command deploy with persistent volumes</p>
+      </div>
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div class="icon icon-green" style="margin:0 auto 0.5rem">&#9889;</div>
+        <h3 style="font-size:0.95rem">Node.js</h3>
+        <p>adapter-node for production builds</p>
+      </div>
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div class="icon icon-accent" style="margin:0 auto 0.5rem">&#9881;</div>
+        <h3 style="font-size:0.95rem">CI/CD</h3>
+        <p>GitHub Actions auto-publish to GHCR on tagged releases</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════ SLIDE 12: Summary ════ -->
+  <div class="slide center" data-slide="11">
+    <div class="label">Summary</div>
+    <h1><span class="gradient-text">Pane</span></h1>
+    <p class="subtitle" style="margin-bottom:2rem">A complete, self-hosted Kanban dashboard for teams and individuals.</p>
+
+    <div class="cols cols-4" style="max-width:1100px">
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div style="font-size:1.8rem; margin-bottom:0.3rem">&#128203;</div>
+        <p style="font-weight:600; color:var(--text); font-size:0.85rem">Links, Notes &amp; Docs</p>
+      </div>
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div style="font-size:1.8rem; margin-bottom:0.3rem">&#128101;</div>
+        <p style="font-weight:600; color:var(--text); font-size:0.85rem">Multi-user + Sharing</p>
+      </div>
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div style="font-size:1.8rem; margin-bottom:0.3rem">&#127912;</div>
+        <p style="font-weight:600; color:var(--text); font-size:0.85rem">Theming &amp; Palettes</p>
+      </div>
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div style="font-size:1.8rem; margin-bottom:0.3rem">&#128274;</div>
+        <p style="font-weight:600; color:var(--text); font-size:0.85rem">Private &amp; Self-hosted</p>
+      </div>
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div style="font-size:1.8rem; margin-bottom:0.3rem">&#128193;</div>
+        <p style="font-weight:600; color:var(--text); font-size:0.85rem">Subcategories</p>
+      </div>
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div style="font-size:1.8rem; margin-bottom:0.3rem">&#128172;</div>
+        <p style="font-weight:600; color:var(--text); font-size:0.85rem">Real-time Chat</p>
+      </div>
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div style="font-size:1.8rem; margin-bottom:0.3rem">&#128230;</div>
+        <p style="font-weight:600; color:var(--text); font-size:0.85rem">Export &amp; Import</p>
+      </div>
+      <div class="card" style="padding:1.2rem; text-align:center">
+        <div style="font-size:1.8rem; margin-bottom:0.3rem">&#128051;</div>
+        <p style="font-weight:600; color:var(--text); font-size:0.85rem">Docker Ready</p>
+      </div>
+    </div>
+
+    <p style="margin-top:2.5rem; color:var(--text-dim); font-size:1rem">
+      MIT Licensed &mdash; <span style="color:var(--accent)">github.com/TomGem/Pane</span>
+    </p>
+  </div>
+</div>
+
+<!-- ── Navigation bar ── -->
+<div class="nav">
+  <button id="prevBtn" disabled>&larr; Prev</button>
+  <div class="progress-dots" id="dots"></div>
+  <span class="slide-number" id="slideNum">1 / 12</span>
+  <button id="nextBtn">Next &rarr;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+  let current = 0;
+
+  // Build dots
+  const dotsContainer = document.getElementById('dots');
+  for (let i = 0; i < totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.addEventListener('click', () => goTo(i));
+    dotsContainer.appendChild(dot);
+  }
+
+  const dots = dotsContainer.querySelectorAll('.dot');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const slideNum = document.getElementById('slideNum');
+
+  function goTo(n) {
+    if (n < 0 || n >= totalSlides || n === current) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current === n ? current : (n > current ? current : current)], 0);
+
+    const prev = current;
+    current = n;
+
+    // Reset exit after transition
+    setTimeout(() => {
+      slides[prev].classList.remove('exit');
+    }, 500);
+
+    slides[current].classList.add('active');
+    dots.forEach((d, i) => d.classList.toggle('active', i === current));
+    slideNum.textContent = `${current + 1} / ${totalSlides}`;
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === totalSlides - 1;
+  }
+
+  prevBtn.addEventListener('click', () => goTo(current - 1));
+  nextBtn.addEventListener('click', () => goTo(current + 1));
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+    if (e.key === 'End') { e.preventDefault(); goTo(totalSlides - 1); }
+  });
+
+  // Touch swipe support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      diff > 0 ? goTo(current + 1) : goTo(current - 1);
+    }
+  });
+</script>
+
+</body>
+</html>
