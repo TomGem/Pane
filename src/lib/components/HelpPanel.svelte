@@ -211,10 +211,13 @@
 			{/if}
 			<section class="help-section">
 				<h3>Feature demo</h3>
-				<p>Want a visual overview? <a href="/demo.html" target="_blank" class="help-demo-link">Open the interactive feature presentation</a></p>
+				<ul>
+					<li>Want a visual overview? <a href="/demo.html" target="_blank" class="help-demo-link">Open the interactive feature presentation</a></li>
+					<li>How was Pane built? <a href="/presentation.html" target="_blank" class="help-demo-link">Open the AI-assisted coding journey presentation</a></li>
+				</ul>
 			</section>
 			<div class="help-clock">{clockText}</div>
-			<div class="help-version">Pane v2.4.0</div>
+			<div class="help-version">Pane v2.4.1</div>
 		</div>
 	</div>
 </div>

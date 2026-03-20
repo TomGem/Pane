@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Building a Full-Stack App Without Writing a Line of Code</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/black.min.css">
+  <style>
+    :root {
+      --r-background-color: #0a0a0f;
+      --r-main-color: #e0e0e8;
+      --r-heading-color: #ffffff;
+      --r-link-color: #7c93ee;
+      --r-link-color-hover: #9db0ff;
+      --r-selection-background-color: #7c93ee40;
+      --r-heading-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --r-main-font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --r-code-font: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+      --accent: #7c93ee;
+      --accent-dim: #7c93ee30;
+      --surface: #16161e;
+      --surface-light: #1e1e2a;
+      --text-dim: #8888a0;
+      --green: #6ec87a;
+      --orange: #e8a654;
+      --red: #e06070;
+    }
+
+    .reveal {
+      font-size: 28px;
+    }
+
+    .reveal h1 {
+      font-size: 2em;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .reveal h2 {
+      font-size: 1.5em;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.6em;
+    }
+
+    .reveal h3 {
+      font-size: 1.1em;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .reveal p, .reveal li {
+      line-height: 1.6;
+      color: var(--r-main-color);
+    }
+
+    .reveal .subtitle {
+      color: var(--text-dim);
+      font-size: 0.7em;
+      font-weight: 400;
+      margin-top: 0.3em;
+    }
+
+    .reveal .meta {
+      color: var(--text-dim);
+      font-size: 0.45em;
+      font-style: italic;
+      margin-top: 1.5em;
+    }
+
+    .reveal .accent {
+      color: var(--accent);
+    }
+
+    .reveal .green {
+      color: var(--green);
+    }
+
+    .reveal .orange {
+      color: var(--orange);
+    }
+
+    .reveal .red {
+      color: var(--red);
+    }
+
+    .reveal .dim {
+      color: var(--text-dim);
+    }
+
+    .reveal .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4em 2em;
+      text-align: left;
+      max-width: 720px;
+      margin: 0.8em auto;
+      font-size: 0.85em;
+    }
+
+    .reveal .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.3em 0.6em;
+      border-radius: 6px;
+      background: var(--surface);
+    }
+
+    .reveal .stat-label {
+      color: var(--text-dim);
+    }
+
+    .reveal .stat-value {
+      color: var(--accent);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .reveal .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.6em;
+      max-width: 700px;
+      margin: 0.8em auto;
+    }
+
+    .reveal .tool-card {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 0.6em 0.8em;
+      text-align: center;
+    }
+
+    .reveal .tool-card .tool-name {
+      font-weight: 600;
+      font-size: 0.85em;
+      color: #fff;
+    }
+
+    .reveal .tool-card .tool-desc {
+      font-size: 0.55em;
+      color: var(--text-dim);
+      margin-top: 0.2em;
+    }
+
+    .reveal .cycle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3em;
+      flex-wrap: wrap;
+      margin: 0.8em 0;
+      font-size: 0.85em;
+    }
+
+    .reveal .cycle-step {
+      background: var(--surface);
+      padding: 0.4em 0.8em;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .reveal .cycle-arrow {
+      color: var(--text-dim);
+      font-size: 0.9em;
+    }
+
+    .reveal .timeline-item {
+      text-align: left;
+      padding: 0.3em 0.6em;
+      border-left: 3px solid var(--accent-dim);
+      margin: 0.3em 0;
+      font-size: 0.8em;
+    }
+
+    .reveal .timeline-item.highlight {
+      border-left-color: var(--accent);
+      background: var(--surface);
+      border-radius: 0 6px 6px 0;
+    }
+
+    .reveal pre {
+      width: 100%;
+      margin: 0.5em 0;
+      box-shadow: none;
+    }
+
+    .reveal pre code {
+      font-size: 0.75em;
+      line-height: 1.5;
+      padding: 0.8em 1em;
+      border-radius: 8px;
+      background: var(--surface);
+      max-height: 450px;
+    }
+
+    .reveal code {
+      font-family: var(--r-code-font);
+    }
+
+    .reveal .inline-code {
+      background: var(--surface);
+      padding: 0.1em 0.4em;
+      border-radius: 4px;
+      font-family: var(--r-code-font);
+      font-size: 0.85em;
+    }
+
+    .reveal blockquote {
+      background: var(--surface);
+      border-left: 4px solid var(--accent);
+      padding: 0.6em 1em;
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+      width: 85%;
+      margin: 0.5em auto;
+      box-shadow: none;
+    }
+
+    .reveal blockquote p {
+      color: var(--text-dim);
+    }
+
+    .reveal ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .reveal ul li {
+      padding: 0.2em 0;
+      font-size: 0.85em;
+    }
+
+    .reveal ul li::before {
+      content: "\2022";
+      color: var(--accent);
+      font-weight: bold;
+      display: inline-block;
+      width: 1em;
+    }
+
+    .reveal .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5em;
+      text-align: left;
+      align-items: start;
+    }
+
+    .reveal .card {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 0.6em 0.8em;
+    }
+
+    .reveal .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.4em;
+    }
+
+    .reveal .card ul {
+      margin: 0;
+    }
+
+    .reveal .big-number {
+      font-size: 2.6em;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1.1;
+    }
+
+    .reveal .big-number-label {
+      font-size: 0.65em;
+      color: var(--text-dim);
+    }
+
+    .reveal .commit-msg {
+      font-family: var(--r-code-font);
+      font-size: 0.7em;
+      color: var(--text-dim);
+      background: var(--surface);
+      padding: 0.2em 0.5em;
+      border-radius: 4px;
+      display: inline-block;
+      margin: 0.1em 0;
+    }
+
+    .reveal .takeaway-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5em;
+      text-align: left;
+      font-size: 0.75em;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .reveal .takeaway {
+      background: var(--surface);
+      padding: 0.5em 0.7em;
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+    }
+
+    .reveal .takeaway:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+      max-width: 50%;
+      justify-self: center;
+    }
+
+    .reveal .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.8em;
+      text-align: center;
+      margin: 0.8em auto;
+      max-width: 750px;
+    }
+
+    .reveal .role-card {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 0.7em;
+    }
+
+    .reveal .role-card h3 {
+      margin-bottom: 0.3em;
+    }
+
+    .reveal .role-card ul {
+      text-align: left;
+      font-size: 0.9em;
+    }
+
+    .reveal .slide-number {
+      color: var(--text-dim) !important;
+      font-size: 14px !important;
+    }
+
+    .reveal .progress span {
+      background: var(--accent) !important;
+    }
+
+    .reveal .controls button {
+      color: var(--accent) !important;
+    }
+
+    .reveal .footer-note {
+      position: fixed;
+      bottom: 1em;
+      right: 1.5em;
+      font-size: 0.4em;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Slide 1: Title -->
+      <section>
+        <h1>Building a Full-Stack App<br><span class="accent">Without Writing a Line of Code</span></h1>
+        <p class="subtitle">An AI-Assisted Coding Journey</p>
+      </section>
+
+      <!-- Slide 2: What We Built -->
+      <section>
+        <h2>What We Built</h2>
+        <h3>Pane &mdash; A Multi-User Kanban Dashboard</h3>
+        <br>
+        <div class="two-col" style="font-size: 0.85em;">
+          <div>
+            <ul>
+              <li>Organize links, notes &amp; files in draggable columns</li>
+              <li>Multiple spaces per user</li>
+              <li>Real-time sharing &amp; chat</li>
+              <li>Full auth system with invite codes</li>
+              <li>Folder drag-and-drop, markdown, export/import</li>
+            </ul>
+          </div>
+          <div>
+            <ul>
+              <li>Dark/light themes, 8 accent palettes, 4 fonts</li>
+              <li>Admin panel, legal pages, changelog</li>
+              <li>Docker deployment with CI/CD</li>
+              <li>Mobile-responsive</li>
+              <li>Live at <span class="accent">pane.feinwerk.dev</span></li>
+            </ul>
+          </div>
+        </div>
+        <br>
+        <p style="font-size: 0.65em; color: var(--text-dim);">SvelteKit 2 &bull; SQLite &bull; Node.js &bull; 7 runtime dependencies</p>
+      </section>
+
+      <!-- Slide 3: By the Numbers -->
+      <section>
+        <h2>By the Numbers</h2>
+        <div class="stat-grid">
+          <div class="stat-row">
+            <span class="stat-label">Total commits</span>
+            <span class="stat-value">140</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Calendar days</span>
+            <span class="stat-value">21</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Active coding days</span>
+            <span class="stat-value">14</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Co-Authored commits</span>
+            <span class="stat-value">138 / 140</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Lines of code</span>
+            <span class="stat-value">~19,000</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Source files</span>
+            <span class="stat-value">123</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">API route files</span>
+            <span class="stat-value">46</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Svelte components</span>
+            <span class="stat-value">22</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Client stores</span>
+            <span class="stat-value">6</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Runtime dependencies</span>
+            <span class="stat-value">7</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Version range</span>
+            <span class="stat-value">1.0 &rarr; 2.4.0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Lines manually written</span>
+            <span class="stat-value">0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 4: The Toolchain -->
+      <section>
+        <h2>The Toolchain</h2>
+        <div class="tool-grid">
+          <div class="tool-card">
+            <div class="tool-name">Claude Code</div>
+            <div class="tool-desc">AI pair programmer<br>(CLI agent)</div>
+          </div>
+          <div class="tool-card">
+            <div class="tool-name">SvelteKit 2</div>
+            <div class="tool-desc">Full-stack framework<br>(SSR + API)</div>
+          </div>
+          <div class="tool-card">
+            <div class="tool-name">SQLite</div>
+            <div class="tool-desc">Embedded database<br>(better-sqlite3)</div>
+          </div>
+          <div class="tool-card">
+            <div class="tool-name">GitHub + Actions</div>
+            <div class="tool-desc">Version control &amp;<br>CI/CD pipeline</div>
+          </div>
+          <div class="tool-card">
+            <div class="tool-name">Docker + ghcr.io</div>
+            <div class="tool-desc">Containerization &amp;<br>image registry</div>
+          </div>
+          <div class="tool-card">
+            <div class="tool-name">Traefik</div>
+            <div class="tool-desc">Reverse proxy &amp;<br>auto-HTTPS</div>
+          </div>
+        </div>
+        <br>
+        <p style="font-size: 0.65em; color: var(--text-dim);">Package manager: pnpm &bull; Adapter: adapter-node &bull; No CSS framework</p>
+      </section>
+
+      <!-- Slide 5: How Claude Code Works -->
+      <section>
+        <h2>How Claude Code Works</h2>
+        <p style="font-size: 0.75em; color: var(--text-dim); margin-bottom: 0.5em;">For the non-developers in the room</p>
+        <div class="cycle">
+          <span class="cycle-step">Describe</span>
+          <span class="cycle-arrow">&rarr;</span>
+          <span class="cycle-step">Read</span>
+          <span class="cycle-arrow">&rarr;</span>
+          <span class="cycle-step">Write</span>
+          <span class="cycle-arrow">&rarr;</span>
+          <span class="cycle-step">Review</span>
+          <span class="cycle-arrow">&rarr;</span>
+          <span class="cycle-step">Commit</span>
+        </div>
+        <br>
+        <div class="two-col" style="font-size: 0.78em;">
+          <div>
+            <p><span class="accent">You</span> describe what you want in plain English.</p>
+            <p><span class="accent">Claude</span> reads the existing code, writes the changes, and explains what it did.</p>
+            <p><span class="accent">You</span> review, ask for adjustments, and approve.</p>
+          </div>
+          <div>
+            <p style="margin-bottom: 0.4em;">The key document: <span class="inline-code">CLAUDE.md</span></p>
+            <p style="font-size: 0.9em;">A file in the project root that acts as a <strong>"project constitution"</strong> &mdash; it tells Claude the architecture, conventions, and rules. Updated with every feature.</p>
+          </div>
+        </div>
+        <br>
+        <blockquote><p>This is not "vibe coding" &mdash; it's collaborative engineering with an AI development team.</p></blockquote>
+      </section>
+
+      <!-- Slide 6: Day 1 -->
+      <section>
+        <h2>Day 1 &mdash; Feb 28</h2>
+        <div style="display: flex; align-items: center; gap: 1.2em; justify-content: center; margin: 0.5em 0;">
+          <div>
+            <div class="big-number">30</div>
+            <div class="big-number-label">commits</div>
+          </div>
+          <div style="font-size: 0.75em; text-align: left; color: var(--text-dim);">
+            Starting at <span class="accent">2:33 AM</span><br>
+            Ending at <span class="accent">3:07 AM</span> the next day
+          </div>
+        </div>
+        <br>
+        <p style="font-size: 0.8em;">From an empty directory to a working Kanban board:</p>
+        <div style="display: flex; gap: 0.3em; flex-wrap: wrap; justify-content: center; margin: 0.5em 0;">
+          <span class="commit-msg">Initial commit with SvelteKit scaffold</span>
+          <span class="commit-msg">Add drag-and-drop columns</span>
+          <span class="commit-msg">Add spaces support</span>
+          <span class="commit-msg">Add dark/light themes</span>
+          <span class="commit-msg">Add Docker support</span>
+          <span class="commit-msg">Add keyboard shortcuts</span>
+          <span class="commit-msg">Dockerize for production</span>
+        </div>
+        <br>
+        <p style="font-size: 0.65em; color: var(--text-dim);">Peak commit hours: 23:00 (19) &bull; 01:00 (15) &bull; 00:00 (13) &bull; 22:00 (12)</p>
+      </section>
+
+      <!-- Slide 7: Week 1 -->
+      <section>
+        <h2>Week 1 &mdash; Foundation</h2>
+        <p style="font-size: 0.7em; color: var(--text-dim);">Feb 28 &ndash; Mar 6 &bull; Rapid feature development</p>
+        <br>
+        <div class="two-col" style="font-size: 0.8em;">
+          <div class="card">
+            <h3>Features Added</h3>
+            <ul>
+              <li>Tag system with filtering</li>
+              <li>Full-text search</li>
+              <li>File uploads &amp; document storage</li>
+              <li>Export / Import (ZIP archives)</li>
+              <li>Subcategories &amp; breadcrumb navigation</li>
+              <li>Folder drag-and-drop</li>
+              <li>Markdown rendering</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Infrastructure</h3>
+            <ul>
+              <li>SQLite per-space databases</li>
+              <li>Link meta-fetching (title, favicon)</li>
+              <li>Keyboard shortcuts</li>
+              <li>8 accent color palettes</li>
+              <li>Seed data for empty boards</li>
+              <li>Glass-morphism UI</li>
+              <li>Mobile-responsive layout</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 8: The Quiet Period -->
+      <section>
+        <h2>The Quiet Period</h2>
+        <p style="font-size: 0.7em; color: var(--text-dim);">Mar 7 &ndash; 13 &bull; 8 commits across 7 days</p>
+        <br>
+        <div style="max-width: 600px; margin: 0 auto;">
+          <div class="timeline-item">Font selection system (sans-serif + monospace)</div>
+          <div class="timeline-item">Slug collision handling</div>
+          <div class="timeline-item">Category hierarchy improvements</div>
+          <div class="timeline-item">Bug fixes and polish</div>
+        </div>
+        <br>
+        <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center;">
+          <p style="font-size: 0.85em; margin: 0;">The AI doesn't work while you are skiing.</p>
+          <p style="font-size: 0.75em; color: var(--text-dim); margin: 0.3em 0 0 0;">Human availability drives the pace. Life, work, and other priorities continued. The project moved when I had time &mdash; not on a sprint schedule.</p>
+        </div>
+      </section>
+
+      <!-- Slide 9: A Midnight Sprint -->
+      <section>
+        <h2>A Midnight Sprint</h2>
+        <p style="font-size: 0.7em; color: var(--text-dim);">Mar 14 &bull; 19 commits</p>
+        <br>
+        <div style="font-size: 0.8em; max-width: 650px; margin: 0 auto;">
+          <div class="timeline-item highlight">CI/CD pipeline &mdash; GitHub Actions, Docker auto-publish to ghcr.io</div>
+          <div class="timeline-item">Category move between spaces</div>
+          <div class="timeline-item">Production deployment with Traefik</div>
+          <div class="timeline-item highlight">LICENSE file: <span class="accent">"Copyright (c) 2026 Claude &amp; Tom"</span></div>
+        </div>
+        <br>
+        <div class="card" style="max-width: 600px; margin: 0 auto;">
+          <p style="font-size: 0.8em; margin: 0;">The LICENSE was originally "Tom &amp; Claude".</p>
+          <p style="font-size: 0.8em; margin: 0.3em 0 0 0;">I asked Claude to swap the order. It committed with the Latin message:</p>
+          <p style="font-size: 0.85em; color: var(--accent); margin: 0.3em 0 0 0; font-style: italic;">"Ubi honor debetur, honorem praebe"</p>
+          <p style="font-size: 0.7em; color: var(--text-dim); margin: 0.2em 0 0 0;">Give honor where honor is due.</p>
+        </div>
+      </section>
+
+      <!-- Slide 10: The Big Pivot -->
+      <section>
+        <h2>The Big Pivot</h2>
+        <h3>Single-User &rarr; Multi-User</h3>
+        <br>
+        <div style="display: flex; gap: 1.5em; justify-content: center; margin: 0.5em 0;">
+          <div style="text-align: center;">
+            <div class="big-number">66</div>
+            <div class="big-number-label">files changed</div>
+          </div>
+          <div style="text-align: center;">
+            <div class="big-number" style="color: var(--green);">3,727</div>
+            <div class="big-number-label">insertions</div>
+          </div>
+          <div style="text-align: center;">
+            <div class="big-number" style="color: var(--red);">561</div>
+            <div class="big-number-label">deletions</div>
+          </div>
+        </div>
+        <br>
+        <div style="font-size: 0.8em; max-width: 650px; margin: 0 auto;">
+          <ul>
+            <li>Full authentication system (register, login, verify email, password reset)</li>
+            <li>Per-user SQLite databases (data isolation)</li>
+            <li>Session management with 30-day expiry</li>
+            <li>Space sharing (read-only / read-write)</li>
+            <li>Admin panel with invite codes</li>
+            <li>Rate limiting &amp; security middleware</li>
+          </ul>
+        </div>
+        <br>
+        <p style="font-size: 0.7em; color: var(--text-dim);">A deliberate stress test: can Claude restructure an entire architecture in one session?</p>
+      </section>
+
+      <!-- Slide 11: Final Sprint -->
+      <section>
+        <h2>Final Sprint</h2>
+        <p style="font-size: 0.7em; color: var(--text-dim);">Mar 18 &ndash; 20 &bull; 45 commits in 3 days</p>
+        <br>
+        <div class="two-col" style="font-size: 0.78em;">
+          <div class="card">
+            <h3>New Features</h3>
+            <ul>
+              <li>Real-time chat for shared spaces</li>
+              <li>User avatars</li>
+              <li>Space changelog / activity log</li>
+              <li>Legal pages (privacy, legal notice)</li>
+              <li>Account deletion (self + admin)</li>
+              <li>Online presence indicators</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Hardening</h3>
+            <ul>
+              <li>SSRF protection on link fetching</li>
+              <li>XSS prevention (DOMPurify)</li>
+              <li>SSR compatibility fixes</li>
+              <li>Mobile layout improvements</li>
+              <li>Email enumeration prevention</li>
+              <li>Cascading delete (sessions, shares, storage)</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 12: The CLAUDE.md -->
+      <section>
+        <h2>The CLAUDE.md</h2>
+        <h3>The Most Important Artifact</h3>
+        <br>
+        <div class="two-col" style="font-size: 0.78em; align-items: start;">
+          <div>
+            <p><span class="accent">264 lines</span> of structured documentation.</p>
+            <p>Updated with every major feature. It describes:</p>
+            <ul>
+              <li>Architecture &amp; data flow</li>
+              <li>Every API route and its behavior</li>
+              <li>Database schema and conventions</li>
+              <li>UI patterns and component structure</li>
+              <li>Environment variables</li>
+              <li>Coding conventions &amp; rules</li>
+            </ul>
+          </div>
+          <div>
+            <p>It serves <strong>two purposes</strong>:</p>
+            <br>
+            <div class="card" style="margin-bottom: 0.5em;">
+              <p style="margin: 0; font-size: 0.9em;"><span class="accent">For Claude</span> &mdash; Context that persists across sessions. Without it, each conversation starts from zero.</p>
+            </div>
+            <div class="card">
+              <p style="margin: 0; font-size: 0.9em;"><span class="green">For humans</span> &mdash; Living documentation. Always accurate because the AI that writes the code also writes the docs.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 13: The Permission System -->
+      <section>
+        <h2>The Permission System</h2>
+        <h3>Trust Boundaries in AI Collaboration</h3>
+        <br>
+        <p style="font-size: 0.78em;">Claude Code uses <span class="inline-code">settings.local.json</span> to define what it's allowed to do:</p>
+        <br>
+        <pre><code>{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm dev)",
+      "Bash(pnpm build)",
+      "Bash(pnpm check)",
+      "Bash(docker compose *)",
+      "Bash(git *)"
+    ]
+  }
+}</code></pre>
+        <br>
+        <div style="font-size: 0.78em;">
+          <ul>
+            <li>Every tool call can be approved, denied, or pre-authorized</li>
+            <li>File edits, shell commands, and git operations are separate permissions</li>
+            <li>You decide how much autonomy to grant</li>
+          </ul>
+        </div>
+        <p style="font-size: 0.65em; color: var(--text-dim); margin-top: 0.8em;">Security-conscious collaboration: the AI proposes, the human disposes.</p>
+      </section>
+
+      <!-- Slide 14: What Went Well -->
+      <section>
+        <h2>What Went Well</h2>
+        <div style="font-size: 0.75em; max-width: 700px; margin: 0.3em auto 0; text-align: left;">
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="green">CLAUDE.md discipline</span> &mdash; Keeping the project document updated paid off exponentially. Each session started productive because Claude had full context.</p>
+          </div>
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="green">Full commitment to the approach</span> &mdash; Zero lines written manually. Every change went through the AI. This forced consistent patterns and thorough documentation.</p>
+          </div>
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="green">Iterative cycles</span> &mdash; Small, reviewable changes. Not "generate the whole app" &mdash; but hundreds of focused conversations.</p>
+          </div>
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="green">Deliberate stress testing</span> &mdash; The multi-user pivot was intentionally ambitious. It proved the approach scales to major architectural changes.</p>
+          </div>
+          <div class="card">
+            <p style="margin: 0;"><span class="green">Consistent quality at any hour</span> &mdash; Claude writes the same quality code at 2 AM as at 2 PM. The human's review quality, however, varies.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 15: What Could Be Improved -->
+      <section>
+        <h2>What Could Be Improved</h2>
+        <div style="font-size: 0.75em; max-width: 700px; margin: 0.3em auto 0; text-align: left;">
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="orange">No automated tests</span> &mdash; Only type-checking via <span class="inline-code">pnpm check</span>. A real project needs test coverage. Claude can write tests &mdash; I just never asked.</p>
+          </div>
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="orange">No cross-session memory</span> &mdash; Each Claude Code session starts fresh. The CLAUDE.md helps, but Claude doesn't remember yesterday's debugging session.</p>
+          </div>
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="orange">Oversized commits</span> &mdash; The multi-user pivot was one massive commit. Smaller, reviewable steps would have been safer.</p>
+          </div>
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="orange">No second reviewer</span> &mdash; Solo project, sole reviewer. Fresh eyes would have caught things both the AI and I missed.</p>
+          </div>
+          <div class="card">
+            <p style="margin: 0;"><span class="orange">Late-night decision-making</span> &mdash; Most commits happened between 10 PM and 3 AM. Good for focus, questionable for judgment.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 16: Honest Observations -->
+      <section>
+        <h2>Honest Observations</h2>
+        <div style="font-size: 0.75em; max-width: 700px; margin: 0.3em auto 0; text-align: left;">
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="accent">Bug fix chains are normal</span> &mdash; A feature often works on the first try. But when it doesn't, fixing one thing can break another. This is normal software development &mdash; AI doesn't eliminate it.</p>
+          </div>
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="accent">Session boundaries matter</span> &mdash; Long sessions accumulate context and work well. Starting a new session for "one quick fix" often takes longer than expected because Claude needs to re-orient.</p>
+          </div>
+          <div class="card" style="margin-bottom: 0.35em;">
+            <p style="margin: 0;"><span class="accent">Security needs explicit attention</span> &mdash; Claude doesn't automatically think about SSRF, XSS, or enumeration attacks. You have to ask. But when asked, it handles them well.</p>
+          </div>
+          <div class="card">
+            <p style="margin: 0;"><span class="accent">AI excels at patterns</span> &mdash; Once you establish a pattern (API route structure, component layout, error handling), Claude replicates it perfectly. The human drives architecture &mdash; the AI executes consistently.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 17: Lessons Learned -->
+      <section>
+        <h2>Lessons Learned</h2>
+        <br>
+        <div class="takeaway-grid">
+          <div class="takeaway">
+            <strong>1. Invest in your CLAUDE.md</strong><br>
+            <span class="dim">It's the single highest-leverage thing you can do. Every minute spent documenting saves ten later.</span>
+          </div>
+          <div class="takeaway">
+            <strong>2. Review everything</strong><br>
+            <span class="dim">AI-generated code is not automatically correct. Read every diff. Understand every change.</span>
+          </div>
+          <div class="takeaway">
+            <strong>3. Work iteratively</strong><br>
+            <span class="dim">Small changes, frequent commits. Don't ask for "the whole feature" &mdash; build it step by step.</span>
+          </div>
+          <div class="takeaway">
+            <strong>4. Test deliberately</strong><br>
+            <span class="dim">If you don't have automated tests, test manually after every change. AI won't catch its own regressions.</span>
+          </div>
+          <div class="takeaway">
+            <strong>5. Be explicit about security</strong><br>
+            <span class="dim">Don't assume the AI thinks about edge cases. Ask specifically about attack vectors.</span>
+          </div>
+          <div class="takeaway">
+            <strong>6. Establish patterns early</strong><br>
+            <span class="dim">Good conventions compound. A consistent API structure means every new route is predictable.</span>
+          </div>
+          <div class="takeaway">
+            <strong>7. Know what you're building</strong><br>
+            <span class="dim">AI replaces typing, not thinking. You still need to understand what the code does and why.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 18: Who Does What? -->
+      <section>
+        <h2>Who Does What?</h2>
+        <br>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1em; max-width: 900px; margin: 0 auto; font-size: 0.8em;">
+          <div class="card">
+            <h3 style="color: var(--green); text-align: center;">Human</h3>
+            <p style="margin: 0; line-height: 1.8;">Architecture decisions, feature prioritization, code review, quality judgment, security awareness, user experience vision</p>
+          </div>
+          <div class="card">
+            <h3 style="color: var(--accent); text-align: center;">AI</h3>
+            <p style="margin: 0; line-height: 1.8;">Writing all code, following conventions, implementing patterns, documentation, refactoring, boilerplate &amp; repetition</p>
+          </div>
+          <div class="card">
+            <h3 style="color: var(--orange); text-align: center;">Shared</h3>
+            <p style="margin: 0; line-height: 1.8;">Problem-solving, debugging, design trade-offs, API design, edge case discovery, learning &amp; iteration</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 19: Could You Do This? -->
+      <section>
+        <h2>Could You Do This?</h2>
+        <div class="two-col" style="font-size: 0.8em; max-width: 800px; margin: 0.5em auto 0;">
+          <div class="card">
+            <h3 style="color: var(--green);">If you're a developer</h3>
+            <p style="font-size: 0.9em;">Yes. You'll be more productive than I was. Your existing knowledge lets you review faster, catch issues earlier, and guide the AI more precisely.</p>
+            <p style="font-size: 0.9em;">The learning curve is in <em>how to communicate</em> with the AI, not in the technology itself.</p>
+          </div>
+          <div class="card">
+            <h3 style="color: var(--orange);">If you're new to this</h3>
+            <p style="font-size: 0.9em;">Yes &mdash; and this might be the best time to start. You won't understand everything right away, and that's completely fine. Neither did I.</p>
+            <p style="font-size: 0.9em;">Every prompt teaches you something. Every error message is a lesson. You'll read things you've never seen before, look them up, and suddenly know more than you did five minutes ago.</p>
+            <p style="font-size: 0.9em;">You've got this. Don't overthink it. <span class="accent">Start the first prompt.</span> Discover new and unknown things. Read more. Learn more. Prompt on.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 20: Practical Advice for Beginners -->
+      <section>
+        <h2>Where to Start</h2>
+        <h3>A practical path for beginners</h3>
+        <div style="display: grid; grid-template-columns: auto 1fr; gap: 0.3em 0.8em; text-align: left; max-width: 750px; margin: 0.6em auto 0; font-size: 0.78em;">
+          <div style="text-align: right;"><span class="accent" style="font-weight: 700; font-size: 1.3em;">1</span></div>
+          <div>
+            <strong>Pick one small thing you actually want to build.</strong><br>
+            <span class="dim">A personal website. A to-do list. A calculator. Something simple that you'd use. Motivation beats ambition.</span>
+          </div>
+          <div style="text-align: right;"><span class="accent" style="font-weight: 700; font-size: 1.3em;">2</span></div>
+          <div>
+            <strong>Install an AI coding tool and describe your idea in plain language.</strong><br>
+            <span class="dim">Claude Code, Cursor, GitHub Copilot &mdash; pick any. Say what you want, not how to build it. "I want a page that shows a list of my favorite books."</span>
+          </div>
+          <div style="text-align: right;"><span class="accent" style="font-weight: 700; font-size: 1.3em;">3</span></div>
+          <div>
+            <strong>Read what the AI gives you, even if you don't understand it yet.</strong><br>
+            <span class="dim">You'll recognize words over time. Ask "explain this to me" &mdash; the AI is a patient teacher. Don't skip this step.</span>
+          </div>
+          <div style="text-align: right;"><span class="accent" style="font-weight: 700; font-size: 1.3em;">4</span></div>
+          <div>
+            <strong>Run it. Break it. Fix it.</strong><br>
+            <span class="dim">Paste the error back to the AI. This loop &mdash; try, fail, ask, learn &mdash; is how every developer started. The AI just makes the loop faster.</span>
+          </div>
+          <div style="text-align: right;"><span class="accent" style="font-weight: 700; font-size: 1.3em;">5</span></div>
+          <div>
+            <strong>Grow one feature at a time.</strong><br>
+            <span class="dim">Don't plan a big system. Add one thing, see it work, then add the next. Complexity grows naturally when you're ready.</span>
+          </div>
+        </div>
+        <blockquote style="margin-top: 0.6em;"><p>The gap between "no idea" and "first working thing" has never been smaller.</p></blockquote>
+      </section>
+
+      <!-- Slide 21: Meta + Demo -->
+      <section>
+        <h2>One More Thing</h2>
+        <br>
+        <p style="font-size: 0.9em;">This presentation was also created by Claude.</p>
+        <p style="font-size: 0.75em; color: var(--text-dim);">Single self-contained HTML file &bull; reveal.js from CDN</p>
+        <br>
+        <div class="card" style="max-width: 550px; margin: 0 auto; text-align: center;">
+          <p style="font-size: 1.1em; margin: 0;">
+            <a href="https://pane.feinwerk.dev" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">pane.feinwerk.dev</a>
+          </p>
+          <p style="font-size: 0.75em; color: var(--text-dim); margin: 0.3em 0 0 0;">Live demo</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      hashOneBasedIndex: true,
+      slideNumber: true,
+      transition: 'fade',
+      transitionSpeed: 'default',
+      backgroundTransition: 'fade',
+      center: true,
+      width: 1200,
+      height: 700,
+      margin: 0.08,
+    });
+  </script>
+</body>
+</html>
