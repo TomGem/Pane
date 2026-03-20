@@ -53,7 +53,7 @@ Root `/` is a spaces dashboard showing the user's own spaces (with category/item
 3. Read session cookie → `validateSession()` → set `locals.user`/`locals.userId`
 4. If no user and not public path: redirect to `/login` (pages) or 401 (API)
 
-Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/api/auth/*`
+Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/legal`, `/api/auth/*`, `/api/legal`
 
 **Auth API routes**:
 - `POST /api/auth/register` — Validate invite code (first user skips), create user+DB, send verification email
@@ -64,12 +64,19 @@ Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/rese
 - `POST /api/auth/change-password` — Authenticated. Verify current password, set new one, invalidate all sessions (creates fresh session)
 - `POST /api/auth/forgot-password` — Send 6-digit reset code via email (15-min TTL, rate-limited 60s). Always returns success to prevent email enumeration
 - `POST /api/auth/reset-password` — Validate reset code, set new password, invalidate all sessions
+- `POST /api/auth/delete-account` — Authenticated. Verify password, then delete user account, all databases, storage, sessions, and shared access. Clears session cookie.
 
 **Auth UI pages**: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` — centered card layout using existing CSS classes.
 
-**Admin panel** (`/admin`): Admin-only page for generating/revoking invite codes and viewing registered users.
+**Admin panel** (`/admin`): Admin-only page for generating/revoking invite codes, viewing/deleting registered users, and configuring legal pages.
 - `GET/POST /api/admin/invite-codes` — List/create invite codes
 - `DELETE /api/admin/invite-codes/[code]` — Revoke
+- `DELETE /api/admin/users/[id]` — Delete a non-admin user (cascades: sessions, shares, DB, storage)
+- `GET/PUT /api/admin/legal` — View/update legal page settings (privacy policy, legal notice, enable/disable)
+
+### Legal Pages
+
+Configurable privacy policy and legal notice pages at `/legal`. Admin can enable/disable and edit content (markdown) from the admin panel. Includes Swiss law default templates (FADP/GDPR privacy policy and Impressum). Public API: `GET /api/legal`. Legal link appears in the help panel and login page when enabled.
 
 ### Multi-User Database Architecture
 
@@ -118,7 +125,8 @@ Users can share spaces with others by email (read-only or read-write).
 /verify-email               → email verification (6-digit code)
 /forgot-password            → request password reset code via email
 /reset-password             → enter reset code + new password
-/admin                      → admin panel (invite codes, user list)
+/admin                      → admin panel (invite codes, user list, legal settings)
+/legal                      → privacy policy and legal notice (public, when enabled)
 /s/[space]/                 → space layout (toolbar + context) + page (board)
 /s/[space]?owner={id}       → shared space view
 /s/[space]/+error.svelte    → error page (unknown slugs redirect to /)
@@ -175,7 +183,7 @@ Notes and descriptions render markdown via `marked` with HTML sanitized through 
 
 Full-screen overlay components follow a shared pattern: glass backdrop (`glass-strong`), Escape key to close, click-outside-to-close, callback props (`onclose`). Key overlays:
 
-- **UserOverlay** — Unified user/settings overlay opened via user icon in Toolbar. Sections: account info & avatar upload & storage bar (multi-user only), privacy toggle (`show_email`), theme toggle, accent palette, font selection (sans-serif + monospace), change password (multi-user only), export/import button. Footer with Admin Panel link (admin, multi-user) and sign out (multi-user). In single-user mode shows only theme, palette, fonts, and data sections.
+- **UserOverlay** — Unified user/settings overlay opened via user icon in Toolbar. Sections: account info & avatar upload & storage bar (multi-user only), privacy toggle (`show_email`), theme toggle, accent palette, font selection (sans-serif + monospace), change password (multi-user only), delete account with password confirmation (multi-user only), export/import button. Footer with Admin Panel link (admin, multi-user) and sign out (multi-user). In single-user mode shows only theme, palette, fonts, and data sections.
 - **NoteOverlay / MediaOverlay** — Content viewers for notes and documents.
 - **TextFileOverlay** — Fetches and displays plain text/markdown files with copy-to-clipboard and markdown rendering.
 - **ExportImportOverlay** — Tabbed UI for exporting spaces as ZIP and importing from ZIP (preview + conflict resolution).
@@ -205,6 +213,7 @@ In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/a
 - `GET /api/chat/presence?space={slug}&owner={id}` — Online users in a shared space.
 - `GET/POST/DELETE /api/avatar` — User avatar management (2 MB max, JPEG/PNG/GIF/WebP).
 - `GET /api/changelog?space={slug}` — Paginated activity log for a space.
+- `GET /api/legal` — Public endpoint returning legal page content (privacy policy, legal notice) if enabled.
 
 ### Seed endpoint
 

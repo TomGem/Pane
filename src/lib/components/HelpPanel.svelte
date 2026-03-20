@@ -189,7 +189,8 @@
 					<li><strong>Change your password</strong> from the <strong>user menu</strong> (person icon)</li>
 					<li><strong>Forgot your password?</strong> Use the link on the login page to reset it via email</li>
 					<li>Each user has a <strong>storage quota</strong> — check your usage in the user menu</li>
-					<li>Admins can manage users, invite codes, and quotas from the <strong>Admin Panel</strong></li>
+					<li><strong>Delete your account</strong> from the user menu's Danger zone — requires password confirmation</li>
+					<li>Admins can manage users, invite codes, quotas, and legal pages from the <strong>Admin Panel</strong></li>
 				</ul>
 			</section>
 			<section class="help-section">

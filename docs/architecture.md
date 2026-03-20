@@ -26,7 +26,8 @@ Root `/` is a **spaces dashboard** showing the user's own spaces (with category/
 /verify-email               → email verification (6-digit code)
 /forgot-password            → request password reset code via email
 /reset-password             → enter reset code + new password
-/admin                      → admin panel (invite codes, user list, quotas)
+/admin                      → admin panel (invite codes, user list, quotas, legal settings)
+/legal                      → privacy policy and legal notice (public, when enabled)
 /s/[space]/                 → space layout (toolbar + context) + page (board)
 /s/[space]?owner={id}       → shared space view
 /s/[space]/+error.svelte    → error page (unknown slugs redirect to /)
@@ -91,7 +92,7 @@ SQLite via `better-sqlite3` (synchronous API). WAL mode, foreign keys ON. All DB
 3. Read session cookie → `validateSession()` → set `locals.user`/`locals.userId`
 4. If no user and not public path: redirect to `/login` (pages) or 401 (API)
 
-Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/api/auth/*`
+Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/legal`, `/api/auth/*`, `/api/legal`
 
 **Auth API routes**:
 - `POST /api/auth/register` — Validate invite code (first user skips), create user+DB, send verification email
@@ -102,6 +103,7 @@ Public paths: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/rese
 - `POST /api/auth/change-password` — Authenticated. Verify current password, set new one, invalidate all sessions (creates fresh session)
 - `POST /api/auth/forgot-password` — Send 6-digit reset code via email (15-min TTL, rate-limited 60s). Always returns success to prevent email enumeration
 - `POST /api/auth/reset-password` — Validate reset code, set new password, invalidate all sessions
+- `POST /api/auth/delete-account` — Authenticated. Verify password, delete user account, databases, storage, sessions, and shared access.
 
 **Auth UI pages**: `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password` — centered card layout using existing CSS classes.
 
@@ -129,8 +131,9 @@ Users can share spaces with other registered users by email (read-only or read-w
 
 Admin-only page at `/admin` for:
 - **Invite codes** — Generate/revoke registration codes (`GET/POST /api/admin/invite-codes`, `DELETE /api/admin/invite-codes/[code]`)
-- **User management** — View users, block/unblock (`PUT /api/admin/users/[id]/block`)
+- **User management** — View users, block/unblock (`PUT /api/admin/users/[id]/block`), delete non-admin users (`DELETE /api/admin/users/[id]`)
 - **Storage quotas** — View/adjust per-user quotas (`GET/PUT /api/admin/users/[id]/quota`)
+- **Legal pages** — Enable/disable and edit privacy policy and legal notice (`GET/PUT /api/admin/legal`). Public endpoint: `GET /api/legal`
 
 ## Client stores
 
@@ -163,10 +166,14 @@ Errors return `{ error: string }` with appropriate status codes (201, 400, 401, 
 | `/api/auth/change-password` | POST | Change password (authenticated) |
 | `/api/auth/forgot-password` | POST | Request password reset code |
 | `/api/auth/reset-password` | POST | Reset password with code |
+| `/api/auth/delete-account` | POST | Delete own account (password required) |
 | `/api/admin/invite-codes` | GET, POST | List / create invite codes |
 | `/api/admin/invite-codes/[code]` | DELETE | Revoke an invite code |
 | `/api/admin/users/[id]/block` | PUT | Block / unblock a user |
+| `/api/admin/users/[id]` | DELETE | Delete a non-admin user |
 | `/api/admin/users/[id]/quota` | GET, PUT | View / update storage quota |
+| `/api/admin/legal` | GET, PUT | View / update legal page settings |
+| `/api/legal` | GET | Public: get legal page content (if enabled) |
 | `/api/categories` | GET, POST | List / create categories |
 | `/api/categories/[id]` | GET, PUT, DELETE | Get / update / delete a category |
 | `/api/categories/[id]/breadcrumb` | GET | Ancestor chain via recursive CTE (root-first) |
@@ -294,7 +301,8 @@ src/
     verify-email/         Email verification page
     forgot-password/      Request password reset
     reset-password/       Enter reset code + new password
-    admin/                Admin panel (invite codes, users, quotas)
+    admin/                Admin panel (invite codes, users, quotas, legal settings)
+    legal/                Privacy policy and legal notice (public, when enabled)
     s/[space]/
       +layout.server.ts   Validate space ownership or shared access
       +layout.svelte      Space layout (Toolbar + app context)

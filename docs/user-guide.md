@@ -151,13 +151,18 @@ You can export and import spaces as ZIP archives to back up your data or transfe
 - **Import** a previously exported ZIP file. Before importing, you get a **preview** of what will be added.
 - When an imported space conflicts with an existing one, choose a conflict mode: **skip** (leave existing), **rename** (auto-suffix the imported space), or **replace** (overwrite the existing space).
 
+## Account deletion
+
+You can permanently delete your own account from the **user menu** (person icon) under the **Danger zone** section. Deleting your account removes all your spaces, files, shared access, and data. You must enter your password to confirm. This action cannot be undone.
+
 ## Admin panel
 
 Admins can access the **Admin Panel** from the user menu. Features include:
 
 - **Invite codes** — Generate and revoke invite codes for new user registration. Codes can have usage limits and expiration dates.
-- **User management** — View all registered users with their storage usage. Block or unblock users (blocked users cannot log in and their sessions are invalidated).
+- **User management** — View all registered users with their storage usage. Block or unblock users (blocked users cannot log in and their sessions are invalidated). **Delete** non-admin users with a click-to-confirm action (removes their account, databases, and storage).
 - **Storage quotas** — View and adjust per-user storage quotas (default: 1 GB).
+- **Legal pages** — Enable/disable and edit a **privacy policy** and **legal notice** page. Content supports markdown. Default templates follow Swiss law (FADP/GDPR and Impressum). When enabled, the legal page is accessible at `/legal` and linked from the help panel and login page.
 
 ## Storage quotas
 
@@ -168,3 +173,5 @@ Each user has a storage quota (default 1 GB, configurable by admins). You can se
 All data stays on your machine. Databases and uploaded files live in the `data/` and `storage/` directories alongside the app. When SMTP is not configured, verification codes and sharing notifications are logged to the server console instead of being emailed.
 
 You can control whether other users can see your **email address** via the privacy toggle in the **user menu**. When disabled, your email is hidden from other users' search results (admins can always see it).
+
+If the admin has enabled **legal pages**, a link to the privacy policy and legal notice appears in the help panel and on the login page. Visit `/legal` to view them.
