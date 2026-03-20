@@ -12,8 +12,10 @@ export const GET: RequestHandler = async ({ params, url, locals }) => {
 		const numId = Number(params.id);
 		if (isNaN(numId)) return json({ error: 'Invalid item id' }, { status: 400 });
 
-		const { db } = resolveSpaceAccess(locals, url);
-		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
+		const { db, spaceSlug } = resolveSpaceAccess(locals, url);
+		const item = db.prepare(
+			'SELECT i.* FROM items i JOIN categories c ON i.category_id = c.id WHERE i.id = ? AND c.space_slug = ?'
+		).get(numId, spaceSlug) as Item | undefined;
 
 		if (!item) {
 			return json({ error: 'Item not found' }, { status: 404 });
@@ -41,7 +43,9 @@ export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 		requireWriteAccess(access);
 		const { db, spaceSlug, ownerId } = access;
 
-		const existing = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
+		const existing = db.prepare(
+			'SELECT i.* FROM items i JOIN categories c ON i.category_id = c.id WHERE i.id = ? AND c.space_slug = ?'
+		).get(numId, spaceSlug) as Item | undefined;
 		if (!existing) {
 			return json({ error: 'Item not found' }, { status: 404 });
 		}
@@ -116,7 +120,9 @@ export const DELETE: RequestHandler = async ({ params, url, locals }) => {
 		requireWriteAccess(access);
 		const { db, spaceSlug, ownerId } = access;
 
-		const item = db.prepare('SELECT * FROM items WHERE id = ?').get(numId) as Item | undefined;
+		const item = db.prepare(
+			'SELECT i.* FROM items i JOIN categories c ON i.category_id = c.id WHERE i.id = ? AND c.space_slug = ?'
+		).get(numId, spaceSlug) as Item | undefined;
 		if (!item) {
 			return json({ error: 'Item not found' }, { status: 404 });
 		}

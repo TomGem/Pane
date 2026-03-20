@@ -6,7 +6,7 @@ import { emit } from '$lib/server/events';
 import { logChange } from '$lib/server/changelog';
 
 const MAX_NAME_LENGTH = 255;
-const MAX_COLOR_LENGTH = 50;
+const COLOR_REGEX = /^#[0-9a-fA-F]{3,8}$/;
 
 export const GET: RequestHandler = async ({ locals, url }) => {
 	try {
@@ -33,8 +33,8 @@ export const POST: RequestHandler = async ({ request, locals, url }) => {
 		if (typeof name === 'string' && name.length > MAX_NAME_LENGTH) {
 			return json({ error: `Name exceeds maximum length of ${MAX_NAME_LENGTH} characters` }, { status: 400 });
 		}
-		if (typeof color === 'string' && color.length > MAX_COLOR_LENGTH) {
-			return json({ error: `Color exceeds maximum length of ${MAX_COLOR_LENGTH} characters` }, { status: 400 });
+		if (typeof color !== 'string' || !COLOR_REGEX.test(color)) {
+			return json({ error: 'Color must be a valid hex color (e.g. #ff0000)' }, { status: 400 });
 		}
 
 		const result = access.db.prepare(

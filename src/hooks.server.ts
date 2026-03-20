@@ -63,15 +63,26 @@ function isPublicPath(pathname: string): boolean {
 	return PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 }
 
+function setSecurityHeaders(response: Response) {
+	response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+	response.headers.set('X-Content-Type-Options', 'nosniff');
+	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+	response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+	if (!SINGLE_USER) {
+		response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+	}
+	return response;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
 	// Rate limiting for API routes
 	if (event.url.pathname.startsWith('/api/')) {
 		const ip = event.getClientAddress();
 		if (isRateLimited(ip)) {
-			return new Response(JSON.stringify({ error: 'Too many requests' }), {
+			return setSecurityHeaders(new Response(JSON.stringify({ error: 'Too many requests' }), {
 				status: 429,
 				headers: { 'Content-Type': 'application/json', 'Retry-After': '60' }
-			});
+			}));
 		}
 	}
 
@@ -87,7 +98,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			avatar_path: null
 		};
 		event.locals.userId = SINGLE_USER_ID;
-		return resolve(event);
+		return setSecurityHeaders(await resolve(event));
 	}
 
 	// Multi-user auth
@@ -115,13 +126,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Check if route requires auth
 	if (!event.locals.user && !isPublicPath(event.url.pathname)) {
 		if (event.url.pathname.startsWith('/api/')) {
-			return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+			return setSecurityHeaders(new Response(JSON.stringify({ error: 'Unauthorized' }), {
 				status: 401,
 				headers: { 'Content-Type': 'application/json' }
-			});
+			}));
 		}
 		throw redirect(307, '/login');
 	}
 
-	return resolve(event);
+	return setSecurityHeaders(await resolve(event));
 };

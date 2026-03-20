@@ -28,11 +28,15 @@ COPY --from=build /app/build ./build
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
 
-# Data and file storage directories
-RUN mkdir -p data storage
+# Create non-root user
+RUN addgroup -g 1001 app && adduser -D -u 1001 -G app app
+
+# Data and file storage directories (owned by app user)
+RUN mkdir -p data storage && chown -R app:app data storage
 
 ENV HOST=0.0.0.0
 ENV PORT=3000
 EXPOSE 3000
 
+USER app
 CMD ["node", "build/index.js"]

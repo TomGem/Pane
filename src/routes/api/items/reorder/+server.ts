@@ -20,18 +20,18 @@ export const PUT: RequestHandler = async ({ request, url, locals }) => {
 		const fileMoves: { item: Item; newCategorySlug: string; moveId: number }[] = [];
 
 		const reorder = db.transaction((movesToApply: ReorderMove[]) => {
-			const getItem = db.prepare('SELECT * FROM items WHERE id = ?');
-			const getCategory = db.prepare('SELECT * FROM categories WHERE id = ?');
+			const getItem = db.prepare('SELECT i.* FROM items i JOIN categories c ON i.category_id = c.id WHERE i.id = ? AND c.space_slug = ?');
+			const getCategory = db.prepare('SELECT * FROM categories WHERE id = ? AND space_slug = ?');
 			const updateItem = db.prepare(
 				'UPDATE items SET category_id = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
 			);
 
 			for (const move of movesToApply) {
-				const item = getItem.get(move.id) as Item | undefined;
+				const item = getItem.get(move.id, spaceSlug) as Item | undefined;
 				if (!item) continue;
 
 				if (move.category_id !== item.category_id && item.file_path) {
-					const newCategory = getCategory.get(move.category_id) as Category | undefined;
+					const newCategory = getCategory.get(move.category_id, spaceSlug) as Category | undefined;
 					if (newCategory) {
 						fileMoves.push({ item: { ...item }, newCategorySlug: newCategory.slug, moveId: move.id });
 					}
