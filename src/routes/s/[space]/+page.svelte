@@ -38,6 +38,7 @@
 	// Load tags on mount and register add callback
 	$effect(() => {
 		board.loadTags().catch((e: unknown) => console.error('Failed to load tags:', e));
+		board.loadAllCategories().catch((e: unknown) => console.error('Failed to load categories:', e));
 		if (!isReadonly) {
 			app.setAddCallback(() => {
 				if (board.columns.length > 0) {

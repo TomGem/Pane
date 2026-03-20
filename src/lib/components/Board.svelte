@@ -155,22 +155,58 @@
 		return itemMatchesSearch(item, q) && itemMatchesTags(item, tagIds);
 	}
 
+	function getDescendantIds(parentId: number): Set<number> {
+		const ids = new Set<number>();
+		function collect(pid: number) {
+			for (const cat of board.allCategories) {
+				if (cat.parent_id === pid) {
+					ids.add(cat.id);
+					collect(cat.id);
+				}
+			}
+		}
+		collect(parentId);
+		return ids;
+	}
+
+	function subcategoryHasMatch(catId: number, q: string, tagIds: number[]): boolean {
+		const cat = board.allCategories.find((c) => c.id === catId);
+		if (cat && q && cat.name.toLowerCase().includes(q)) return true;
+		const descendantIds = getDescendantIds(catId);
+		descendantIds.add(catId);
+		return board.allItems.some((item) => descendantIds.has(item.category_id) && itemMatchesFilters(item, q, tagIds));
+	}
+
 	let matchingSubcategoryIds = $derived.by(() => {
 		const q = searchQuery.toLowerCase().trim();
 		const hasTags = selectedTagIds.length > 0;
 		if (!q && !hasTags) return new Set<number>();
 		const ids = new Set<number>();
-		for (const col of board.columns) {
-			for (const child of col.children ?? []) {
-				if (q && child.name.toLowerCase().includes(q)) {
-					ids.add(child.id);
-					continue;
-				}
-				if (board.allItems.some((item) => item.category_id === child.id && itemMatchesFilters(item, q, selectedTagIds))) {
-					ids.add(child.id);
-				}
+		// Check all categories (not just direct children of columns) so deeply nested ones match too
+		for (const cat of board.allCategories) {
+			if (cat.parent_id === null) continue;
+			const catName = cat.name.toLowerCase();
+			if (q && catName.includes(q)) {
+				ids.add(cat.id);
+				continue;
+			}
+			if (board.allItems.some((item) => item.category_id === cat.id && itemMatchesFilters(item, q, selectedTagIds))) {
+				ids.add(cat.id);
 			}
 		}
+		// Also mark ancestor subcategories so they auto-expand to reveal matches
+		const ancestorIds = new Set<number>();
+		for (const id of ids) {
+			let current = board.allCategories.find((c) => c.id === id);
+			while (current && current.parent_id !== null) {
+				const parent = board.allCategories.find((c) => c.id === current!.parent_id);
+				if (parent && parent.parent_id !== null) {
+					ancestorIds.add(parent.id);
+				}
+				current = parent;
+			}
+		}
+		for (const id of ancestorIds) ids.add(id);
 		return ids;
 	});
 
@@ -178,12 +214,17 @@
 		const q = query.toLowerCase().trim();
 		if (!q && tagIds.length === 0) return true;
 		if (column.items.some((item) => itemMatchesFilters(item, q, tagIds))) return true;
-		if (q && column.children?.some((child) => child.name.toLowerCase().includes(q))) return true;
 
-		// Check items belonging to subcategories
-		const childIds = new Set(column.children?.map((c) => c.id) ?? []);
-		if (childIds.size > 0) {
-			return board.allItems.some((item) => childIds.has(item.category_id) && itemMatchesFilters(item, q, tagIds));
+		// Check all descendants (subcategories at any depth)
+		const descendantIds = getDescendantIds(column.id);
+		if (q) {
+			for (const did of descendantIds) {
+				const cat = board.allCategories.find((c) => c.id === did);
+				if (cat && cat.name.toLowerCase().includes(q)) return true;
+			}
+		}
+		if (descendantIds.size > 0) {
+			return board.allItems.some((item) => descendantIds.has(item.category_id) && itemMatchesFilters(item, q, tagIds));
 		}
 		return false;
 	}
@@ -213,6 +254,7 @@
 			<Column
 				category={column}
 				allItems={board.allItems}
+				allCategories={board.allCategories}
 				{spaceSlug}
 				{searchQuery}
 				{selectedTagIds}

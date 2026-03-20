@@ -3,11 +3,12 @@
 	import Card from './Card.svelte';
 	import SubcategoryCard from './SubcategoryCard.svelte';
 	import { getDirectoryEntries } from '$lib/utils/folder-drop';
-	import type { CategoryWithItems, Item } from '$lib/types';
+	import type { CategoryWithItems, Category, Item } from '$lib/types';
 
 	interface Props {
 		category: CategoryWithItems;
 		allItems?: Item[];
+		allCategories?: Category[];
 		spaceSlug?: string;
 		searchQuery?: string;
 		selectedTagIds?: number[];
@@ -33,6 +34,7 @@
 	let {
 		category,
 		allItems = [],
+		allCategories = [],
 		spaceSlug = 'desk',
 		searchQuery = '',
 		selectedTagIds = [],
@@ -73,7 +75,9 @@
 			return matchesSearch && matchesTags;
 		});
 	});
-	let collapsed = $state(false);
+	let userCollapsed = $state(false);
+	let isSearching = $derived(searchQuery.trim().length > 0 || selectedTagIds.length > 0);
+	let collapsed = $derived(userCollapsed && !isSearching);
 	let showMenu = $state(false);
 	let dragOver = $state(false);
 
@@ -168,6 +172,11 @@
 	aria-label="{category.name} column"
 >
 	<div class="column-header" style:border-top-color={category.color}>
+		<button class="btn-collapse" onclick={() => userCollapsed = !userCollapsed} aria-label={collapsed ? 'Expand column' : 'Collapse column'} title={collapsed ? 'Expand column' : 'Collapse column'}>
+			<svg class="collapse-chevron" class:collapsed width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<polyline points="6 9 12 15 18 9" />
+			</svg>
+		</button>
 		{#if ondrilldown}
 			<button class="column-title column-title-clickable" onclick={() => ondrilldown(category.id)}>
 				{category.name}
@@ -182,11 +191,6 @@
 		{/if}
 		<div class="column-count">{filteredItems.length}</div>
 		<div class="column-actions">
-			<button class="btn-icon btn-collapse" onclick={() => collapsed = !collapsed} aria-label={collapsed ? 'Expand column' : 'Collapse column'} title={collapsed ? 'Expand column' : 'Collapse column'}>
-				<svg class="collapse-chevron" class:collapsed width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<polyline points="6 9 12 15 18 9" />
-				</svg>
-			</button>
 			<button class="btn-icon" onclick={() => onadditem?.(category.id)} aria-label="Add item" title="Add item">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 					<line x1="12" y1="5" x2="12" y2="19" />
@@ -225,7 +229,7 @@
 		{#if category.children && category.children.length > 0}
 			<div class="subcategory-list">
 				{#each category.children as child (child.id)}
-					<SubcategoryCard category={child} {allItems} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} {onnotesave} />
+					<SubcategoryCard category={child} {allItems} {allCategories} {matchingSubcategoryIds} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} {onnotesave} />
 				{/each}
 			</div>
 		{/if}
@@ -279,6 +283,7 @@
 	.column {
 		position: relative;
 		flex: 0 0 320px;
+		width: 320px;
 		max-width: 320px;
 		display: flex;
 		flex-direction: column;
@@ -377,6 +382,23 @@
 	}
 
 	.btn-icon:hover {
+		background-color: var(--accent-soft);
+		color: var(--accent);
+	}
+
+	.btn-collapse {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 24px;
+		height: 24px;
+		border-radius: var(--radius-sm);
+		color: var(--text-muted);
+		transition: background-color var(--transition), color var(--transition);
+	}
+
+	.btn-collapse:hover {
 		background-color: var(--accent-soft);
 		color: var(--accent);
 	}

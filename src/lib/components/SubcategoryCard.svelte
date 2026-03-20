@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { dndzone, SHADOW_ITEM_MARKER_PROPERTY_NAME } from 'svelte-dnd-action';
 	import Card from './Card.svelte';
+	import SubcategoryCard from './SubcategoryCard.svelte';
 	import type { Category, Item } from '$lib/types';
 
 	interface Props {
 		category: Category;
 		allItems?: Item[];
+		allCategories?: Category[];
+		matchingSubcategoryIds?: Set<number>;
 		spaceSlug?: string;
 		searchQuery?: string;
 		selectedTagIds?: number[];
@@ -18,7 +21,9 @@
 		onnotesave?: (item: Item, content: string) => void;
 	}
 
-	let { category, allItems = [], spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemsupdate, onitemedit, onitemrefresh, onitemdelete, onnotesave }: Props = $props();
+	let { category, allItems = [], allCategories = [], matchingSubcategoryIds = new Set(), spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemsupdate, onitemedit, onitemrefresh, onitemdelete, onnotesave }: Props = $props();
+
+	let childCategories = $derived(allCategories.filter((c) => c.parent_id === category.id).sort((a, b) => a.sort_order - b.sort_order));
 
 	let userExpanded = $state(false);
 	let expanded = $derived(userExpanded || searchMatch);
@@ -98,6 +103,14 @@
 			</svg>
 		</button>
 	</div>
+
+	{#if expanded && childCategories.length > 0}
+		<div class="child-subcategories">
+			{#each childCategories as child (child.id)}
+				<SubcategoryCard category={child} {allItems} {allCategories} {matchingSubcategoryIds} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} {ondrilldown} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} {onnotesave} />
+			{/each}
+		</div>
+	{/if}
 
 	<div
 		class="drop-zone"
@@ -219,6 +232,13 @@
 	.name-area:hover .nav-chevron {
 		opacity: 1;
 		color: var(--accent);
+	}
+
+	.child-subcategories {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding: 6px 0 0 16px;
 	}
 
 	.drop-zone {

@@ -16,6 +16,7 @@ function withSpace(url: string, spaceSlug: string, ownerId?: string): string {
 export function createBoardStore(initial: CategoryWithItems[], initialAllItems?: Item[], spaceSlug: string = 'desk', ownerId?: string, permission: 'owner' | 'read' | 'write' = 'owner') {
 	let columns = $state<CategoryWithItems[]>(initial);
 	let allItems = $state<Item[]>(initialAllItems ?? initial.flatMap((c) => c.items));
+	let allCategories = $state<Category[]>([]);
 	let allTags = $state<Tag[]>([]);
 	let currentParentId = $state<number | null>(null);
 	let breadcrumb = $state<BreadcrumbSegment[]>([]);
@@ -23,6 +24,10 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 
 	async function loadTags() {
 		allTags = await api<Tag[]>(withSpace('/api/tags', spaceSlug, ownerId));
+	}
+
+	async function loadAllCategories() {
+		allCategories = await api<Category[]>(withSpace('/api/categories', spaceSlug, ownerId));
 	}
 
 	async function refresh() {
@@ -33,6 +38,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		]);
 		allItems = fetchedItems;
 		const allCats = await api<Category[]>(withSpace('/api/categories', spaceSlug, ownerId));
+		allCategories = allCats;
 
 		// When drilled into a category, include it as the first column so its direct items are visible
 		let displayCats = cats;
@@ -374,6 +380,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		get columns() { return columns; },
 		set columns(v: CategoryWithItems[]) { columns = v; },
 		get allItems() { return allItems; },
+		get allCategories() { return allCategories; },
 		get allTags() { return allTags; },
 		get currentParentId() { return currentParentId; },
 		get breadcrumb() { return breadcrumb; },
@@ -382,6 +389,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		get readonly() { return readonly; },
 		refresh,
 		loadTags,
+		loadAllCategories,
 		addCategory,
 		addSubcategory,
 		updateCategory,
