@@ -30,7 +30,7 @@
 		onpromotecategory?: (category: CategoryWithItems) => void;
 		ondemotecategory?: (category: CategoryWithItems) => void;
 		ondropurl?: (url: string, categoryId: number) => void;
-		ondropfile?: (file: File, categoryId: number) => void;
+		ondropfiles?: (files: File[], categoryId: number) => void;
 		ondropfolder?: (entries: FileSystemDirectoryEntry[]) => void;
 		ondrilldown?: (categoryId: number) => void;
 		onnotesave?: (item: Item, content: string) => void;
@@ -56,7 +56,7 @@
 		onpromotecategory,
 		ondemotecategory,
 		ondropurl,
-		ondropfile,
+		ondropfiles,
 		ondropfolder,
 		ondrilldown,
 		onnotesave
@@ -140,9 +140,10 @@
 		dragOver = false;
 		if (!e.dataTransfer) return;
 
-		// Check for URL drops
+		// Check for URL drops (only if no files attached — dragging .webloc files
+		// from Finder sets text/uri-list for the first file, hiding the rest)
 		const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
-		if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+		if (url && (url.startsWith('http://') || url.startsWith('https://')) && e.dataTransfer.files.length === 0) {
 			e.preventDefault();
 			ondropurl?.(url, category.id);
 			return;
@@ -159,9 +160,7 @@
 		// Check for file drops
 		if (e.dataTransfer.files.length > 0) {
 			e.preventDefault();
-			for (const file of e.dataTransfer.files) {
-				ondropfile?.(file, category.id);
-			}
+			ondropfiles?.([...e.dataTransfer.files], category.id);
 		}
 	}
 </script>

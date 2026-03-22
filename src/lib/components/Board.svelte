@@ -72,25 +72,29 @@
 		await board.addLink(url, categoryId);
 	}
 
-	async function handleDropFile(file: File, categoryId: number) {
-		const name = file.name.toLowerCase();
+	async function handleDropFiles(files: File[], categoryId: number) {
+		const skipRefresh = files.length > 1;
+		for (const file of files) {
+			const name = file.name.toLowerCase();
 
-		if (name.endsWith('.webloc')) {
-			const url = await extractWeblocUrl(file);
-			if (url) {
-				await board.addLink(url, categoryId);
-				return;
+			if (name.endsWith('.webloc')) {
+				const url = await extractWeblocUrl(file);
+				if (url) {
+					await board.addLink(url, categoryId, skipRefresh);
+					continue;
+				}
 			}
-		}
 
-		if (name.endsWith('.md')) {
-			const content = await file.text();
-			const title = file.name.replace(/\.md$/i, '');
-			await board.addItem({ category_id: categoryId, type: 'note', title, content });
-			return;
-		}
+			if (name.endsWith('.md')) {
+				const content = await file.text();
+				const title = file.name.replace(/\.md$/i, '');
+				await board.addItem({ category_id: categoryId, type: 'note', title, content }, skipRefresh);
+				continue;
+			}
 
-		await board.uploadFile(file, categoryId);
+			await board.uploadFile(file, categoryId, undefined, undefined, skipRefresh);
+		}
+		if (skipRefresh) await board.refresh();
 	}
 
 	async function handleDropFolder(entries: FileSystemDirectoryEntry[]) {
@@ -276,7 +280,7 @@
 				onpromotecategory={onpromotecategory}
 				ondemotecategory={ondemotecategory}
 				ondropurl={handleDropUrl}
-				ondropfile={handleDropFile}
+				ondropfiles={handleDropFiles}
 				ondropfolder={handleDropFolder}
 				{ondrilldown}
 				{onnotesave}

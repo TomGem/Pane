@@ -136,12 +136,12 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 	}
 
 	// Items
-	async function addItem(data: { category_id: number; type: string; title: string; content?: string; description?: string; tags?: number[]; fetch_title?: boolean }) {
+	async function addItem(data: { category_id: number; type: string; title: string; content?: string; description?: string; tags?: number[]; fetch_title?: boolean }, skipRefresh = false) {
 		await api<Item>(withSpace('/api/items', spaceSlug, ownerId), {
 			method: 'POST',
 			body: JSON.stringify(data)
 		});
-		await refresh();
+		if (!skipRefresh) await refresh();
 	}
 
 	async function updateItem(id: number, data: Partial<Omit<Item, 'tags'>> & { tags?: number[] }) {
@@ -170,7 +170,7 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 		await Promise.all([refresh(), loadTags()]);
 	}
 
-	async function uploadFile(file: File, categoryId: number, title?: string, description?: string) {
+	async function uploadFile(file: File, categoryId: number, title?: string, description?: string, skipRefresh = false) {
 		const form = new FormData();
 		form.append('file', file);
 		form.append('category_id', String(categoryId));
@@ -182,17 +182,17 @@ export function createBoardStore(initial: CategoryWithItems[], initialAllItems?:
 			const err = await res.json().catch(() => ({ error: 'Upload failed' }));
 			throw new Error(err.error ?? 'Upload failed');
 		}
-		await refresh();
+		if (!skipRefresh) await refresh();
 	}
 
 	// Quick link from URL drop
-	async function addLink(url: string, categoryId: number) {
+	async function addLink(url: string, categoryId: number, skipRefresh = false) {
 		let title = url;
 		try {
 			const u = new URL(url);
 			title = u.hostname + u.pathname;
 		} catch { /* keep raw url as title */ }
-		await addItem({ category_id: categoryId, type: 'link', title, content: url, fetch_title: true });
+		await addItem({ category_id: categoryId, type: 'link', title, content: url, fetch_title: true }, skipRefresh);
 	}
 
 	// Move category to another space
