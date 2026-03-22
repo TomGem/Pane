@@ -190,7 +190,7 @@ Full-screen overlay components follow a shared pattern: glass backdrop (`glass-s
 - **SpaceSharingOverlay** — Share space by email, manage permissions, remove access.
 - **ChangelogOverlay** — Space activity log with clickable item navigation.
 - **ChatPanel** — Real-time chat panel for shared spaces with presence indicators.
-- **HelpPanel** — App documentation (inline in Toolbar).
+- **HelpPanel** — Icon grid help panel (inline in Toolbar). Grid of clickable topic cards that drill into detail views with back navigation.
 
 ### Rate limiting
 

@@ -259,7 +259,7 @@ src/
       ThemeToggle.svelte  Light/dark/system toggle
       Toast.svelte        Notification toast
       Toolbar.svelte      App toolbar with search, actions, settings, help
-      HelpPanel.svelte    In-app help documentation
+      HelpPanel.svelte    Icon grid help panel with drill-down detail views
     server/             Server-only modules
       auth.ts             Password hashing (crypto.scrypt)
       auth-schema.ts      Auth DB table creation
