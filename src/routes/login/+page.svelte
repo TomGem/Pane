@@ -85,7 +85,9 @@
 			Don't have an account? <a href="/register">Register</a>
 		</p>
 		<p class="auth-footer" style="margin-top: 8px;">
-			<a href="/demo.html" target="_blank">See what Pane can do</a>
+			<a href="/feature-overview.html" target="_blank">See what Pane can do</a>
+			<span class="legal-sep">&middot;</span>
+			<a href="https://github.com/TomGem/Pane" target="_blank">GitHub</a>
 		</p>
 		{#if data.legalEnabled}
 			<p class="auth-footer legal-links" style="margin-top: 16px;">

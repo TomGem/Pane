@@ -204,18 +204,11 @@
 				<section class="help-section">
 					<h3>Legal</h3>
 					<ul>
-						<li><a href="/legal" class="help-demo-link">Privacy Policy</a></li>
-						<li><a href="/legal?tab=legal" class="help-demo-link">Legal Notice</a></li>
+						<li><a href="/legal">Privacy Policy</a></li>
+						<li><a href="/legal?tab=legal">Legal Notice</a></li>
 					</ul>
 				</section>
 			{/if}
-			<section class="help-section">
-				<h3>Feature demo</h3>
-				<ul>
-					<li>Want a visual overview? <a href="/demo.html" target="_blank" class="help-demo-link">Open the interactive feature presentation</a></li>
-					<li>How was Pane built? <a href="/presentation.html" target="_blank" class="help-demo-link">Open the AI-assisted coding journey presentation</a></li>
-				</ul>
-			</section>
 			<div class="help-clock">{clockText}</div>
 			<div class="help-version">Pane v2.4.1</div>
 		</div>
@@ -340,11 +333,6 @@
 		font-size: 12px;
 		color: var(--text-muted);
 		text-align: center;
-	}
-
-	.help-demo-link {
-		color: var(--accent);
-		font-weight: 600;
 	}
 
 	.shortcut-keys :global(kbd) {
