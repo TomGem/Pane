@@ -84,17 +84,26 @@ export function isPrivateUrl(urlStr: string): boolean {
 	}
 }
 
+async function probeFaviconIco(url: string, signal: AbortSignal): Promise<string | null> {
+	try {
+		const origin = new URL(url).origin;
+		const fallbackUrl = `${origin}/favicon.ico`;
+		const res = await fetch(fallbackUrl, { method: 'HEAD', signal });
+		if (res.ok) return fallbackUrl;
+	} catch { /* no favicon available */ }
+	return null;
+}
+
 export async function fetchPageMeta(url: string): Promise<{ title: string | null; description: string | null; favicon: string | null; unavailable: boolean }> {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), 5000);
-	const unavailableResult = { title: null, description: null, favicon: null, unavailable: true };
 	try {
 		let currentUrl = url;
 		let redirects = 0;
 		const MAX_REDIRECTS = 5;
 
 		while (redirects < MAX_REDIRECTS) {
-			if (isPrivateUrl(currentUrl)) return unavailableResult;
+			if (isPrivateUrl(currentUrl)) return { title: null, description: null, favicon: null, unavailable: true };
 
 			const res = await fetch(currentUrl, {
 				headers: {
@@ -108,16 +117,16 @@ export async function fetchPageMeta(url: string): Promise<{ title: string | null
 
 			if (res.status >= 300 && res.status < 400) {
 				const location = res.headers.get('location');
-				if (!location) return unavailableResult;
+				if (!location) return { title: null, description: null, favicon: await probeFaviconIco(currentUrl, controller.signal), unavailable: true };
 				currentUrl = new URL(location, currentUrl).href;
 				redirects++;
 				continue;
 			}
 
-			if (!res.ok) return unavailableResult;
+			if (!res.ok) return { title: null, description: null, favicon: await probeFaviconIco(currentUrl, controller.signal), unavailable: true };
 
 			const contentType = res.headers.get('content-type') ?? '';
-			if (!contentType.includes('text/html')) return { title: null, description: null, favicon: null, unavailable: false };
+			if (!contentType.includes('text/html')) return { title: null, description: null, favicon: await probeFaviconIco(currentUrl, controller.signal), unavailable: false };
 			const contentLength = Number(res.headers.get('content-length'));
 			if (contentLength > MAX_FETCH_SIZE) return { title: null, description: null, favicon: null, unavailable: false };
 			const reader = res.body?.getReader();
@@ -153,26 +162,26 @@ export async function fetchPageMeta(url: string): Promise<{ title: string | null
 				description = decodeHtmlEntities(descMatch[1].trim()) || null;
 			}
 
-			// Extract favicon
+			// Extract favicon — try multiple patterns in priority order
 			let favicon: string | null = null;
 			const origin = new URL(currentUrl).origin;
-			const iconMatch = text.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]+href=["']([^"']+)["']/i)
-				?? text.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:shortcut )?icon["']/i);
-			const appleTouchMatch = text.match(/<link[^>]+rel=["']apple-touch-icon["'][^>]+href=["']([^"']+)["']/i)
-				?? text.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["']apple-touch-icon["']/i);
+			const iconMatch = text.match(/<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*\shref=["']([^"']+)["']/i)
+				?? text.match(/<link[^>]*\shref=["']([^"']+)["'][^>]+rel=["'](?:shortcut )?icon["']/i);
+			const appleTouchMatch = text.match(/<link[^>]+rel=["']apple-touch-icon["'][^>]*\shref=["']([^"']+)["']/i)
+				?? text.match(/<link[^>]*\shref=["']([^"']+)["'][^>]+rel=["']apple-touch-icon["']/i);
 			if (iconMatch?.[1]) {
 				favicon = new URL(iconMatch[1], currentUrl).href;
 			} else if (appleTouchMatch?.[1]) {
 				favicon = new URL(appleTouchMatch[1], currentUrl).href;
 			} else {
-				favicon = `${origin}/favicon.ico`;
+				favicon = await probeFaviconIco(currentUrl, controller.signal);
 			}
 
 			return { title, description, favicon, unavailable: false };
 		}
-		return unavailableResult;
+		return { title: null, description: null, favicon: await probeFaviconIco(url, controller.signal), unavailable: true };
 	} catch {
-		return unavailableResult;
+		return { title: null, description: null, favicon: await probeFaviconIco(url, controller.signal).catch(() => null), unavailable: true };
 	} finally {
 		clearTimeout(timeout);
 	}
