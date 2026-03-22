@@ -32,5 +32,8 @@ ecosystem.config.cjs
 /data/
 /storage/
 
+# pnpm
+.pnpm-store/
+
 # Various
 TASK.md

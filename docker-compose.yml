@@ -11,6 +11,6 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=3000
-      - BODY_SIZE_LIMIT=Infinity
+      - BODY_SIZE_LIMIT=524288000
       # - ORIGIN=http://localhost:3000
     restart: unless-stopped

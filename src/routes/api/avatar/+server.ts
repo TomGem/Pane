@@ -53,7 +53,8 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	return new Response(buffer, {
 		headers: {
 			'Content-Type': contentType,
-			'Cache-Control': 'private, max-age=3600'
+			'Cache-Control': 'private, max-age=3600',
+			'X-Content-Type-Options': 'nosniff'
 		}
 	});
 };
