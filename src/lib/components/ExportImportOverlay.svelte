@@ -149,7 +149,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div class="overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose(); }} role="dialog" aria-modal="true" aria-label="Export & Import" tabindex="-1" use:trapFocus>
-	<div class="panel glass-strong">
+	<div class="panel">
 		<div class="panel-header">
 			<h2 class="panel-title">Export & Import</h2>
 			<button class="panel-close" onclick={onclose} aria-label="Close" title="Close">
@@ -373,9 +373,11 @@
 		width: 90vw;
 		max-width: 480px;
 		max-height: 85vh;
-		overflow-y: auto;
+		overflow: hidden;
 		border-radius: var(--radius-lg);
 		box-shadow: var(--shadow-lg);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
 		display: flex;
 		flex-direction: column;
 	}
@@ -441,6 +443,7 @@
 
 	.panel-body {
 		padding: 16px 20px 20px;
+		overflow-y: auto;
 	}
 
 	.section {

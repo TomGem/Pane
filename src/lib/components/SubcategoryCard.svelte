@@ -149,12 +149,13 @@
 		background: var(--bg-glass);
 		border: 1px solid var(--border);
 		overflow: hidden;
-		transition: background-color var(--transition), box-shadow var(--transition);
+		transition: background-color var(--transition), box-shadow var(--transition), transform var(--transition);
 	}
 
 	.subcategory-card:hover {
 		background: var(--accent-soft);
-		box-shadow: var(--shadow);
+		box-shadow: var(--shadow-lg);
+		transform: translateY(-2px);
 	}
 
 	.expand-btn {

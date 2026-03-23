@@ -166,6 +166,10 @@
 		} catch { /* ignore */ }
 	}
 
+	function handleBackdropClick(e: MouseEvent) {
+		if (e.target === e.currentTarget) onclose();
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') onclose();
 	}
@@ -173,8 +177,9 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="overlay-backdrop" onclick={onclose} aria-hidden="true"></div>
-<div class="overlay glass-strong">
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_tabindex -->
+<div class="overlay-backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" aria-label="Share space" tabindex="-1">
+<div class="overlay">
 	<div class="overlay-header">
 		<h2 class="overlay-title">Share "{spaceName}"</h2>
 		<button class="btn-close" onclick={onclose} aria-label="Close">
@@ -262,28 +267,43 @@
 		{/if}
 	</div>
 </div>
+</div>
 
 <style>
 	.overlay-backdrop {
 		position: fixed;
 		inset: 0;
 		z-index: 200;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		background: rgba(0, 0, 0, 0.4);
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
+		animation: fadeIn 0.15s ease;
 	}
 
 	.overlay {
-		position: fixed;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		z-index: 201;
 		width: 90%;
 		max-width: 480px;
-		max-height: 80vh;
+		max-height: 85vh;
 		display: flex;
 		flex-direction: column;
 		border-radius: var(--radius-lg);
 		box-shadow: var(--shadow-lg);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
+		animation: slideUp 0.2s ease;
+	}
+
+	@keyframes fadeIn {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+
+	@keyframes slideUp {
+		from { opacity: 0; transform: translateY(10px) scale(0.98); }
+		to { opacity: 1; transform: translateY(0) scale(1); }
 	}
 
 	.overlay-header {

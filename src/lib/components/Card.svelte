@@ -216,14 +216,15 @@
 		position: relative;
 		padding: 12px;
 		border-radius: var(--radius);
+		border: 1px solid var(--border);
 		cursor: grab;
-		transition: box-shadow var(--transition), transform var(--transition);
+		transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
 		min-width: 0;
 	}
 
 	.card:hover {
 		box-shadow: var(--shadow-lg);
-		transform: translateY(-1px);
+		transform: translateY(-2px);
 	}
 
 	@media (pointer: coarse) {
@@ -349,7 +350,6 @@
 		font-size: 12px;
 		color: var(--text-secondary);
 		line-height: 1.5;
-		background: var(--bg-secondary);
 		border-radius: var(--radius-sm);
 		padding: 6px 0;
 		margin-bottom: 6px;

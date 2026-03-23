@@ -666,7 +666,7 @@
 		align-items: center;
 		gap: 6px;
 		padding: 6px 12px;
-		margin-bottom: 12px;
+		margin: 0 4px 12px;
 		border-radius: var(--radius);
 		background: var(--accent-soft);
 		color: var(--accent);

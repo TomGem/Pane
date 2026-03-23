@@ -426,8 +426,8 @@
 
 	a.space-column:hover {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 1px var(--accent);
-		transform: translateY(-2px);
+		box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg);
+		transform: translateY(-3px);
 		text-decoration: none;
 	}
 

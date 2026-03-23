@@ -36,7 +36,7 @@
 	onmousedown={(e) => { mouseDownOnBackdrop = e.target === e.currentTarget; }}
 	onclick={(e) => { if (e.target === e.currentTarget && mouseDownOnBackdrop) onclose?.(); }}
 >
-	<div class="modal glass-strong" role="dialog" aria-labelledby="modal-title" aria-modal="true" use:trapFocus>
+	<div class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true" use:trapFocus>
 		<div class="modal-header">
 			<h2 id="modal-title" class="modal-title">{title}</h2>
 			<button class="modal-close" onclick={onclose} aria-label="Close" title="Close">
@@ -69,6 +69,8 @@
 		max-height: 85vh;
 		border-radius: var(--radius-lg);
 		box-shadow: var(--shadow-lg);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;

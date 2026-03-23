@@ -137,6 +137,8 @@
 		max-width: 400px;
 		padding: 32px;
 		border-radius: var(--radius-lg);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
 	}
 
 	.auth-title {

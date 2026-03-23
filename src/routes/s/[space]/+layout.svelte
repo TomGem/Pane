@@ -169,7 +169,7 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		padding: 20px;
+		padding: 16px;
 		overflow-x: auto;
 	}
 

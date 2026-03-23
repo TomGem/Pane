@@ -91,7 +91,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div class="help-overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose(); }} role="dialog" aria-modal="true" aria-label="Pane Help" tabindex="-1" use:trapFocus>
-	<div class="help-panel glass-strong" bind:this={panelEl}>
+	<div class="help-panel" bind:this={panelEl}>
 		{#if activeSection === null}
 			<div class="help-header">
 				<h2 class="help-title">Pane Help</h2>
@@ -269,9 +269,11 @@
 		width: 90vw;
 		max-width: 600px;
 		max-height: 85vh;
-		overflow-y: auto;
+		overflow: hidden;
 		border-radius: var(--radius-lg);
 		box-shadow: var(--shadow-lg);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
 		display: flex;
 		flex-direction: column;
 	}
@@ -322,7 +324,7 @@
 		padding: 16px 8px;
 		border-radius: var(--radius-sm);
 		border: 1px solid var(--border);
-		background: transparent;
+		background: var(--bg-secondary);
 		cursor: pointer;
 		transition: background-color var(--transition), border-color var(--transition);
 		text-align: center;
@@ -413,6 +415,7 @@
 	/* Shared */
 	.help-body {
 		padding: 16px 20px 20px;
+		overflow-y: auto;
 	}
 
 	.help-clock {

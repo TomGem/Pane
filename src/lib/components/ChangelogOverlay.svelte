@@ -125,7 +125,7 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_interactive_supports_focus a11y_no_noninteractive_tabindex -->
 <div class="changelog-backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" aria-label="Changelog" tabindex="-1">
-	<div class="changelog-panel glass-strong">
+	<div class="changelog-panel">
 		<div class="changelog-header">
 			<h2 class="changelog-title">Changelog</h2>
 			<button class="changelog-close" onclick={onclose} aria-label="Close">
@@ -180,21 +180,36 @@
 		inset: 0;
 		z-index: 200;
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		justify-content: center;
-		padding-top: 60px;
-		background: rgba(0, 0, 0, 0.3);
+		background: rgba(0, 0, 0, 0.4);
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
+		animation: fadeIn 0.15s ease;
 	}
 
 	.changelog-panel {
-		width: 100%;
+		width: 90%;
 		max-width: 480px;
-		max-height: calc(100vh - 120px);
+		max-height: 85vh;
 		display: flex;
 		flex-direction: column;
-		border-radius: var(--radius);
+		border-radius: var(--radius-lg);
 		box-shadow: var(--shadow-lg);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
 		overflow: hidden;
+		animation: slideUp 0.2s ease;
+	}
+
+	@keyframes fadeIn {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
+
+	@keyframes slideUp {
+		from { opacity: 0; transform: translateY(10px) scale(0.98); }
+		to { opacity: 1; transform: translateY(0) scale(1); }
 	}
 
 	.changelog-header {

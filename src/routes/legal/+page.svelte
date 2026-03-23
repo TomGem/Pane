@@ -66,6 +66,8 @@
 		max-width: 720px;
 		border-radius: var(--radius-lg);
 		overflow: hidden;
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
 	}
 
 	.legal-header {

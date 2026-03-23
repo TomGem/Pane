@@ -210,7 +210,7 @@
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div class="overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} onkeydown={(e) => { if (e.key === 'Escape') onclose(); }} role="dialog" aria-modal="true" aria-label="User settings" tabindex="-1" use:trapFocus>
-	<div class="panel glass-strong">
+	<div class="panel">
 		<div class="panel-header">
 			<h2 class="panel-title">{singleUser ? 'Settings' : user?.display_name ?? 'Settings'}</h2>
 			<button class="panel-close" onclick={onclose} aria-label="Close" title="Close">
@@ -473,9 +473,11 @@
 		width: 90vw;
 		max-width: 420px;
 		max-height: 85vh;
-		overflow-y: auto;
+		overflow: hidden;
 		border-radius: var(--radius-lg);
 		box-shadow: var(--shadow-lg);
+		background: var(--bg-secondary);
+		border: 1px solid var(--border);
 		display: flex;
 		flex-direction: column;
 	}
@@ -512,6 +514,7 @@
 
 	.panel-body {
 		padding: 16px 20px 20px;
+		overflow-y: auto;
 	}
 
 	.section {
@@ -780,7 +783,8 @@
 		font-size: 13px;
 		font-weight: 500;
 		color: var(--text-primary);
-		background: var(--bg-secondary);
+		background: var(--bg-primary);
+		border: 1px solid var(--border);
 		cursor: pointer;
 		transition: background-color var(--transition);
 	}

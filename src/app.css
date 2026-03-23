@@ -109,7 +109,7 @@ html {
 	--bg-primary: #ffffff;
 	--bg-secondary: #f4f5f7;
 	--bg-glass: rgba(255, 255, 255, 0.65);
-	--bg-glass-strong: rgba(255, 255, 255, 0.85);
+	--bg-glass-strong: rgba(243, 244, 247, 0.9);
 
 	/* Text */
 	--text-primary: #111827;
@@ -131,12 +131,12 @@ html {
 
 	/* Shadows */
 	--shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-	--shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08), 0 4px 10px rgba(0, 0, 0, 0.05);
+	--shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10), 0 4px 12px rgba(0, 0, 0, 0.06);
 
 	/* Radii */
-	--radius-sm: 4px;
-	--radius: 8px;
-	--radius-lg: 16px;
+	--radius-sm: 3px;
+	--radius: 6px;
+	--radius-lg: 9px;
 
 	/* Motion */
 	--transition: 0.2s ease;
@@ -155,8 +155,8 @@ html {
 
 [data-theme='dark'] {
 	/* Backgrounds */
-	--bg-primary: #0f1117;
-	--bg-secondary: #1a1c25;
+	--bg-primary: #13151d;
+	--bg-secondary: #181a24;
 	--bg-glass: rgba(26, 28, 37, 0.65);
 	--bg-glass-strong: rgba(26, 28, 37, 0.85);
 
@@ -166,7 +166,7 @@ html {
 	--text-muted: #9ca3af;
 
 	/* Borders */
-	--border: #2d3040;
+	--border: #2a2d42;
 	--border-glass: rgba(255, 255, 255, 0.08);
 
 	/* Accent */
@@ -180,7 +180,7 @@ html {
 
 	/* Shadows */
 	--shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-	--shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.25);
+	--shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45), 0 4px 12px rgba(0, 0, 0, 0.30);
 
 	/* Scrollbar */
 	--scrollbar-thumb: #3b3e4f;
@@ -345,7 +345,7 @@ button {
 	font-size: 14px;
 	line-height: 1.5;
 	color: var(--text-primary);
-	background-color: var(--bg-secondary);
+	background-color: var(--bg-primary);
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
 	outline: none;
@@ -357,6 +357,10 @@ button {
 
 .input::placeholder {
 	color: var(--text-muted);
+}
+
+select.input {
+	height: 38px;
 }
 
 .input:focus {
@@ -448,8 +452,8 @@ button {
 	display: inline-flex;
 	align-items: center;
 	gap: 4px;
-	padding: 2px 8px;
-	font-size: 11px;
+	padding: 2px 7px;
+	font-size: 10.5px;
 	font-weight: 600;
 	line-height: 1.5;
 	border-radius: 9999px;
