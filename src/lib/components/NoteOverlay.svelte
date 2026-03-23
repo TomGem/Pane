@@ -151,9 +151,11 @@
 
 	.note-panel {
 		width: 90vw;
-		max-width: 720px;
-		max-height: 85vh;
-		overflow-y: auto;
+		max-width: 900px;
+		height: 85vh;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
 		background: var(--bg-primary, #1a1a2e);
 		border-radius: 12px;
 		padding: 32px;
@@ -166,6 +168,7 @@
 		margin-bottom: 20px;
 		line-height: 1.3;
 		font-family: var(--font-mono);
+		flex-shrink: 0;
 	}
 
 	.note-content {
@@ -173,11 +176,15 @@
 		font-size: 14px;
 		line-height: 1.7;
 		font-family: var(--font-mono);
+		overflow-y: auto;
+		flex: 1 1 0;
+		min-height: 0;
 	}
 
 	.note-editor {
 		width: 100%;
-		min-height: 300px;
+		flex: 1 1 0;
+		min-height: 0;
 		background: rgba(0, 0, 0, 0.2);
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: 8px;
@@ -186,7 +193,7 @@
 		font-size: 15px;
 		line-height: 1.7;
 		font-family: var(--font-mono);
-		resize: vertical;
+		resize: none;
 	}
 
 	.note-editor:focus {
@@ -199,6 +206,7 @@
 		justify-content: flex-end;
 		gap: 8px;
 		margin-top: 12px;
+		flex-shrink: 0;
 	}
 
 	/* Markdown styles */
