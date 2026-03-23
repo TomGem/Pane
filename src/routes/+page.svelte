@@ -341,6 +341,7 @@
 		spaceSlug={sharingSpace.slug}
 		spaceName={sharingSpace.name}
 		onclose={() => sharingSpace = null}
+		onshareschange={() => invalidateAll()}
 	/>
 {/if}
 

@@ -15,6 +15,12 @@
 	let confirmClear = $state(false);
 	let shouldAutoScroll = $state(true);
 	let inputEl = $state<HTMLTextAreaElement | null>(null);
+	let _tick = $state(0);
+
+	$effect(() => {
+		const id = setInterval(() => _tick++, 60_000);
+		return () => clearInterval(id);
+	});
 
 	function scrollToBottom() {
 		if (messagesEl && shouldAutoScroll) {
@@ -74,6 +80,7 @@
 	}
 
 	function formatTime(dateStr: string): string {
+		void _tick;
 		try {
 			const d = new Date(dateStr.includes('T') ? dateStr : dateStr + 'Z');
 			const now = new Date();

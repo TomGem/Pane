@@ -20,6 +20,12 @@
 	let loadingMore = $state(false);
 	let hasMore = $state(true);
 	const PAGE_SIZE = 50;
+	let _tick = $state(0);
+
+	$effect(() => {
+		const id = setInterval(() => _tick++, 60_000);
+		return () => clearInterval(id);
+	});
 
 	function buildUrl(offset: number): string {
 		let url = `/api/changelog?space=${encodeURIComponent(spaceSlug)}&limit=${PAGE_SIZE}&offset=${offset}`;
@@ -81,6 +87,7 @@
 	}
 
 	function formatTime(dateStr: string): string {
+		void _tick;
 		const date = new Date(dateStr + 'Z');
 		const now = new Date();
 		const diffMs = now.getTime() - date.getTime();
