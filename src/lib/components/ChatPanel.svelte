@@ -113,122 +113,129 @@
 	}
 </script>
 
-<aside class="chat-panel glass-strong">
-	<div class="chat-header">
-		<div class="chat-header-left">
-			<span class="chat-title">Chat</span>
-			{#if chat.onlineUsers.length > 0}
-				<div class="presence-avatars">
-					{#each chat.onlineUsers as user (user.id)}
-						<span class="presence-user" title={user.display_name}>
-							{#if user.avatar_path}
-								<img class="presence-avatar" src="/api/avatar?user={user.id}" alt={user.display_name} />
-							{:else}
-								<span class="presence-initial" style:background-color={avatarColor(user.id)}>
-									{getInitial(user.display_name)}
-								</span>
-							{/if}
-							<span class="presence-online-dot"></span>
-						</span>
-					{/each}
+<aside class="chat-column glass">
+		<div class="chat-header">
+			<div class="chat-header-left">
+				<span class="chat-title">Chat</span>
+				{#if chat.onlineUsers.length > 0}
+					<div class="presence-avatars">
+						{#each chat.onlineUsers as user (user.id)}
+							<span class="presence-user" title={user.display_name}>
+								{#if user.avatar_path}
+									<img class="presence-avatar" src="/api/avatar?user={user.id}" alt={user.display_name} />
+								{:else}
+									<span class="presence-initial" style:background-color={avatarColor(user.id)}>
+										{getInitial(user.display_name)}
+									</span>
+								{/if}
+								<span class="presence-online-dot"></span>
+							</span>
+						{/each}
+					</div>
+				{/if}
+			</div>
+			<div class="chat-header-right">
+				{#if isOwner && chat.messages.length > 0}
+					{#if confirmClear}
+						<button class="btn-clear-confirm" onclick={handleClearChat}>Confirm</button>
+						<button class="btn-clear-cancel" onclick={() => confirmClear = false}>Cancel</button>
+					{:else}
+						<button class="btn-clear" onclick={() => confirmClear = true} title="Clear chat history">
+							<Icon name="trash" size={14} />
+						</button>
+					{/if}
+				{/if}
+				<button class="btn-close" onclick={onclose} title="Close chat">
+					<Icon name="close" size={16} />
+				</button>
+			</div>
+		</div>
+
+		<div class="chat-messages" bind:this={messagesEl} onscroll={handleScroll}>
+			{#if chat.hasMore}
+				<button class="btn-load-more" onclick={() => chat.loadMore()} disabled={chat.loading}>
+					{chat.loading ? 'Loading...' : 'Load older messages'}
+				</button>
+			{/if}
+
+			{#if chat.messages.length === 0 && !chat.loading}
+				<div class="chat-empty">
+					<Icon name="message-circle" size={32} />
+					<p>No messages yet</p>
+					<p class="chat-empty-sub">Start the conversation!</p>
 				</div>
 			{/if}
+
+			{#each chat.messages as msg, i (msg.id)}
+				{@const isOwn = msg.user_id === chat.currentUserId}
+				{@const showAvatar = i === 0 || chat.messages[i - 1].user_id !== msg.user_id}
+				<div class="chat-msg" class:own={isOwn} class:grouped={!showAvatar}>
+					{#if showAvatar && !isOwn}
+						<div class="msg-header">
+							{#if msg.avatar_path}
+								<img class="msg-avatar" src="/api/avatar?user={msg.user_id}" alt="" />
+							{:else}
+								<span class="msg-avatar-initial" style:background-color={avatarColor(msg.user_id)}>
+									{getInitial(msg.display_name)}
+								</span>
+							{/if}
+							<span class="msg-name">{msg.display_name}</span>
+							<span class="msg-time">{formatTime(msg.created_at)}</span>
+						</div>
+					{:else if showAvatar && isOwn}
+						<div class="msg-header own">
+							<span class="msg-time">{formatTime(msg.created_at)}</span>
+						</div>
+					{/if}
+					<div class="msg-bubble" class:own={isOwn}>{msg.message}</div>
+				</div>
+			{/each}
 		</div>
-		<div class="chat-header-right">
-			{#if isOwner && chat.messages.length > 0}
-				{#if confirmClear}
-					<button class="btn-clear-confirm" onclick={handleClearChat}>Confirm</button>
-					<button class="btn-clear-cancel" onclick={() => confirmClear = false}>Cancel</button>
-				{:else}
-					<button class="btn-clear" onclick={() => confirmClear = true} title="Clear chat history">
-						<Icon name="trash" size={14} />
-					</button>
-				{/if}
-			{/if}
-			<button class="btn-close" onclick={onclose} title="Close chat">
-				<Icon name="close" size={16} />
+
+		<div class="chat-input-area">
+			<textarea
+				bind:this={inputEl}
+				class="chat-input"
+				placeholder="Type a message..."
+				bind:value={inputText}
+				onkeydown={handleKeydown}
+				rows="1"
+			></textarea>
+			<button
+				class="btn-send"
+				onclick={handleSend}
+				disabled={!inputText.trim()}
+				title="Send message"
+			>
+				<Icon name="send" size={16} />
 			</button>
 		</div>
-	</div>
-
-	<div class="chat-messages" bind:this={messagesEl} onscroll={handleScroll}>
-		{#if chat.hasMore}
-			<button class="btn-load-more" onclick={() => chat.loadMore()} disabled={chat.loading}>
-				{chat.loading ? 'Loading...' : 'Load older messages'}
-			</button>
-		{/if}
-
-		{#if chat.messages.length === 0 && !chat.loading}
-			<div class="chat-empty">
-				<Icon name="message-circle" size={32} />
-				<p>No messages yet</p>
-				<p class="chat-empty-sub">Start the conversation!</p>
-			</div>
-		{/if}
-
-		{#each chat.messages as msg, i (msg.id)}
-			{@const isOwn = msg.user_id === chat.currentUserId}
-			{@const showAvatar = i === 0 || chat.messages[i - 1].user_id !== msg.user_id}
-			<div class="chat-msg" class:own={isOwn} class:grouped={!showAvatar}>
-				{#if showAvatar && !isOwn}
-					<div class="msg-header">
-						{#if msg.avatar_path}
-							<img class="msg-avatar" src="/api/avatar?user={msg.user_id}" alt="" />
-						{:else}
-							<span class="msg-avatar-initial" style:background-color={avatarColor(msg.user_id)}>
-								{getInitial(msg.display_name)}
-							</span>
-						{/if}
-						<span class="msg-name">{msg.display_name}</span>
-						<span class="msg-time">{formatTime(msg.created_at)}</span>
-					</div>
-				{:else if showAvatar && isOwn}
-					<div class="msg-header own">
-						<span class="msg-time">{formatTime(msg.created_at)}</span>
-					</div>
-				{/if}
-				<div class="msg-bubble" class:own={isOwn}>{msg.message}</div>
-			</div>
-		{/each}
-	</div>
-
-	<div class="chat-input-area">
-		<textarea
-			bind:this={inputEl}
-			class="chat-input"
-			placeholder="Type a message..."
-			bind:value={inputText}
-			onkeydown={handleKeydown}
-			rows="1"
-		></textarea>
-		<button
-			class="btn-send"
-			onclick={handleSend}
-			disabled={!inputText.trim()}
-			title="Send message"
-		>
-			<Icon name="send" size={16} />
-		</button>
-	</div>
 </aside>
 
 <style>
-	.chat-panel {
+	.chat-column {
 		width: 360px;
 		min-width: 360px;
-		height: 100%;
 		display: flex;
 		flex-direction: column;
-		border-left: 1px solid var(--border);
-		background: var(--bg-primary);
+		border-radius: var(--radius-lg);
+		overflow: hidden;
+		flex-shrink: 0;
+		position: sticky;
+		top: 0;
+		align-self: flex-start;
+		margin-top: 4px;
+		max-height: calc(100vh - 140px);
 	}
 
 	.chat-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 12px 16px;
+		padding: 14px 14px 12px;
+		border-top: 2px solid var(--border);
 		border-bottom: 1px solid var(--border);
+		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 		flex-shrink: 0;
 	}
 
@@ -394,7 +401,6 @@
 		align-items: flex-end;
 	}
 
-
 	.msg-header {
 		display: flex;
 		align-items: center;
@@ -520,12 +526,13 @@
 	}
 
 	@media (max-width: 719px) {
-		.chat-panel {
+		.chat-column {
 			position: fixed;
 			inset: 0;
 			width: 100%;
 			min-width: unset;
 			z-index: 200;
+			border-radius: 0;
 		}
 	}
 </style>

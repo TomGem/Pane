@@ -1,6 +1,5 @@
 <script lang="ts">
 	import Toolbar from '$lib/components/Toolbar.svelte';
-	import ChatPanel from '$lib/components/ChatPanel.svelte';
 	import { setContext, getContext, onDestroy } from 'svelte';
 	import type { Snippet } from 'svelte';
 	import type { Tag, Space, StorageQuotaInfo } from '$lib/types';
@@ -98,6 +97,10 @@
 		selectedTagIds = [];
 	});
 
+	setContext('chat', {
+		get store() { return chat; }
+	});
+
 	setContext('app', {
 		get searchQuery() { return searchQuery; },
 		setSearchQuery(query: string) { searchQuery = query; },
@@ -149,13 +152,6 @@
 			{@render children()}
 		{/key}
 	</main>
-	{#if chat?.isOpen}
-		<ChatPanel
-			{chat}
-			isOwner={!data.ownerId}
-			onclose={() => chat?.close()}
-		/>
-	{/if}
 </div>
 
 <style>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Board from '$lib/components/Board.svelte';
+	import ChatPanel from '$lib/components/ChatPanel.svelte';
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import ItemForm from '$lib/components/ItemForm.svelte';
@@ -10,6 +11,7 @@
 	import { getDirectoryEntries, traverseDirectory } from '$lib/utils/folder-drop';
 	import { getContext, onDestroy } from 'svelte';
 	import type { CategoryWithItems, Item, Tag, Space } from '$lib/types';
+	import type { ChatStore } from '$lib/stores/chat.svelte';
 	import { page } from '$app/stores';
 
 	let { data } = $props();
@@ -23,6 +25,7 @@
 	// svelte-ignore state_referenced_locally — intentionally capturing initial SSR data; store manages its own state after hydration
 	const board = createBoardStore(data.columns, data.allItems, spaceSlug, ownerId, permission as 'owner' | 'read' | 'write');
 	const app = getContext<{ searchQuery: string; setSearchQuery: (query: string) => void; selectedTagIds: number[]; toggleTag: (tagId: number) => void; focusSearch: () => void; setAddCallback: (fn: () => void) => void; setAddCategoryCallback: (fn: () => void) => void; setTags: (tags: Tag[]) => void; setUpdateTag: (fn: (id: number, name: string, color: string) => Promise<Tag>) => void }>('app');
+	const chatCtx = getContext<{ readonly store: ChatStore | null }>('chat');
 
 	let isNested = $derived(board.currentParentId !== null);
 
@@ -482,78 +485,88 @@
 		</div>
 	{/if}
 
-	{#if board.columns.length === 0}
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div
-			class="empty-board"
-			class:empty-board-drag-over={emptyBoardDragOver}
-			ondragenter={!isReadonly ? handleEmptyDragEnter : undefined}
-			ondragover={!isReadonly ? handleEmptyDragOver : undefined}
-			ondragleave={!isReadonly ? handleEmptyDragLeave : undefined}
-			ondrop={!isReadonly ? handleEmptyDrop : undefined}
-		>
-			<div class="empty-board-content glass">
-				{#if emptyBoardDragOver}
-					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-					</svg>
-					<h2>Drop folder to create category</h2>
-					<p>Subfolders will become subcategories</p>
-				{:else if isReadonly}
-					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-						<rect x="3" y="3" width="7" height="7" />
-						<rect x="14" y="3" width="7" height="7" />
-						<rect x="3" y="14" width="7" height="7" />
-						<rect x="14" y="14" width="7" height="7" />
-					</svg>
-					<h2>This space is empty</h2>
-					<p>The owner hasn't added any categories yet.</p>
-				{:else}
-					<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-						<rect x="3" y="3" width="7" height="7" />
-						<rect x="14" y="3" width="7" height="7" />
-						<rect x="3" y="14" width="7" height="7" />
-						<rect x="14" y="14" width="7" height="7" />
-					</svg>
-					<h2>{isNested ? 'No subcategories yet' : 'No categories yet'}</h2>
-					<p>{isNested ? 'Create a subcategory to organize this level' : 'Create your first category to get started, or drop a folder here'}</p>
-					<button class="btn btn-primary" onclick={handleAddCategory}>
-						{isNested ? 'Create Subcategory' : 'Create Category'}
-					</button>
-					{#if !isNested}
-						<div class="empty-board-divider">
-							<span>or</span>
-						</div>
-						<button class="btn btn-outline" onclick={handleLoadSampleData} disabled={loadingSampleData}>
-							{loadingSampleData ? 'Loading...' : 'Load Sample Data'}
+	<div class="board-area">
+		{#if board.columns.length === 0}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="empty-board"
+				class:empty-board-drag-over={emptyBoardDragOver}
+				ondragenter={!isReadonly ? handleEmptyDragEnter : undefined}
+				ondragover={!isReadonly ? handleEmptyDragOver : undefined}
+				ondragleave={!isReadonly ? handleEmptyDragLeave : undefined}
+				ondrop={!isReadonly ? handleEmptyDrop : undefined}
+			>
+				<div class="empty-board-content glass">
+					{#if emptyBoardDragOver}
+						<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+						</svg>
+						<h2>Drop folder to create category</h2>
+						<p>Subfolders will become subcategories</p>
+					{:else if isReadonly}
+						<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+							<rect x="3" y="3" width="7" height="7" />
+							<rect x="14" y="3" width="7" height="7" />
+							<rect x="3" y="14" width="7" height="7" />
+							<rect x="14" y="14" width="7" height="7" />
+						</svg>
+						<h2>This space is empty</h2>
+						<p>The owner hasn't added any categories yet.</p>
+					{:else}
+						<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+							<rect x="3" y="3" width="7" height="7" />
+							<rect x="14" y="3" width="7" height="7" />
+							<rect x="3" y="14" width="7" height="7" />
+							<rect x="14" y="14" width="7" height="7" />
+						</svg>
+						<h2>{isNested ? 'No subcategories yet' : 'No categories yet'}</h2>
+						<p>{isNested ? 'Create a subcategory to organize this level' : 'Create your first category to get started, or drop a folder here'}</p>
+						<button class="btn btn-primary" onclick={handleAddCategory}>
+							{isNested ? 'Create Subcategory' : 'Create Category'}
 						</button>
+						{#if !isNested}
+							<div class="empty-board-divider">
+								<span>or</span>
+							</div>
+							<button class="btn btn-outline" onclick={handleLoadSampleData} disabled={loadingSampleData}>
+								{loadingSampleData ? 'Loading...' : 'Load Sample Data'}
+							</button>
+						{/if}
 					{/if}
-				{/if}
+				</div>
 			</div>
-		</div>
-	{:else}
-		<Board
-			{board}
-			{spaceSlug}
-			searchQuery={app.searchQuery}
-			selectedTagIds={app.selectedTagIds}
-			onitemedit={isReadonly ? undefined : handleEditItem}
-			onitemrefresh={isReadonly ? undefined : handleRefreshItem}
-			onitemdelete={isReadonly ? undefined : handleDeleteItem}
-			onadditem={isReadonly ? undefined : handleAddItem}
-			oneditcategory={isReadonly ? undefined : handleEditCategory}
-			ondeletecategory={isReadonly ? undefined : handleDeleteCategory}
-			onaddsubcategory={isReadonly ? undefined : handleAddSubcategory}
-			onmovecategory={isReadonly ? undefined : (($page.data.spaces as Space[]).length > 1 ? handleMoveCategory : undefined)}
-			onpromotecategory={isReadonly ? undefined : handlePromoteCategory}
-			ondemotecategory={isReadonly ? undefined : handleDemoteCategory}
-			ondrilldown={handleDrillDown}
-			onfolderimported={isReadonly ? undefined : handleFolderImported}
-			onfoldererror={isReadonly ? undefined : handleFolderError}
-			onprogress={isReadonly ? undefined : handleFolderProgress}
-			onnotesave={isReadonly ? undefined : handleNoteSave}
-		/>
-	{/if}
+		{:else}
+			<Board
+				{board}
+				{spaceSlug}
+				searchQuery={app.searchQuery}
+				selectedTagIds={app.selectedTagIds}
+				onitemedit={isReadonly ? undefined : handleEditItem}
+				onitemrefresh={isReadonly ? undefined : handleRefreshItem}
+				onitemdelete={isReadonly ? undefined : handleDeleteItem}
+				onadditem={isReadonly ? undefined : handleAddItem}
+				oneditcategory={isReadonly ? undefined : handleEditCategory}
+				ondeletecategory={isReadonly ? undefined : handleDeleteCategory}
+				onaddsubcategory={isReadonly ? undefined : handleAddSubcategory}
+				onmovecategory={isReadonly ? undefined : (($page.data.spaces as Space[]).length > 1 ? handleMoveCategory : undefined)}
+				onpromotecategory={isReadonly ? undefined : handlePromoteCategory}
+				ondemotecategory={isReadonly ? undefined : handleDemoteCategory}
+				ondrilldown={handleDrillDown}
+				onfolderimported={isReadonly ? undefined : handleFolderImported}
+				onfoldererror={isReadonly ? undefined : handleFolderError}
+				onprogress={isReadonly ? undefined : handleFolderProgress}
+				onnotesave={isReadonly ? undefined : handleNoteSave}
+			/>
+		{/if}
+
+		{#if chatCtx?.store?.isOpen}
+			<ChatPanel
+				chat={chatCtx.store}
+				isOwner={!ownerId}
+				onclose={() => chatCtx.store?.close()}
+			/>
+		{/if}
+	</div>
 </div>
 
 <!-- Item Modal -->
@@ -658,6 +671,16 @@
 	.page {
 		flex: 1;
 		min-width: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.board-area {
+		display: flex;
+		flex: 1;
+		gap: 16px;
+		min-height: 0;
+		align-items: flex-start;
 	}
 
 	.readonly-banner,
