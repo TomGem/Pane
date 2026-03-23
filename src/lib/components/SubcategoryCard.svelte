@@ -4,11 +4,6 @@
 	import SubcategoryCard from './SubcategoryCard.svelte';
 	import type { Category, Item } from '$lib/types';
 
-	let isTouchDevice = $state(false);
-	$effect(() => {
-		isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-	});
-
 	interface Props {
 		category: Category;
 		allItems?: Item[];
@@ -121,7 +116,7 @@
 	<div
 		class="drop-zone"
 		class:expanded
-		use:dndzone={{ items: displayItems, flipDurationMs: 200, dropTargetStyle: {}, dragDisabled: isTouchDevice }}
+		use:dndzone={{ items: displayItems, flipDurationMs: 200, dropTargetStyle: {} }}
 		onconsider={handleDndConsider}
 		onfinalize={handleDndFinalize}
 	>

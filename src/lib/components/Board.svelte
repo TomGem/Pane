@@ -6,11 +6,6 @@
 	import type { CategoryWithItems, Item } from '$lib/types';
 	import type { BoardStore } from '$lib/stores/board.svelte';
 
-	let isTouchDevice = $state(false);
-	$effect(() => {
-		isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-	});
-
 	interface Props {
 		board: BoardStore;
 		spaceSlug?: string;
@@ -247,8 +242,7 @@
 		items: board.columns,
 		flipDurationMs: 200,
 		type: 'columns',
-		dropTargetStyle: {},
-		dragDisabled: isTouchDevice
+		dropTargetStyle: {}
 	}}
 	onconsider={handleColumnConsider}
 	onfinalize={handleColumnFinalize}

@@ -227,12 +227,6 @@
 		transform: translateY(-2px);
 	}
 
-	@media (pointer: coarse) {
-		.card {
-			cursor: default;
-		}
-	}
-
 	.card:active {
 		cursor: grabbing;
 	}
