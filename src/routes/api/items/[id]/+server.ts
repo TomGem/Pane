@@ -64,7 +64,7 @@ export const PUT: RequestHandler = async ({ params, request, url, locals }) => {
 			let newFilePath = existing.file_path;
 
 			if (category_id !== undefined && category_id !== existing.category_id && existing.file_path) {
-				const newCategory = db.prepare('SELECT * FROM categories WHERE id = ?').get(category_id) as Category;
+				const newCategory = db.prepare('SELECT * FROM categories WHERE id = ? AND space_slug = ?').get(category_id, spaceSlug) as Category;
 				if (newCategory) {
 					newFilePath = moveFile(ownerId, spaceSlug, existing.file_path, newCategory.slug);
 				}

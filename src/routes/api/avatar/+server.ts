@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getAuthDb } from '$lib/server/db';
+import { getAuthDb, validateUserId } from '$lib/server/db';
 import fs from 'fs';
 import path from 'path';
 
@@ -25,6 +25,10 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	// Allow fetching another user's avatar via ?user= param
 	const targetUserId = url.searchParams.get('user') || locals.userId;
 
+	if (!validateUserId(targetUserId)) {
+		return json({ error: 'Invalid user ID' }, { status: 400 });
+	}
+
 	const authDb = getAuthDb();
 	const row = authDb.prepare('SELECT avatar_path FROM users WHERE id = ?').get(targetUserId) as { avatar_path: string | null } | undefined;
 
@@ -37,7 +41,7 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 	// Prevent path traversal
 	const resolved = path.resolve(filePath);
 	const storageRoot = path.resolve('storage', targetUserId);
-	if (!resolved.startsWith(storageRoot)) {
+	if (!resolved.startsWith(storageRoot + path.sep)) {
 		return json({ error: 'Invalid path' }, { status: 400 });
 	}
 
