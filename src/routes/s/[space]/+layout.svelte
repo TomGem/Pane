@@ -173,7 +173,7 @@
 		overflow-x: auto;
 	}
 
-	@media (max-width: 767px) {
+	@media (max-width: 719px) {
 		.app-content {
 			padding: 12px;
 		}

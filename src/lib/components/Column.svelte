@@ -15,6 +15,7 @@
 		allItems?: Item[];
 		allCategories?: Category[];
 		spaceSlug?: string;
+		ownerId?: string;
 		searchQuery?: string;
 		selectedTagIds?: number[];
 		matchingSubcategoryIds?: Set<number>;
@@ -41,6 +42,7 @@
 		allItems = [],
 		allCategories = [],
 		spaceSlug = 'desk',
+		ownerId,
 		searchQuery = '',
 		selectedTagIds = [],
 		matchingSubcategoryIds = new Set(),
@@ -242,7 +244,7 @@
 		{#if category.children && category.children.length > 0}
 			<div class="subcategory-list">
 				{#each category.children as child (child.id)}
-					<SubcategoryCard category={child} {allItems} {allCategories} {matchingSubcategoryIds} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} {onnotesave} />
+					<SubcategoryCard category={child} {allItems} {allCategories} {matchingSubcategoryIds} {spaceSlug} {ownerId} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} ondrilldown={ondrilldown ?? (() => {})} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} {onnotesave} />
 				{/each}
 			</div>
 		{/if}
@@ -259,6 +261,7 @@
 					<Card
 						{item}
 						{spaceSlug}
+						{ownerId}
 						onedit={onitemedit}
 						onrefresh={onitemrefresh}
 						ondelete={onitemdelete}
@@ -348,7 +351,7 @@
 		border-radius: 9999px;
 	}
 
-	@media (max-width: 767px) {
+	@media (max-width: 719px) {
 		.column.collapsed {
 			height: auto;
 		}

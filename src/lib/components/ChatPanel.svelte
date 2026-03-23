@@ -512,7 +512,7 @@
 		opacity: 0.4;
 	}
 
-	@media (max-width: 767px) {
+	@media (max-width: 719px) {
 		.chat-panel {
 			position: fixed;
 			inset: 0;

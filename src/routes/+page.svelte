@@ -603,7 +603,7 @@
 		border-style: dashed;
 	}
 
-	@media (max-width: 767px) {
+	@media (max-width: 719px) {
 		.spaces-board {
 			padding: 16px 12px;
 		}

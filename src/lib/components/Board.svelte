@@ -265,6 +265,7 @@
 				allItems={board.allItems}
 				allCategories={board.allCategories}
 				{spaceSlug}
+				ownerId={board.ownerId}
 				{searchQuery}
 				{selectedTagIds}
 				{matchingSubcategoryIds}
@@ -350,7 +351,7 @@
 		display: none;
 	}
 
-	@media (max-width: 767px) {
+	@media (max-width: 719px) {
 		.board {
 			gap: 12px;
 		}

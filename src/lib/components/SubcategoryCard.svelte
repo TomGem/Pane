@@ -15,6 +15,7 @@
 		allCategories?: Category[];
 		matchingSubcategoryIds?: Set<number>;
 		spaceSlug?: string;
+		ownerId?: string;
 		searchQuery?: string;
 		selectedTagIds?: number[];
 		searchMatch?: boolean;
@@ -26,7 +27,7 @@
 		onnotesave?: (item: Item, content: string) => void;
 	}
 
-	let { category, allItems = [], allCategories = [], matchingSubcategoryIds = new Set(), spaceSlug = 'desk', searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemsupdate, onitemedit, onitemrefresh, onitemdelete, onnotesave }: Props = $props();
+	let { category, allItems = [], allCategories = [], matchingSubcategoryIds = new Set(), spaceSlug = 'desk', ownerId, searchQuery = '', selectedTagIds = [], searchMatch = false, ondrilldown, onitemsupdate, onitemedit, onitemrefresh, onitemdelete, onnotesave }: Props = $props();
 
 	let childCategories = $derived(allCategories.filter((c) => c.parent_id === category.id).sort((a, b) => a.sort_order - b.sort_order));
 
@@ -112,7 +113,7 @@
 	{#if expanded && childCategories.length > 0}
 		<div class="child-subcategories">
 			{#each childCategories as child (child.id)}
-				<SubcategoryCard category={child} {allItems} {allCategories} {matchingSubcategoryIds} {spaceSlug} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} {ondrilldown} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} {onnotesave} />
+				<SubcategoryCard category={child} {allItems} {allCategories} {matchingSubcategoryIds} {spaceSlug} {ownerId} {searchQuery} {selectedTagIds} searchMatch={matchingSubcategoryIds.has(child.id)} {ondrilldown} {onitemsupdate} {onitemedit} {onitemrefresh} {onitemdelete} {onnotesave} />
 			{/each}
 		</div>
 	{/if}
@@ -127,7 +128,7 @@
 		{#each displayItems as item (item.id)}
 			{@const visible = expanded && filteredItems.some((fi) => fi.id === item.id)}
 			<div class:hidden-item={!expanded} class:search-hidden={expanded && !visible}>
-				<Card {item} {spaceSlug} onedit={onitemedit} onrefresh={onitemrefresh} ondelete={onitemdelete} {onnotesave} />
+				<Card {item} {spaceSlug} {ownerId} onedit={onitemedit} onrefresh={onitemrefresh} ondelete={onitemdelete} {onnotesave} />
 			</div>
 		{/each}
 	</div>

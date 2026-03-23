@@ -97,6 +97,12 @@ html {
 	tab-size: 4;
 }
 
+/* --- Breakpoints ------------------------------------------- */
+/* Mobile breakpoint: max-width: 719px (triggers at ≤720px).
+   CSS @media queries cannot use var(), so this value is hardcoded
+   in component <style> blocks. Search for "max-width: 719px" to
+   find all usages. Update them together when changing this value. */
+
 /* --- Custom Properties -------------------------------------- */
 :root {
 	/* Backgrounds */

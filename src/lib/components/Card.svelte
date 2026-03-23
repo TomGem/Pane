@@ -8,13 +8,14 @@
 	interface Props {
 		item: Item;
 		spaceSlug?: string;
+		ownerId?: string;
 		onedit?: (item: Item) => void;
 		onrefresh?: (item: Item) => void;
 		ondelete?: (item: Item) => void;
 		onnotesave?: (item: Item, content: string) => void;
 	}
 
-	let { item, spaceSlug = 'desk', onedit, onrefresh, ondelete, onnotesave }: Props = $props();
+	let { item, spaceSlug = 'desk', ownerId, onedit, onrefresh, ondelete, onnotesave }: Props = $props();
 
 	const app = getContext<{ toggleTag: (tagId: number) => void }>('app');
 
@@ -35,9 +36,15 @@
 		return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 	}
 
+	function fileUrl(filePath: string): string {
+		let url = `/api/files/${filePath}?space=${spaceSlug}`;
+		if (ownerId) url += `&owner=${encodeURIComponent(ownerId)}`;
+		return url;
+	}
+
 	function getItemUrl(): string | null {
 		if (item.type === 'link' && item.content) return item.content;
-		if (item.type === 'document' && item.file_path) return `/api/files/${item.file_path}?space=${spaceSlug}`;
+		if (item.type === 'document' && item.file_path) return fileUrl(item.file_path);
 		return null;
 	}
 
@@ -179,7 +186,7 @@
 
 {#if showMediaOverlay}
 	<MediaOverlay
-		url={`/api/files/${item.file_path}?space=${spaceSlug}`}
+		url={fileUrl(item.file_path!)}
 		fileName={item.file_name ?? ''}
 		mimeType={item.mime_type ?? ''}
 		onclose={() => showMediaOverlay = false}
@@ -197,7 +204,7 @@
 
 {#if showTextOverlay}
 	<TextFileOverlay
-		url={`/api/files/${item.file_path}?space=${spaceSlug}`}
+		url={fileUrl(item.file_path!)}
 		fileName={item.file_name ?? ''}
 		mimeType={item.mime_type ?? ''}
 		onclose={() => showTextOverlay = false}

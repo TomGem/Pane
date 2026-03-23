@@ -1159,7 +1159,7 @@
 	}
 
 	/* Mobile breakpoint */
-	@media (max-width: 767px) {
+	@media (max-width: 719px) {
 		.toolbar {
 			padding: 10px 12px;
 			gap: 10px;
