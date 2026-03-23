@@ -33,7 +33,7 @@ Root `/` is a **spaces dashboard** showing the user's own spaces (with category/
 /s/[space]/+error.svelte    → error page (unknown slugs redirect to /)
 ```
 
-The root layout (`+layout.svelte`) owns theme and palette stores. Root `+layout.server.ts` passes `user` from `event.locals` to all pages. The space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and app context bridge.
+The root layout (`+layout.svelte`) owns theme and palette stores. Root `+layout.server.ts` passes `user` from `event.locals` to all pages. The space layout (`/s/[space]/+layout.svelte`) owns the Toolbar, app context bridge, and chat store context.
 
 ## Database
 
@@ -150,7 +150,7 @@ All stores use Svelte 5 runes (`$state`, `$derived`, `$effect`).
 
 ## Layout / page communication
 
-The space layout owns the Toolbar and exposes a context object via `setContext('app')`. The page registers callbacks through this context so the Toolbar's Add / Search / Tag actions trigger the page's modals and filtering. The context object exposes reactive getters and setter functions — not plain values.
+The space layout owns the Toolbar, exposes an app context object via `setContext('app')`, and creates the chat store context (`setContext('chat')`). The page registers callbacks through the app context so the Toolbar's Add / Search / Tag actions trigger the page's modals and filtering. The context object exposes reactive getters and setter functions — not plain values. The page also renders the `ChatPanel` alongside the `Board` in a flex container — on desktop it appears as a sticky glass column, on mobile (≤719px) it becomes a full-screen overlay.
 
 ## API routes
 
@@ -213,7 +213,7 @@ CSS custom properties on `:root` (light) and `[data-theme="dark"]`. Accent colou
 
 ## Drag-and-drop
 
-`svelte-dnd-action` handles internal reordering (columns and items). Native HTML5 drag events on Column handle external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. **Entire folders** (including subfolders) can be dropped onto a column — subdirectories are created as subcategories with all files imported automatically (`$lib/utils/folder-drop.ts`). Reorder is persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`). Disabled for read-only shared spaces.
+`svelte-dnd-action` handles internal reordering (columns and items). Touch devices are supported via long-press gestures (native `svelte-dnd-action` touch support). Native HTML5 drag events on Column handle external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. **Entire folders** (including subfolders) can be dropped onto a column — subdirectories are created as subcategories with all files imported automatically (`$lib/utils/folder-drop.ts`). Reorder is persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`). Disabled for read-only shared spaces.
 
 ## Markdown rendering
 
@@ -243,7 +243,7 @@ src/
       Card.svelte         Item card (link, note, document)
       CategoryForm.svelte Category create/edit form
       ChangelogOverlay.svelte Space activity log with clickable navigation
-      ChatPanel.svelte    Real-time chat for shared spaces with presence
+      ChatPanel.svelte    Real-time chat column for shared spaces with presence
       Column.svelte       Single column with item list and drop zone
       Icon.svelte         Centralized SVG icon component
       ItemForm.svelte     Item create/edit form with tag input
@@ -251,7 +251,7 @@ src/
       Modal.svelte        Reusable modal dialog
       NoteOverlay.svelte  Full-screen markdown note reader
       ExportImportOverlay.svelte  Export/import spaces as ZIP archives
-      SettingsOverlay.svelte  Theme and palette settings
+      UserOverlay.svelte  Unified user/settings overlay (account, theme, palette, fonts)
       SpaceSharingOverlay.svelte  Share space by email, manage permissions
       SubcategoryCard.svelte  Subcategory display within a column
       TagInput.svelte     Tag selector with create-on-the-fly

@@ -132,7 +132,7 @@ Users can share spaces with others by email (read-only or read-write).
 /s/[space]/+error.svelte    → error page (unknown slugs redirect to /)
 ```
 
-Root layout (`+layout.svelte`) owns theme and palette stores. Root `+layout.server.ts` passes `user` from `event.locals` to all pages. Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and app context bridge.
+Root layout (`+layout.svelte`) owns theme and palette stores. Root `+layout.server.ts` passes `user` from `event.locals` to all pages. Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar, app context bridge, and chat store context.
 
 ### Hierarchical navigation
 
@@ -142,7 +142,7 @@ Categories can be moved up and down the hierarchy: **promote** a subcategory to 
 
 ### Layout ↔ Page communication
 
-Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar and theme. Page (`/s/[space]/+page.svelte`) registers callbacks via `setContext('app')` / `getContext('app')` so the Toolbar's Add/Search/Tag actions trigger the page's modals and filtering. The context object exposes reactive getters and setter functions — not plain values.
+Space layout (`/s/[space]/+layout.svelte`) owns the Toolbar, theme, and chat store (via `setContext('chat')`). Page (`/s/[space]/+page.svelte`) registers callbacks via `setContext('app')` / `getContext('app')` so the Toolbar's Add/Search/Tag actions trigger the page's modals and filtering. The context object exposes reactive getters and setter functions — not plain values. The page also renders the `ChatPanel` alongside the `Board` in a `board-area` flex container.
 
 ### File storage
 
@@ -173,7 +173,7 @@ Global CSS utility classes in `app.css`: `.glass`, `.glass-strong`, `.input`, `.
 
 ### Drag-and-drop
 
-`svelte-dnd-action` for internal reorder (columns and items). Native HTML5 drag events on Column for external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. **Entire folders** (including subfolders) can be dropped onto a column — subdirectories are created as subcategories with all files imported automatically (`$lib/utils/folder-drop.ts`). Reorder persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`). Disabled for read-only shared spaces.
+`svelte-dnd-action` for internal reorder (columns and items). Touch devices are supported via long-press gestures (native `svelte-dnd-action` touch support). Native HTML5 drag events on Column for external URL and file drops (`.webloc` files auto-convert to links, `.md` files to notes). Dropping items onto collapsed subcategories is supported. **Entire folders** (including subfolders) can be dropped onto a column — subdirectories are created as subcategories with all files imported automatically (`$lib/utils/folder-drop.ts`). Reorder persisted via batch transaction endpoints (`/api/categories/reorder`, `/api/items/reorder`). Disabled for read-only shared spaces.
 
 ### Markdown rendering
 
@@ -189,7 +189,7 @@ Full-screen overlay components follow a shared pattern: glass backdrop (`glass-s
 - **ExportImportOverlay** — Tabbed UI for exporting spaces as ZIP and importing from ZIP (preview + conflict resolution).
 - **SpaceSharingOverlay** — Share space by email, manage permissions, remove access.
 - **ChangelogOverlay** — Space activity log with clickable item navigation.
-- **ChatPanel** — Real-time chat panel for shared spaces with presence indicators.
+- **ChatPanel** — Real-time chat for shared spaces with presence indicators. Renders as a sticky glass column alongside the Board on desktop; becomes a full-screen overlay on mobile (≤719px). Chat store is created in the space layout and accessed via `getContext('chat')` in the page.
 - **HelpPanel** — Icon grid help panel (inline in Toolbar). Grid of clickable topic cards that drill into detail views with back navigation.
 
 ### Rate limiting

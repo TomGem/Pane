@@ -39,7 +39,7 @@ You can share spaces with other registered users.
 
 Shared spaces have a built-in **chat** for collaborating with other users.
 
-- Open the **chat panel** from the toolbar when inside a shared space.
+- Open the **chat panel** from the toolbar when inside a shared space. On desktop it appears as a column alongside the board; on mobile it opens as a full-screen overlay.
 - **Presence indicators** show which users are currently online (green dot on their avatar).
 - Messages appear in real time via server-sent events.
 - The space owner can **clear the chat history** if needed.
@@ -49,7 +49,7 @@ Shared spaces have a built-in **chat** for collaborating with other users.
 Categories are the columns on your board.
 
 - Click **Add category** (or `Ctrl+Shift+N`) to create a new column.
-- Drag columns left and right to reorder them.
+- Drag columns left and right to reorder them. On touch devices, use a **long press** to start dragging.
 - Click the column menu (`...`) to edit or delete a category.
 - Click the column name to drill down into subcategories.
 
@@ -87,7 +87,7 @@ Upload files (images, PDFs, etc.) up to **100 MB** per file. Click a document ca
 - Click the **+** button on a column header, or use `Ctrl+N`.
 - Choose the item type (link, note, or document).
 - Assign a category, add tags, and fill in the details.
-- You can also **drop a URL** or **drag a file** directly onto a column to add it instantly.
+- You can also **drop a URL** or **drag a file** directly onto a column to add it instantly (desktop).
 - Drop an **entire folder** onto a column to import all its contents at once — subfolders are automatically created as subcategories with their files.
 
 ## Tags & filtering

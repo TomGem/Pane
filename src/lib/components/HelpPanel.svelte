@@ -147,12 +147,12 @@
 						<li>Shared spaces appear in the <strong>"Shared with me"</strong> section on the dashboard</li>
 						<li>Space cards show a <strong>"Shared with N"</strong> indicator when shared</li>
 						<li>Leave a shared space anytime from the dashboard</li>
-						<li><strong>Real-time chat</strong> is available in shared spaces — open the chat panel to message collaborators</li>
+						<li><strong>Real-time chat</strong> is available in shared spaces — the chat panel appears as a column alongside the board on desktop, or as a full-screen overlay on mobile</li>
 						<li><strong>Presence indicators</strong> show which users are currently online in a shared space</li>
 					</ul>
 				{:else if activeSection === 'drag-drop'}
 					<ul>
-						<li>Drag items between columns to move them</li>
+						<li>Drag items between columns to move them — on touch devices, <strong>long press</strong> to start dragging</li>
 						<li>Drag items into expanded subcategories</li>
 						<li>Drag columns to reorder them</li>
 						<li>Drop a <strong>URL</strong> or <strong>file</strong> onto a column to add it instantly</li>
