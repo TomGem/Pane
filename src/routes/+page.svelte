@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto, invalidateAll } from '$app/navigation';
 	import { getContext, onMount } from 'svelte';
+	import { requestPermissionIfNeeded, showShareNotification, isTabHidden } from '$lib/utils/notifications';
 	import type { ThemeStore } from '$lib/stores/theme.svelte';
 	import type { PaletteStore } from '$lib/stores/palette.svelte';
 	import type { FontStore } from '$lib/stores/font.svelte';
@@ -17,12 +18,23 @@
 	onMount(() => {
 		if (data.singleUser) return;
 
+		requestPermissionIfNeeded();
 		const es = new EventSource('/api/events/user');
 		let debounceTimer: ReturnType<typeof setTimeout>;
 
-		es.onmessage = () => {
+		es.onmessage = (e) => {
 			clearTimeout(debounceTimer);
 			debounceTimer = setTimeout(() => invalidateAll(), 300);
+
+			try {
+				const event = JSON.parse(e.data);
+				if (event.type === 'share:created' && isTabHidden()) {
+					showShareNotification(
+						event.data?.ownerName ?? 'Someone',
+						event.data?.spaceName ?? 'a space'
+					);
+				}
+			} catch { /* ignore */ }
 		};
 
 		return () => {

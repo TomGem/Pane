@@ -8,6 +8,7 @@
 	import type { FontStore } from '$lib/stores/font.svelte';
 	import type { MonoFontStore } from '$lib/stores/mono-font.svelte';
 	import { createChatStore } from '$lib/stores/chat.svelte';
+	import { requestPermissionIfNeeded } from '$lib/utils/notifications';
 
 	let { data, children }: { data: { spaceSlug: string; spaceName: string; spaces: Space[]; ownerId?: string; permission: 'owner' | 'read' | 'write'; user?: { id: string; email: string; display_name: string; role: string } | null; storage?: StorageQuotaInfo | null; singleUser?: boolean; hasShares?: boolean; legalEnabled?: boolean }; children: Snippet } = $props();
 
@@ -41,6 +42,7 @@
 	// Create/destroy chat store (with its own SSE) when showChat changes
 	$effect(() => {
 		if (showChat && data.user) {
+			requestPermissionIfNeeded();
 			const store = createChatStore(data.spaceSlug, data.ownerId, data.user.id);
 			store.connectSSE();
 			chat = store;

@@ -1,5 +1,6 @@
 import type { ChatMessage, PresenceUser } from '$lib/types';
 import { api } from '$lib/utils/api';
+import { showChatNotification, isTabHidden } from '$lib/utils/notifications';
 
 function chatParams(spaceSlug: string, ownerId?: string): string {
 	let p = `space=${encodeURIComponent(spaceSlug)}`;
@@ -111,6 +112,9 @@ export function createChatStore(spaceSlug: string, ownerId: string | undefined, 
 				messages = [...messages, msg];
 				if (!isOpen) {
 					unreadCount++;
+				}
+				if (msg.user_id !== currentUserId && (!isOpen || isTabHidden())) {
+					showChatNotification(msg.display_name, msg.message);
 				}
 				break;
 			}

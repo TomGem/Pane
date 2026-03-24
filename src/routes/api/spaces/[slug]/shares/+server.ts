@@ -133,7 +133,7 @@ export const POST: RequestHandler = async ({ params, request, locals, url }) => 
 		);
 
 		// Notify the target user's dashboard via SSE
-		emitToUser(targetUser.id, { type: 'share:created', timestamp: Date.now() });
+		emitToUser(targetUser.id, { type: 'share:created', timestamp: Date.now(), data: { spaceName, ownerName: locals.user!.display_name } });
 
 		// Notify the space channel so the owner's UI can update (e.g. show chat button)
 		emit(locals.userId, slug, { type: 'share:created', timestamp: Date.now() });
