@@ -109,7 +109,7 @@
 					{/each}
 				</div>
 				<div class="help-clock">{clockText}</div>
-				<div class="help-version">Pane v2.5.1</div>
+				<div class="help-version">Pane v2.5.2</div>
 			</div>
 		{:else}
 			<div class="detail-header">
@@ -248,7 +248,7 @@
 					</ul>
 				{/if}
 				<div class="help-clock">{clockText}</div>
-				<div class="help-version">Pane v2.5.1</div>
+				<div class="help-version">Pane v2.5.2</div>
 			</div>
 		{/if}
 	</div>

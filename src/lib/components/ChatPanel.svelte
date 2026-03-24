@@ -461,7 +461,7 @@
 		word-break: break-word;
 		white-space: pre-wrap;
 		max-width: 85%;
-		background: var(--bg-secondary);
+		background: color-mix(in srgb, var(--accent) 33%, var(--bg-tertiary));
 	}
 
 	.chat-msg:not(.own) .msg-bubble {
