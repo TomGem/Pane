@@ -523,13 +523,14 @@
 <style>
 	.toolbar {
 		position: sticky;
-		top: 0;
+		top: 12px;
 		z-index: 100;
 		display: flex;
 		align-items: center;
 		gap: 16px;
 		padding: 10px 20px;
-		border-bottom: 1px solid var(--border);
+		margin: 12px 20px 0;
+		border-radius: var(--radius-lg);
 	}
 
 	.toolbar-left {
@@ -1165,6 +1166,8 @@
 		.toolbar {
 			padding: 10px 12px;
 			gap: 10px;
+			margin: 8px 16px 0;
+			top: 8px;
 		}
 
 		.toolbar-right {
