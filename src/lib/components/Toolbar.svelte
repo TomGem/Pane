@@ -181,7 +181,9 @@
 
 <header class="toolbar glass-strong">
 	<div class="toolbar-left">
-		<a class="toolbar-title" href="/" title="Browse spaces">Pane</a>
+		<a class="toolbar-home" href="/" title="Browse spaces">
+			<Icon name="grid" size={18} />
+		</a>
 		<div class="space-selector-wrapper">
 			<button
 				class="space-switcher-btn"
@@ -542,24 +544,22 @@
 		overflow: visible;
 	}
 
-	.toolbar-title {
-		font-size: 18px;
-		font-weight: 700;
-		letter-spacing: -0.02em;
-		color: var(--accent);
+	.toolbar-home {
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		flex-shrink: 0;
-		cursor: pointer;
-		border-radius: var(--radius-sm);
-		padding: 2px 6px;
-		margin: -2px -6px;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--radius);
+		color: var(--text-muted);
 		text-decoration: none;
 		transition: color var(--transition), background-color var(--transition);
 	}
 
-	.toolbar-title:hover {
+	.toolbar-home:hover {
 		color: var(--accent);
 		background: var(--accent-soft);
-		text-decoration: none;
 	}
 
 	.space-selector-wrapper {
@@ -1178,7 +1178,7 @@
 			display: flex;
 		}
 
-		.toolbar-title {
+		.toolbar-home {
 			display: none;
 		}
 

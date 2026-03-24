@@ -242,7 +242,8 @@
 		items: board.columns,
 		flipDurationMs: 200,
 		type: 'columns',
-		dropTargetStyle: {}
+		dropTargetStyle: {},
+		delayTouchStart: 200
 	}}
 	onconsider={handleColumnConsider}
 	onfinalize={handleColumnFinalize}

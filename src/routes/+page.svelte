@@ -125,7 +125,9 @@
 
 <header class="toolbar glass-strong">
 	<div class="toolbar-left">
-		<span class="toolbar-title">Pane</span>
+		<span class="toolbar-home">
+			<Icon name="grid" size={18} />
+		</span>
 		<span class="toolbar-subtitle">Spaces</span>
 	</div>
 	<div class="toolbar-right">
@@ -138,7 +140,11 @@
 			aria-label={data.user ? data.user.display_name : 'Settings'}
 			title={data.user ? data.user.display_name : 'Settings'}
 		>
-			<Icon name="user" size={18} />
+			{#if data.user?.avatar_path}
+				<img class="toolbar-avatar" src="/api/avatar?t={Date.now()}" alt="" />
+			{:else}
+				<Icon name="user" size={18} />
+			{/if}
 		</button>
 	</div>
 </header>
@@ -360,14 +366,15 @@
 <style>
 	.toolbar {
 		position: sticky;
-		top: 0;
+		top: 12px;
 		z-index: 100;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
 		padding: 10px 20px;
-		border-bottom: 1px solid var(--border);
+		margin: 12px 20px 0;
+		border-radius: var(--radius-lg);
 	}
 
 	.toolbar-left {
@@ -376,11 +383,21 @@
 		gap: 10px;
 	}
 
-	.toolbar-title {
-		font-size: 18px;
-		font-weight: 700;
-		letter-spacing: -0.02em;
-		color: var(--text-primary);
+	.toolbar-home {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border-radius: var(--radius);
+		color: var(--text-muted);
+	}
+
+	.toolbar-avatar {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		object-fit: cover;
 	}
 
 	.toolbar-subtitle {
@@ -617,6 +634,13 @@
 	}
 
 	@media (max-width: 719px) {
+		.toolbar {
+			padding: 10px 12px;
+			gap: 10px;
+			margin: 8px 16px 0;
+			top: 8px;
+		}
+
 		.spaces-board {
 			padding: 16px 12px;
 		}

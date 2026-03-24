@@ -116,7 +116,7 @@
 	<div
 		class="drop-zone"
 		class:expanded
-		use:dndzone={{ items: displayItems, flipDurationMs: 200, dropTargetStyle: {} }}
+		use:dndzone={{ items: displayItems, flipDurationMs: 200, dropTargetStyle: {}, delayTouchStart: 200 }}
 		onconsider={handleDndConsider}
 		onfinalize={handleDndFinalize}
 	>

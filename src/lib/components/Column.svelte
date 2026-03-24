@@ -246,7 +246,7 @@
 
 		<div
 			class="column-items"
-			use:dndzone={{ items: category.items, flipDurationMs: 200, dropTargetStyle: {} }}
+			use:dndzone={{ items: category.items, flipDurationMs: 200, dropTargetStyle: {}, delayTouchStart: 200 }}
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
 		>
