@@ -546,7 +546,7 @@
 		font-size: 18px;
 		font-weight: 700;
 		letter-spacing: -0.02em;
-		color: var(--text-primary);
+		color: var(--accent);
 		flex-shrink: 0;
 		cursor: pointer;
 		border-radius: var(--radius-sm);

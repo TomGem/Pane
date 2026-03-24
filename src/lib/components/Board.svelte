@@ -348,6 +348,7 @@
 	@media (max-width: 719px) {
 		.board {
 			gap: 12px;
+			width: 100%;
 		}
 
 		.board > :global(*) {

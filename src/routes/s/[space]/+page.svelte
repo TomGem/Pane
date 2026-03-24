@@ -680,6 +680,7 @@
 		flex: 1;
 		gap: 16px;
 		min-height: 0;
+		min-width: 0;
 		align-items: flex-start;
 	}
 

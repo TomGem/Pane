@@ -169,6 +169,7 @@
 		flex-direction: column;
 		padding: 16px;
 		overflow-x: auto;
+		min-width: 0;
 	}
 
 	@media (max-width: 719px) {
