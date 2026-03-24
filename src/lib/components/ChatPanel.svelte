@@ -214,7 +214,9 @@
 
 <style>
 	.chat-column {
+		margin-left: auto;
 		width: 360px;
+		background: var(--bg-secondary);
 		min-width: 360px;
 		display: flex;
 		flex-direction: column;
@@ -488,7 +490,7 @@
 		padding: 8px 12px;
 		font-size: 13px;
 		line-height: 1.4;
-		background: var(--bg-secondary);
+		background: var(--bg-primary);
 		color: var(--text-primary);
 		font-family: inherit;
 		max-height: 100px;
