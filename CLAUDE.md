@@ -30,7 +30,7 @@ No test framework is configured. Use `pnpm check` to validate types before commi
 ### Data flow
 
 ```
-hooks.server.ts (migration + auth middleware + session cleanup)
+hooks.server.ts (migration + auth middleware + session cleanup + rate limiting)
   → +layout.server.ts (pass user to all pages)
   → /s/[space]/+layout.server.ts (validate space ownership or shared access)
   → /s/[space]/+page.server.ts (SSR load categories+items+tags from user DB)
@@ -102,8 +102,8 @@ Users can share spaces with others by email (read-only or read-write).
 - **Shared space URLs**: `/s/{spaceSlug}?owner={ownerId}` — the `owner` param tells the server whose DB to query
 - **Read-only enforcement**: Server returns 403 for non-GET requests on read-only shares. Client hides add/edit/delete buttons and disables DnD via `isReadonly` flag.
 - **SpaceSharingOverlay** — Accessible from Toolbar "Share" button (owner only). Share by username (with autocomplete) or email. Add/remove shares, change permissions.
-- **Real-time notifications** — SSE via `GET /api/events/user` (`$lib/server/events.ts`). `emitToUser(userId, event)` broadcasts share events. Dashboard auto-refreshes.
-- **Real-time chat** — `GET/POST/DELETE /api/chat` for space-scoped messaging. `GET /api/chat/presence` for online user tracking. Messages broadcast via SSE. 2000-char limit, 50-message pagination. Owner can clear history.
+- **Real-time notifications** — SSE via `GET /api/events/user` (`$lib/server/events.ts`). `emitToUser(userId, event)` broadcasts share events. Dashboard auto-refreshes. **Browser notifications** (`$lib/utils/notifications.ts`) show desktop alerts for chat messages and space shares when the tab is hidden (requires user permission).
+- **Real-time chat** — `GET/POST/DELETE /api/chat` for space-scoped messaging. `GET /api/chat/presence` for online user tracking. Space-scoped SSE via `GET /api/events?space={slug}&owner={id}` for real-time message delivery. 2000-char limit, 50-message pagination. Owner can clear history.
 - **Privacy** — `show_email` column on users table (default 0). Toggle in UserOverlay. `GET/PUT /api/preferences`.
 
 ### User Avatars
@@ -153,6 +153,8 @@ Documents stored at `storage/{userId}/{space-slug}/{category-slug}/{uuid}.{ext}`
 - **`$lib/utils/api.ts`** — Typed fetch wrapper (`api<T>(url, options)`) used by the board store for all mutations. Parses JSON error bodies automatically.
 - **`$lib/utils/slugify.ts`** — Wrapper around `slugify` library for URL-safe slugs.
 - **`$lib/utils/folder-drop.ts`** — HTML5 folder drag-and-drop. Uses `webkitGetAsEntry()` for recursive directory traversal. Returns `FolderStructure` with files and subfolders.
+- **`$lib/utils/webloc.ts`** — Extracts URLs from macOS `.webloc` files (XML and binary plist formats). Used during drag-and-drop to convert `.webloc` files to link items.
+- **`$lib/utils/notifications.ts`** — Browser Notification API wrapper. Shows desktop notifications for chat messages and space shares when the tab is hidden. Uses `BroadcastChannel` to deduplicate across tabs.
 
 ### Client stores
 
@@ -213,6 +215,7 @@ In-memory per-IP rate limiter in `$lib/server/rate-limit.ts`. Applied to all `/a
 - `GET /api/chat/presence?space={slug}&owner={id}` — Online users in a shared space.
 - `GET/POST/DELETE /api/avatar` — User avatar management (2 MB max, JPEG/PNG/GIF/WebP).
 - `GET /api/changelog?space={slug}` — Paginated activity log for a space.
+- `GET /api/events?space={slug}&owner={id}` — Space-scoped SSE stream for real-time chat message delivery.
 - `GET /api/legal` — Public endpoint returning legal page content (privacy policy, legal notice) if enabled.
 
 ### Seed endpoint

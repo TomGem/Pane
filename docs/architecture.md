@@ -123,8 +123,8 @@ Users can share spaces with other registered users by email (read-only or read-w
 - **User search** — `GET /api/users/search?q={query}` returns up to 8 matching users by display name (respects `show_email` privacy preference). Used for username autocomplete in the sharing overlay.
 - **Shared space URLs**: `/s/{spaceSlug}?owner={ownerId}` — the `owner` param tells the server whose DB to query
 - **Read-only enforcement**: Server returns 403 for non-GET requests on read-only shares. Client hides add/edit/delete buttons and disables DnD via `isReadonly` flag.
-- **Real-time notifications** — Server-sent events (SSE) via `GET /api/events/user` notify users when spaces are shared or unshared with them. The dashboard auto-refreshes on these events.
-- **Real-time chat** — `GET/POST/DELETE /api/chat` for space-scoped messaging. `GET /api/chat/presence` for online user tracking. Messages broadcast via SSE. 2000-char limit, 50-message pagination. Owner can clear chat history.
+- **Real-time notifications** — Server-sent events (SSE) via `GET /api/events/user` notify users when spaces are shared or unshared with them. The dashboard auto-refreshes on these events. **Browser notifications** (`$lib/utils/notifications.ts`) show desktop alerts for chat messages and space shares when the tab is hidden (requires user permission).
+- **Real-time chat** — `GET/POST/DELETE /api/chat` for space-scoped messaging. `GET /api/chat/presence` for online user tracking. Space-scoped SSE via `GET /api/events?space={slug}&owner={id}` for real-time message delivery. 2000-char limit, 50-message pagination. Owner can clear chat history.
 - **User avatars** — `GET/POST/DELETE /api/avatar`. Upload JPEG/PNG/GIF/WebP up to 2 MB. Stored at `storage/{userId}/avatar.{ext}`. Displayed in chat and presence indicators.
 
 ## Admin panel
@@ -194,6 +194,7 @@ Errors return `{ error: string }` with appropriate status codes (201, 400, 401, 
 | `/api/spaces/[slug]/shares/[id]` | PUT, DELETE | Update / remove a share |
 | `/api/users/search` | GET | Search users by display name (autocomplete, max 8 results) |
 | `/api/preferences` | GET, PUT | Get / update user preferences (e.g. `show_email`) |
+| `/api/events` | GET (SSE) | Space-scoped SSE stream for real-time chat message delivery |
 | `/api/events/user` | GET (SSE) | Server-sent events for real-time sharing notifications |
 | `/api/seed` | POST | Populate an empty space with sample data |
 | `/api/export` | POST | Export spaces as ZIP archive |
@@ -290,7 +291,9 @@ src/
     utils/
       api.ts              Typed fetch wrapper
       folder-drop.ts      HTML5 folder drag-and-drop with recursive traversal
+      notifications.ts    Browser Notification API (chat messages, share alerts, tab dedup)
       slugify.ts          URL-safe slug generation
+      webloc.ts           Extract URLs from macOS .webloc files (XML and binary plist)
   routes/
     +layout.svelte        Root layout (theme + palette context)
     +layout.server.ts     Pass user from locals to all pages

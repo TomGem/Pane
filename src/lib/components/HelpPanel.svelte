@@ -149,6 +149,7 @@
 						<li>Leave a shared space anytime from the dashboard</li>
 						<li><strong>Real-time chat</strong> is available in shared spaces — the chat panel appears as a column alongside the board on desktop, or as a full-screen overlay on mobile</li>
 						<li><strong>Presence indicators</strong> show which users are currently online in a shared space</li>
+						<li><strong>Browser notifications</strong> alert you to new messages and shares when the tab is in the background</li>
 					</ul>
 				{:else if activeSection === 'drag-drop'}
 					<ul>

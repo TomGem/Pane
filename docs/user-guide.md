@@ -42,6 +42,7 @@ Shared spaces have a built-in **chat** for collaborating with other users.
 - Open the **chat panel** from the toolbar when inside a shared space. On desktop it appears as a column alongside the board; on mobile it opens as a full-screen overlay.
 - **Presence indicators** show which users are currently online (green dot on their avatar).
 - Messages appear in real time via server-sent events.
+- **Browser notifications** alert you to new chat messages and space shares when your tab is in the background (grant notification permission when prompted).
 - The space owner can **clear the chat history** if needed.
 
 ## Categories
