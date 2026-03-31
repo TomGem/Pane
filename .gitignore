@@ -36,4 +36,4 @@ ecosystem.config.cjs
 .pnpm-store/
 
 # Various
-TASK.md
+notes/

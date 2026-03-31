@@ -87,10 +87,7 @@
 		<p class="auth-footer" style="margin-top: 16px;">
 			<a href="/feature-overview.html" target="_blank">Feature overview</a>
 		</p>
-		<p class="auth-footer" style="margin-top: 8px;">
-			<a href="https://github.com/TomGem/Pane" target="_blank">GitHub</a>
-		</p>
-		{#if data.legalEnabled}
+{#if data.legalEnabled}
 			<p class="auth-footer legal-links" style="margin-top: 16px;">
 				<a href="/legal">Privacy Policy</a>
 				<span class="legal-sep">&middot;</span>
